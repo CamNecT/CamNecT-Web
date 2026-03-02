@@ -28,7 +28,7 @@ export interface StompReadReceiptResponse {
     roomId: number;
     lastReadMessageId: number;
     readAt: string;
-    type?: 'READ'; // 읽었을때만 type필드 추가 
+    type?: 'READ'; // 해당 optional 필드로 읽음여부 판단
 }
 
 // 4. [발행] 메시지 보내기 (/pub/chat/message)
@@ -40,8 +40,8 @@ export interface StompMessageRequest {
 // 5. 유니온 타입: 소켓으로 받은 데이터에 type 필드가 있으면 읽음 처리, 없으면 일반 메시지
 export type StompChatResponse = StompMessageResponse | StompReadReceiptResponse;
 
-// 타입 가드: 수신된 데이터가 읽음 처리 데이터인지 확인하는 함수
-// isReadRecipt가 true이면 data는 StompReadReceiptResponse 타입으로 추론
+// 타입 가드: 수신된 데이터가 '읽음 처리 데이터'인지 판단
+// (data is StompReadReceiptResponse) : Type predicate (해당 함수가 true면 호출부에서 StompReadReceiptResponse 타입으로 추론)
 export const isReadReceipt = (data: StompChatResponse): data is StompReadReceiptResponse => {
     return (data as StompReadReceiptResponse).type === 'READ';
 };

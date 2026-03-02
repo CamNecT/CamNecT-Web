@@ -28,7 +28,9 @@ export const ChatRoomPage = () => {
 const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+
     const { user } = useAuthStore();
+
     const { data: chatRoomData, isLoading: isRoomLoading } = useChatRoom(roomId);
     const { mutate: endChat } = useChatRoomClose();
     const { mutate: exitChat } = useChatRoomExit();
@@ -39,7 +41,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [roomSearchQuery, setRoomSearchQuery] = useState("");
 
-    // 소켓 연결 상태를 추적할 로컬 상태 추가 (지연 초기화로 최신 상태 반영)
+    // todo 소켓 연결 상태를 추적할 로컬 상태 추가 (지연 초기화로 최신 상태 반영)
     const [isSocketReady, setIsSocketReady] = useState(() => stompClient.connected);
     
     // 메뉴 관련 상태
@@ -82,7 +84,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // todo (복습) 실시간 읽음 처리 (Read Receipt) 감시 및 캐시 동기화
     useEffect(() => {
-        // 1. 백그라운드일때 OS가 아예 socket을 종료시켰을수도 있으니 체크
+        // 1. 백그라운드일때 OS가 아예 socket을 종료시켰을수도 있으니 체크 (socketInitializer를 호출하면 되는것 아닌지?)
         if (!stompClient.active) {
             stompClient.activate();
         }
@@ -136,7 +138,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     }, [roomId, queryClient]);
 
     // STOMP 채팅방 나가기 처리 (브라우저 종료/새로고침 대응)
-    // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행됩니다.
+    // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행
     useEffect(() => {
         const handleBeforeUnload = () => {
             leaveChatRoom();
@@ -275,6 +277,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 채팅방 나가기 함수 (목록에서 삭제)
     const handleExitChat = () => {
         setIsMenuOpen(false);
+        
         setConfirmPopUpConfig({
             title: "채팅방을 나가시겠습니까?",
             content: "방을 나가면 채팅목록에서 사라지며\n다시 복구할 수 없습니다.",
