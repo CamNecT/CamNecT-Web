@@ -98,10 +98,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 const data: StompChatResponse = JSON.parse(message.body);
 
                 if (isReadReceipt(data)) {
+                    // setQueryData : 로컬 캐시 데이터를 업데이트 (updater 함수의 첫 인자는 oldData)
                     queryClient.setQueryData(['chatRoom', roomId], (oldData: ChatRoomDetailData | undefined) => {
                         if (!oldData) return oldData;
                         return {
-                            ...oldData,
+                            ...oldData, // 다른 property들은 유지
                             messages: oldData.messages.map((msg: ChatMessage) => 
                                 Number(msg.id) <= data.lastReadMessageId 
                                     ? { ...msg, isRead: true, readAt: data.readAt } 
