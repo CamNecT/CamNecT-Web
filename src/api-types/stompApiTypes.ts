@@ -37,11 +37,13 @@ export interface StompMessageRequest {
     content: string;
 }
 
-// 5. 유니온 타입: 소켓으로 받은 데이터에 type 필드가 있으면 읽음 처리, 없으면 일반 메시지
+// 5. Union Type: 같은 주소의 반환값이 두 타입 중 하나
 export type StompChatResponse = StompMessageResponse | StompReadReceiptResponse;
 
 // 타입 가드: 수신된 데이터가 '읽음 처리 데이터'인지 판단
 // (data is StompReadReceiptResponse) : Type predicate (해당 함수가 true면 호출부에서 StompReadReceiptResponse 타입으로 추론)
 export const isReadReceipt = (data: StompChatResponse): data is StompReadReceiptResponse => {
+    // as : casting X, data가 StompMessageResponse면 undefined 
+    // boolean 반환해야 type predicate 사용 가능
     return (data as StompReadReceiptResponse).type === 'READ';
 };
