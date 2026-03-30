@@ -10,7 +10,7 @@ interface ChatListProps {
 }
 
 // 
-export const ChatList = ({ chatRoom, isFirstPaddingDisabled = true, isClosed = false, onClick }: ChatListProps) => {
+export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = false, onClick }: ChatListProps) => {
     return (
         <li 
             className={`border-b border-gray-150 py-[15px] ${isFirstPaddingDisabled ? 'first:pt-0' : ''} ${isClosed ? 'bg-gray-150' : ''}`}
