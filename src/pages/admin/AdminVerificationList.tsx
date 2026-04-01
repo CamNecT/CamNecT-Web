@@ -98,7 +98,7 @@ export const AdminVerificationList = () => {
     return (
         <AdminFullLayout
             headerSlot={
-                <MainHeader title="증명서 승인 리스트" />
+                <MainHeader title="증명서 승인 리스트" isAdmin={true} />
             }
         >
             <div className="flex flex-col h-full bg-white">

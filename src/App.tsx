@@ -23,7 +23,7 @@ function App() {
     check();
   }, []);
 
-  useSocketInitializer(); 
+  useSocketInitializer(); //todo 여기서부터 호출하는 이유?
   useUnreadCountQuery();
   const { popUpConfig, clearPopUpConfig } = useCommunityErrorPopupStore();
 

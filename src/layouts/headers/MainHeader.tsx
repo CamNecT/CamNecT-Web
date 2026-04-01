@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
+import { logout } from '../../api/profileApi';
+import { useAuthStore } from '../../store/useAuthStore';
 
 type HeaderAction = {
   icon: IconName;
@@ -25,6 +27,7 @@ type MainHeaderProps = {
   leftAriaLabel?: string;
   // 뱃지 관련 속성 추가
   showBadge?: boolean;
+  isAdmin?: boolean;
 };
 
 export const MainHeader = ({
@@ -34,13 +37,32 @@ export const MainHeader = ({
   leftIcon,
   leftAriaLabel,
   showBadge,
+  isAdmin,
 }: MainHeaderProps) => {
   const navigate = useNavigate();
+  const setLogout = useAuthStore((s) => s.setLogout);
+  const authUserId = useAuthStore((s) => s.user?.id);
+
+  const handleLogout = async () => {
+    try {
+      const loginUserId = Number(authUserId);
+      if (Number.isFinite(loginUserId)) {
+        await logout(loginUserId);
+      }
+    } catch (e) {
+      console.warn('logout failed:', e);
+    } finally {
+      setLogout();
+      navigate('/login');
+    }
+  };
+
   const normalizedRightActions = rightActions ?? [];
   // 왼쪽 아이콘 기본 동작: 별도 전달이 없으면 mainBack + 뒤로가기(-1)
-  const leftIconName = leftAction?.icon ?? 'mainBack';
-  const leftClickHandler = leftAction?.onClick ?? (() => navigate(-1));
-  const leftLabel = leftAction?.ariaLabel ?? leftAriaLabel ?? '뒤로 가기';
+  // isAdmin인 경우 로그아웃 아이콘과 동작으로 고정
+  const leftIconName = isAdmin ? 'logOut' : (leftAction?.icon ?? 'mainBack');
+  const leftClickHandler = isAdmin ? handleLogout : (leftAction?.onClick ?? (() => navigate(-1)));
+  const leftLabel = isAdmin ? '로그아웃' : (leftAction?.ariaLabel ?? leftAriaLabel ?? '뒤로 가기');
 
   return (
     <header
