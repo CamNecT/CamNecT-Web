@@ -261,7 +261,7 @@ export default function TagEditModal({ userId, tagIds, onClose }: TagEditModalPr
                                 </section>
 
                                 {/*태그 리스트*/}
-                                {selectedTagIds.length < 5 && (
+                                {selectedTagIds.length < 5 ? (
                                     <section className="flex-1 min-h-0 overflow-y-auto pb-[40px]">
                                         <div className="w-full flex flex-col">
                                             {filteredCategories.map(category => (
@@ -286,6 +286,10 @@ export default function TagEditModal({ userId, tagIds, onClose }: TagEditModalPr
                                             ))}
                                         </div>
                                     </section>
+                                ): (
+                                    <div className="flex flex-1 flex-col items-center justify-center gap-[10px] pb-[40px]">
+                                        <p className="text-r-16 text-gray-650">최대 5개까지만 선택 가능합니다.</p>
+                                    </div>
                                 )}
                             </section>
                         </div>
