@@ -23,33 +23,36 @@ export const useSocketInitializer = () => {
             Authorization: `Bearer ${accessToken}`,
         };
 
+        // 전역 채팅 목록 구독함수
         const setUpSubscriptions = () => {
              if (!stompClient.connected) return;
              
-            // 전역 채팅 목록 destination
+            // 전역 채팅 목록 destination (개인 채팅방 전체 구독)
             stompClient.subscribe(`/sub/user/${user?.id}/rooms`, () => {
+                // 채팅방 목록 API 갱신
                 queryClient.invalidateQueries({ 
                     queryKey: ['chatRooms'], 
                     exact: false, 
                     refetchType: 'all' 
                 });
 
+                // 안읽은 메시지 개수 API 갱신
                 queryClient.invalidateQueries({
                     queryKey: ['chatUnreadCount']
                 });
             });
         }
 
-        // 연결 성공 후 실행될 단 하나의 마스터 핸들러
+        // socket 연결 성공 후 실행될 단 하나의 마스터 핸들러
         stompClient.onConnect = (frame) => {
             console.log("STOMP 연결 성공! 전역 구독 및 이벤트 발송");
             setUpSubscriptions();
             
-            // 다른 컴포넌트들에게 "연결 완료"를 알림
+            // 다른 컴포넌트들에게 연결 완료 event 알림 (전역상태 사용 X -> 불필요한 리렌더링 방지) 
             window.dispatchEvent(new CustomEvent('stomp-connected', { detail: frame }));
         }
         
-        // 소켓 연결 (비활성 상태일 때만 활성화)
+        // 소켓 연결 (if문으로 검사 이유?)
         if (!stompClient.active) {
             console.log("소켓 활성화 명령");
             stompClient.activate();
@@ -62,6 +65,8 @@ export const useSocketInitializer = () => {
 
         // 앱이 백그라운드에서 돌아왔을 때(visibilitychange) 소켓 재연결
         const handleVisibilityChange = () => {
+
+            // Page visibility API (Web API) : 브라우저 탭이 활성화 되었는지 감지 
             if (document.visibilityState === 'visible') {
                 if (!stompClient.active && isAuthenticated) {
                     console.log("앱 복귀 감지: 소켓 재활성화 시도");
@@ -70,6 +75,7 @@ export const useSocketInitializer = () => {
             }
         };
 
+        // 예약된 이벤트(visibilitychange) 등록 : 브라우저가 자동으로 실행
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {

@@ -3,18 +3,20 @@ import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { EditHeader } from "../../../layouts/headers/EditHeader";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import PopUp from "../../../components/Pop-up";
+import { updateProfileBio } from "../../../api/profileApi";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface IntroEditModalProps {
+    userId: number;
     initialStatement: string;
     onClose: () => void;
-    onSave: (newIntro: string) => void;
 }
 
 const MAX_LENGTH = 100;
 
-export default function IntroEditModal({ initialStatement, onClose, onSave }: IntroEditModalProps) {
+export default function IntroEditModal({ userId, initialStatement, onClose }: IntroEditModalProps) {
     const [statement, setStatement] = useState<string>(initialStatement);
-
+    const queryClient = useQueryClient();
 
     // 변경사항 추적
     const hasChanges = useMemo(() => statement !== initialStatement
@@ -41,8 +43,16 @@ export default function IntroEditModal({ initialStatement, onClose, onSave }: In
             onClose();
             return;
         }
-        onSave(statement);
+        mutation.mutate(statement);
     };
+
+    const mutation = useMutation({
+        mutationFn: (bio: string) => updateProfileBio(userId, { bio }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+            onClose();
+        },
+    });
 
     return (
         <div className="flex items-center justify-center fixed inset-0 z-50 bg-white">
@@ -58,9 +68,9 @@ export default function IntroEditModal({ initialStatement, onClose, onSave }: In
                                         hasChanges ? 'text-primary' : 'text-gray-650'
                                     }`}
                                     onClick={handleComplete}
-                                    disabled={!hasChanges}
+                                    disabled={!hasChanges || mutation.isPending}
                                 >
-                                    완료
+                                    {mutation.isPending ? '저장중..' : '완료'}
                                 </button>
                             }
                         />
