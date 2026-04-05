@@ -7,13 +7,27 @@ import { useModalHistory } from "../../../hooks/useModalHistory";
 import PopUp from "../../../components/Pop-up";
 import { generateId } from "../../../utils/uuid";
 import { searchInstitutions } from "../../../api/institutionApi";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { addEducation, updateEducation, deleteEducation } from "../../../api/userInfoApi";
+import { updateProfilePrivacy } from "../../../api/profileApi";
+import { convertEducationToRequest } from "../utils/dataConverter";
+import type { 
+    EducationAddResponse, 
+    EducationUpdateResponse, 
+    EducationDeleteResponse 
+} from "../../../api-types/userInfoApiTypes";
+import type { ProfilePrivacyUpdateResponse } from "../../../api-types/profileApiTypes";
 
 interface EducationModalProps {
+    userId: number;
     educations: EducationItem[];
-    initialShowPublic: boolean;
+    visibility: {  // ← 추가
+        isFollowerVisible: boolean;
+        educationVisibility: boolean;
+        careerVisibility: boolean;
+        certificateVisibility: boolean;
+    };
     onClose: () => void;
-    onSave: (educations: EducationItem[], showPublic: boolean) => void;
 }
 
 type View = 'list' | 'add' | 'edit';
@@ -23,13 +37,18 @@ const STATUS_OPTIONS = Object.entries(EDUCATION_STATUS_KR).map(([value, label]) 
     label
 }));
 
-export default function EducationModal({ educations, initialShowPublic, onClose, onSave }: EducationModalProps) {
+export default function EducationModal({ userId, educations, visibility, onClose }: EducationModalProps) {
+    const queryClient = useQueryClient();
+    const isServerId = (id: string) => /^\d+$/.test(id);
+    const initialShowPublic = visibility.educationVisibility
+
     const [currentView, setCurrentView] = useState<View>('list');
     const [listEducations, setListEducations] = useState<EducationItem[]>(educations);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPublic, setShowPublic] = useState(initialShowPublic);
     const [showWarning, setShowWarning] = useState(false);
     const [showSchoolInvalid, setShowSchoolInvalid] = useState(false);
+    const [saveErrorMessage, setSaveErrorMessage] = useState('');
 
     const [formData, setFormData] = useState<Partial<EducationItem>>({
         school: '',
@@ -92,12 +111,90 @@ export default function EducationModal({ educations, initialShowPublic, onClose,
         return false;
     }, [formData, currentView, editingId, listEducations, currentYear]);
 
+    const saveMutation = useMutation({
+        mutationFn: async () => {
+            const tasks: Promise<
+                ProfilePrivacyUpdateResponse
+                | EducationDeleteResponse
+                | EducationAddResponse
+                | EducationUpdateResponse
+            >[] = [];
+
+            // 1. 공개여부 변경
+            if (showPublic !== initialShowPublic) {
+                tasks.push(updateProfilePrivacy(userId, { 
+                    isFollowerVisible: visibility.isFollowerVisible,
+                    isEducationVisible: showPublic,
+                    isExperienceVisible: visibility.careerVisibility,
+                    isCertificateVisible: visibility.certificateVisibility,
+                }));
+            }
+
+            // 2. 삭제된 항목
+            const deletedIds = educations
+                .filter(orig => !listEducations.find(n => n.id === orig.id))
+                .filter(e => isServerId(e.id))
+                .map(e => Number(e.id));
+
+            for (const id of deletedIds) {
+                tasks.push(deleteEducation(userId, id));
+            }
+
+            // 3. 새로 추가된 항목
+            const addedEducations = listEducations.filter(e => !isServerId(e.id));
+
+            for (const education of addedEducations) {
+                // 학교 이름 → institutionId 변환
+                const searchResult = await searchInstitutions({ keyword: education.school });
+                const institution = searchResult.data.institutions.find(
+                    i => i.nameKor === education.school
+                );
+                if (!institution) {
+                    throw new Error(`학교를 찾을 수 없습니다: ${education.school}`);
+                }
+
+                // 데이터 convert
+                const request = convertEducationToRequest(education, institution.id);
+                tasks.push(addEducation(userId, request));
+            }
+
+            // 4. 수정된 항목
+            const updatedEducations = listEducations.filter(n => {
+                if (!isServerId(n.id)) return false;
+                const original = educations.find(o => o.id === n.id);
+                return original && JSON.stringify(n) !== JSON.stringify(original);
+            });
+
+            for (const education of updatedEducations) {
+                const searchResult = await searchInstitutions({ keyword: education.school });
+                const institution = searchResult.data.institutions.find(
+                    i => i.nameKor === education.school
+                );
+                if (!institution) {
+                    throw new Error(`학교를 찾을 수 없습니다: ${education.school}`);
+                }
+
+                const request = convertEducationToRequest(education, institution.id);
+                tasks.push(updateEducation(userId, Number(education.id), request));
+            }
+
+            await Promise.all(tasks);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+            onClose();
+        },
+        onError: () => {
+            setSaveErrorMessage('정보 저장에 실패했습니다.');
+        },
+    });
+
     const handleComplete = () => {
         if (!hasListChanges) {
             onClose();
             return;
         }
-        onSave(listEducations, showPublic);
+        saveMutation.mutate();
     };
 
     const handleAddEducation = () => {
@@ -203,12 +300,12 @@ export default function EducationModal({ educations, initialShowPublic, onClose,
                                 rightElement = {
                                     <button
                                         className={`text-b-16-hn transition-colors ${
-                                            hasListChanges ? 'text-primary' : 'text-gray-650'
+                                            hasListChanges && !saveMutation.isPending ? 'text-primary' : 'text-gray-650'
                                         }`}
                                         onClick={handleComplete}
-                                        disabled={!hasListChanges}
+                                        disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        완료
+                                        {saveMutation.isPending ? '저장중..' : '완료'}
                                     </button>
                                 }
                             />
@@ -526,6 +623,14 @@ export default function EducationModal({ educations, initialShowPublic, onClose,
                 content="원하는 학교의 입력이 불가하다면\n문의사항에 남겨주세요."
                 buttonText="확인"
                 onClick={() => setShowSchoolInvalid(false)}
+            />
+            <PopUp
+                isOpen={!!saveErrorMessage}
+                type="error"
+                title="저장 실패"
+                content={saveErrorMessage}
+                buttonText="확인"
+                onClick={() => setSaveErrorMessage('')}
             />
         </div>
     );

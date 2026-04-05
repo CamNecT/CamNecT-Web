@@ -1,24 +1,25 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Icon from "../../components/Icon";
 import InfoSection from "./components/InfoSection";
 import ImageEditModal from "./components/ImageEditModal";
 import { useProfileEdit } from "./hooks/useProfileEdit";
 import { useProfileEditModals } from "./hooks/useProfileEditModal";
-import { useProfileSave } from "./hooks/useProfileSave";
 import TagsEditModal from "./components/TagsEditModal";
 import IntroEditModal from "./components/IntroEditModal";
 import EducationEditModal from "./components/EducationEditModal";
 import CareerEditModal from "./components/CareerEditModal";
 import CertificateEditModal from "./components/CertificateEditModal";
 import { HeaderLayout } from "../../layouts/HeaderLayout";
-import { EditHeader } from "../../layouts/headers/EditHeader";
+import { MainHeader } from "../../layouts/headers/MainHeader";
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png";
 import PopUp from "../../components/Pop-up";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/useAuthStore";
-import { requestTagList } from "../../api/auth";
+import { requestProfilePresign, requestTagList } from "../../api/auth";
 import { useFileUpload } from "../../hooks/useFileUpload";
+import axios from "axios";
+import { updateProfileImage,  updateProfilePrivacy } from "../../api/profileApi";
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -27,24 +28,21 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
 export const MypageEditPage = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const authUser = useAuthStore(state => state.user);
-    const userId = authUser?.id ? parseInt(authUser.id) : null;
+    const userId = authUser?.id ? parseInt(authUser.id) : 0;
     const pageRef = useRef<HTMLDivElement>(null);
 
-    type ImageAction = "KEEP"|"UPLOAD"|"DELETE";
-    const imageActionRef = useRef<ImageAction>("KEEP");
-    const imageFileRef = useRef<File | null>(null);
-
-    const { data, setData, resetToServer, hasChanges, originalData, isLoading, isError } = useProfileEdit(userId);
+    const { data, isLoading, isError } = useProfileEdit(userId);
     const { currentModal, openModal, closeModal } = useProfileEditModals();
-    const { saveProfile, isSaving } = useProfileSave();
 
     const [confirm, setConfirm] = useState(false);
     const [leaveOpen, setLeaveOpen] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [imageErrorMessage, setImageErrorMessage] = useState('');
+    const [isImageUploading, setIsImageUploading] = useState(false);
 
-    const { prepareFile, revokeUrl } = useFileUpload({
+    const { prepareFile } = useFileUpload({
         maxSizeMB: MAX_SIZE_MB,
         allowedTypes: ALLOWED_IMAGE_TYPES,
     });
@@ -65,47 +63,7 @@ export const MypageEditPage = () => {
         return { allTags: tags, tagIdToName: m };
     }, [tagList]);
 
-    const handleSave = async () => {
-        if (!hasChanges || !data || !userId || !originalData) return;
-
-        let imageChange:
-            | { action: "KEEP" }
-            | { action: "UPLOAD"; file: File }
-            | { action: "DELETE" };
-
-        if (imageActionRef.current === "UPLOAD") {
-            const file = imageFileRef.current;
-            if (!file) {
-            setSaveError("이미지 업로드 파일이 없습니다. 다시 선택해주세요.");
-            return;
-            }
-            imageChange = { action: "UPLOAD", file };
-        } else if (imageActionRef.current === "DELETE") {
-            imageChange = { action: "DELETE" };
-        } else {
-            imageChange = { action: "KEEP" };
-        }
-
-        const result = await saveProfile(data, originalData, imageChange);
-
-        if (result.success) {
-            imageActionRef.current = "KEEP";
-            imageFileRef.current = null;
-            setConfirm(true);
-        } else {
-            setSaveError(result.error || "저장에 실패했습니다.");
-            //저장 실패 시 서버값으로 되돌림
-            imageActionRef.current = "KEEP";
-            imageFileRef.current = null;
-            resetToServer();
-        }
-    };
-
     const handleClose = () => { 
-        if (hasChanges) {
-            setLeaveOpen(true);
-            return;
-        }
         navigate(-1);
     };
 
@@ -123,6 +81,8 @@ export const MypageEditPage = () => {
     }, [currentModal]);
 
     const handleSelectImage = (file: File) => {
+        closeModal();
+
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
             setImageErrorMessage('이미지는 webp / jpeg / png 형식만 업로드 가능합니다.');
             return;
@@ -139,26 +99,87 @@ export const MypageEditPage = () => {
             return;
         }
 
-        setData((prev) => {
-            const base = prev ?? data;
-            if (!base) return prev;
-
-            const prevImg = base.user.profileImg;
-            if (prevImg && prevImg.startsWith("blob:")) {
-                revokeUrl(prevImg);
-            }
-
-            return {
-                ...base,
-                user: { ...base.user, profileImg: prepared.previewUrl },
-            };
-        });
-
-        // 20MB이하의 이미지만 로직 실행
-        imageFileRef.current = prepared.file;
-        imageActionRef.current = "UPLOAD";
-        closeModal();
+        //서버에 사진 업로드
+        setIsImageUploading(true);
+        imageUploadMutation.mutate(prepared.file);
     };
+
+    const handleDeleteImage = () => {
+        closeModal();
+        setIsImageUploading(true);
+        imageDeleteMutation.mutate();
+    };
+
+    const imageUploadMutation = useMutation({
+        mutationFn: async (file: File) => {
+            // presigned URL 요청
+            const presignResponse = await requestProfilePresign({
+                userId: userId!,
+                contentType: file.type,
+                size: file.size,
+                originalFilename: file.name,
+            });
+
+            const { uploadUrl, fileKey, requiredHeaders } = presignResponse.data;
+
+            // S3 업로드
+            await axios.put(uploadUrl, file, { headers: requiredHeaders });
+
+            // 프로필 업데이트
+            await updateProfileImage(userId!, { profileImageKey: fileKey });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+            setIsImageUploading(false);
+        },
+        onError: () => {
+            setIsImageUploading(false);
+            setSaveError('이미지 업로드에 실패했습니다.');
+        },
+    });
+
+    const imageDeleteMutation = useMutation({
+        mutationFn: () => updateProfileImage(userId!, { profileImageKey: null }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+            setIsImageUploading(false);
+        },
+        onError: () => {
+            setIsImageUploading(false);
+            setSaveError('이미지 삭제에 실패했습니다. 다시 시도해주세요.');
+        },
+    });
+
+    const followerVisibilityMutation = useMutation({
+        mutationFn: (isVisible: boolean) => 
+            updateProfilePrivacy(userId!, { 
+                isFollowerVisible: isVisible,                              //새 값
+                isEducationVisible: data?.visibility.educationVisibility ?? false,   //기존 값 유지
+                isExperienceVisible: data?.visibility.careerVisibility ?? false,     //기존 값 유지
+                isCertificateVisible: data?.visibility.certificateVisibility ?? false, //기존 값 유지
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+        },
+        onError: (error) => {
+            console.error("팔로워 공개여부 변경 실패:", error);
+            setSaveError('설정 변경에 실패했습니다. 다시 시도해주세요.');
+        },
+    });
+
+        // 유저를 찾을 수 없음.
+    if (!userId || 0) {
+        return (
+            <PopUp
+                type="error"
+                title="유저 아이디 확인 불가"
+                content="잠시 후 다시 시도해주세요."
+                isOpen={true}
+                rightButtonText='확인'
+                onClick={() => navigate(-1)}
+            />
+        );
+    }
 
     // 로딩 중
     if (isLoading || !data) {
@@ -183,28 +204,16 @@ export const MypageEditPage = () => {
             />
         );
     }
-    
 
     const { user, visibility, educations, careers, certificates } = data;
-
+    
     return (
         <div>
             <HeaderLayout
                 headerSlot = {
-                    <EditHeader
+                    <MainHeader
                         title="프로필 수정"
                         leftAction={{onClick: handleClose}}
-                        rightElement={
-                            <button
-                                className={`text-b-16-hn transition-colors ${
-                                    hasChanges ? 'text-primary' : 'text-gray-650'
-                                }`}
-                                onClick={handleSave}
-                                disabled={!hasChanges || isSaving}
-                            >
-                                {isSaving ? '저장 중...' : '완료'}
-                            </button>
-                        }
                     />
                 }
             >
@@ -278,18 +287,10 @@ export const MypageEditPage = () => {
                                 <span className="text-SB-14 text-gray-900">팔로잉/팔로워 수 비공개</span>
                                 <button
                                     onClick={() => {
-                                        setData((prev) => {
-                                            const base = prev ?? data;
-                                            if (!base) return prev;
-                                            return {
-                                                ...base,
-                                                visibility: {
-                                                    ...base.visibility,
-                                                    isFollowerVisible: !base.visibility.isFollowerVisible
-                                                }
-                                            };
-                                        }
-                                    )}}
+                                        const newValue = !data.visibility.isFollowerVisible;
+                                        followerVisibilityMutation.mutate(newValue);  // 즉시 저장
+                                    }}
+                                    disabled={followerVisibilityMutation.isPending}
                                     className={`relative w-[50px] h-[24px] rounded-full transition-colors duration-300 ease-in-out ${
                                         data.visibility.isFollowerVisible ? 'bg-gray-300' : 'bg-primary'
                                     }`}
@@ -336,97 +337,44 @@ export const MypageEditPage = () => {
                 isOpen={currentModal === 'image'}
                 onClose={closeModal}
                 onSelect={handleSelectImage}
-                onDelete={() => {
-                    setData((prev) => {
-                        const base = prev ?? data;
-                        if (!base) return prev;
-
-                        const prevImg = base.user.profileImg;
-                        if (prevImg && prevImg.startsWith("blob:")) URL.revokeObjectURL(prevImg);
-
-                        return {
-                        ...base,
-                        user: { ...base.user, profileImg: null }, //null->삭제
-                        };
-                    });
-
-                    imageFileRef.current = null;
-                    imageActionRef.current = "DELETE";
-                    closeModal();
-                }}
+                onDelete={handleDeleteImage}
             />
             {currentModal === 'tags' && (
                 <TagsEditModal
+                    userId={userId}
                     tagIds={user.userTags || []}
                     onClose={closeModal}
-                    onSave={(newTagIds) => { 
-                        setData({ ...data, user: { ...user, userTags: newTagIds } }); 
-                        closeModal(); 
-                    }}
                 />
             )}
             {currentModal === 'intro' && (
                 <IntroEditModal
+                    userId={userId}
                     initialStatement={user.introduction}
                     onClose={closeModal}
-                    onSave={(newIntro) => { 
-                        setData({ ...data, user: { ...user, introduction: newIntro } }); 
-                        closeModal(); 
-                    }}
                 />
             )}
             {currentModal === 'education' && (
                 <EducationEditModal
+                    userId={userId}
                     educations={data.educations}
-                    initialShowPublic={visibility.educationVisibility}
+                    visibility={visibility}
                     onClose={closeModal}
-                    onSave={(updatedEducations, showPublic) => {
-                        setData({ 
-                            ...data, 
-                            educations: updatedEducations,
-                            visibility: {
-                                ...data.visibility,
-                                educationVisibility: showPublic
-                            }
-                        });
-                        closeModal();
-                    }}
                 />
             )}
             {currentModal === 'career' && (
                 <CareerEditModal
+                    userId={userId}
                     careers={data.careers}
-                    initialShowPublic={visibility.careerVisibility}
+                    visibility={visibility}
                     onClose={closeModal}
-                    onSave={(updatedCareers, showPublic) => {
-                        setData({ 
-                            ...data, 
-                            careers: updatedCareers,
-                            visibility: {
-                                ...data.visibility,
-                                careerVisibility: showPublic
-                            }
-                        });
-                        closeModal();
-                    }}
                 />
             )}
             {currentModal === 'certificate' && (
                 <CertificateEditModal
+                    userId={userId}
                     certificates={data.certificates}
-                    initialShowPublic={visibility.certificateVisibility}
+                    visibility={visibility}
                     onClose={closeModal}
-                    onSave={(updatedCertificates, showPublic) => {
-                        setData({ 
-                            ...data, 
-                            certificates: updatedCertificates,
-                            visibility: {
-                                ...data.visibility,
-                                certificateVisibility: showPublic
-                            }
-                        });
-                        closeModal();
-                    }}
                 />
             )}
             <PopUp
@@ -467,7 +415,10 @@ export const MypageEditPage = () => {
                 buttonText="확인"
                 onClick={() => setImageErrorMessage('')}
             />
-
+            <PopUp
+                type="loading"
+                isOpen={isImageUploading}
+            />
         </div>
     );
 };

@@ -78,8 +78,6 @@ export function useProfileEdit(userId: number | null) {
     // 현재 수정 중인 데이터
     const [data, setData] = useState<ProfileEditData | null>(null);
 
-    const resetToServer = () => setData(null);
-
     const effectiveData = data ?? initialData;
 
     const hasChanges = useMemo(() => {
@@ -90,7 +88,6 @@ export function useProfileEdit(userId: number | null) {
     return { 
         data: effectiveData, 
         setData,
-        resetToServer,
         hasChanges,
         originalData: initialData,
         isLoading,

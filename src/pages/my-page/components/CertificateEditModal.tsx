@@ -6,24 +6,44 @@ import { EditHeader } from "../../../layouts/headers/EditHeader";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import PopUp from "../../../components/Pop-up";
 import { generateId } from "../../../utils/uuid";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { addCertificate, updateCertificate, deleteCertificate } from "../../../api/userInfoApi";
+import { updateProfilePrivacy } from "../../../api/profileApi";
+import { convertCertificateToRequest } from "../utils/dataConverter";
+import type { 
+    CertificateAddResponse, 
+    CertificateUpdateResponse, 
+    CertificateDeleteResponse 
+} from "../../../api-types/userInfoApiTypes";
+import type { ProfilePrivacyUpdateResponse } from "../../../api-types/profileApiTypes";
 
 interface CertificateModalProps {
+    userId: number;
     certificates: CertificateItem[];
-    initialShowPublic: boolean;
+    visibility: {
+        isFollowerVisible: boolean;
+        educationVisibility: boolean;
+        careerVisibility: boolean;
+        certificateVisibility: boolean;
+    };
     onClose: () => void;
-    onSave: (certificates: CertificateItem[], showPublic: boolean) => void;
 }
 
 type View = 'list' | 'add' | 'edit';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-export default function CertificateModal({ certificates, initialShowPublic, onClose, onSave }: CertificateModalProps) {
+export default function CertificateModal({ userId, certificates, visibility, onClose }: CertificateModalProps) {
+    const queryClient = useQueryClient();
+    const isServerId = (id: string) => /^\d+$/.test(id);
+    const initialShowPublic = visibility.certificateVisibility;
+    
     const [currentView, setCurrentView] = useState<View>('list');
     const [listCertificates, setListCertificates] = useState<CertificateItem[]>(certificates);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPublic, setShowPublic] = useState(initialShowPublic);
     const [showWarning, setShowWarning] = useState(false);
+    const [saveErrorMessage, setSaveErrorMessage] = useState('');
     
     const [formData, setFormData] = useState<Partial<CertificateItem>>({
         name: '',
@@ -68,12 +88,72 @@ export default function CertificateModal({ certificates, initialShowPublic, onCl
         return false;
     }, [formData, currentView, editingId, listCertificates]);
 
+    const saveMutation = useMutation({
+        mutationFn: async () => {
+            const tasks: Promise<
+                | ProfilePrivacyUpdateResponse
+                | CertificateDeleteResponse
+                | CertificateAddResponse
+                | CertificateUpdateResponse
+            >[] = [];
+
+            // 1. 공개여부 변경
+            if (showPublic !== initialShowPublic) {
+                tasks.push(updateProfilePrivacy(userId, { 
+                    isFollowerVisible: visibility.isFollowerVisible,
+                    isEducationVisible: visibility.educationVisibility,
+                    isExperienceVisible: visibility.careerVisibility,
+                    isCertificateVisible: showPublic,
+                }));
+            }
+
+            // 2. 삭제된 항목
+            const deletedIds = certificates
+                .filter(orig => !listCertificates.find(n => n.id === orig.id))
+                .filter(c => isServerId(c.id))
+                .map(c => Number(c.id));
+
+            for (const id of deletedIds) {
+                tasks.push(deleteCertificate(userId, id));
+            }
+
+            // 3. 새로 추가된 항목
+            const addedCertificates = listCertificates.filter(c => !isServerId(c.id));
+
+            for (const certificate of addedCertificates) {
+                const request = convertCertificateToRequest(certificate);
+                tasks.push(addCertificate(userId, request));
+            }
+
+            // 4. 수정된 항목
+            const updatedCertificates = listCertificates.filter(n => {
+                if (!isServerId(n.id)) return false;
+                const original = certificates.find(o => o.id === n.id);
+                return original && JSON.stringify(n) !== JSON.stringify(original);
+            });
+
+            for (const certificate of updatedCertificates) {
+                const request = convertCertificateToRequest(certificate);
+                tasks.push(updateCertificate(userId, Number(certificate.id), request));
+            }
+
+            await Promise.all(tasks);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+            onClose();
+        },
+        onError: () => {
+            setSaveErrorMessage('정보 저장에 실패했습니다. 다시 시도해주세요.');
+        },
+    });
+
     const handleComplete = () => {
         if (!hasListChanges) {
             onClose();
             return;
         }
-        onSave(listCertificates, showPublic);
+        saveMutation.mutate();
     };
 
     const handleAddCertificate = () => {
@@ -166,9 +246,9 @@ export default function CertificateModal({ certificates, initialShowPublic, onCl
                                             hasListChanges ? 'text-primary' : 'text-gray-650'
                                         }`}
                                         onClick={handleComplete}
-                                        disabled={!hasListChanges}
+                                        disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        완료
+                                        {saveMutation.isPending ? '저장중..' : '완료'}
                                     </button>
                                 }
                             />
@@ -391,6 +471,14 @@ export default function CertificateModal({ certificates, initialShowPublic, onCl
                     setCurrentView('list');
                 }}
                 onRightClick={() => setShowWarning(false)}
+            />
+            <PopUp
+                isOpen={!!saveErrorMessage}
+                type="error"
+                title="저장 실패"
+                content={saveErrorMessage}
+                buttonText="확인"
+                onClick={() => setSaveErrorMessage('')}
             />
         </div>
     );
