@@ -28,7 +28,9 @@ export const ChatRoomPage = () => {
 const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+
     const { user } = useAuthStore();
+
     const { data: chatRoomData, isLoading: isRoomLoading } = useChatRoom(roomId);
     const { mutate: endChat } = useChatRoomClose();
     const { mutate: exitChat } = useChatRoomExit();
@@ -39,7 +41,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [roomSearchQuery, setRoomSearchQuery] = useState("");
 
-    // 소켓 연결 상태를 추적할 로컬 상태 추가 (지연 초기화로 최신 상태 반영)
+    // 소켓 연결 상태를 추적할 로컬 상태 (지연 초기화로 최신 상태 반영)
     const [isSocketReady, setIsSocketReady] = useState(() => stompClient.connected);
     
     // 메뉴 관련 상태
@@ -80,15 +82,16 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         };
     }, [isMenuOpen]);
 
-    // todo (복습) 실시간 읽음 처리 (Read Receipt) 감시 및 캐시 동기화
+    // 실시간 읽음 처리 (Read Receipt) 감시 및 캐시 동기화
     useEffect(() => {
-        // 1. 백그라운드일때 OS가 아예 socket을 종료시켰을수도 있으니 체크
+        // 1. 백그라운드일때 OS가 아예 socket을 종료시켰을수도 있으니 체크 (socketInitializer를 호출하면 되는것 아닌지?)
         if (!stompClient.active) {
             stompClient.activate();
         }
 
         let subscription: StompSubscription | null = null;
 
+        // 채팅방 구독 함수
         const performSubscribe = () => {
             if (!stompClient.connected || subscription) return;
 
@@ -96,10 +99,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 const data: StompChatResponse = JSON.parse(message.body);
 
                 if (isReadReceipt(data)) {
+                    // setQueryData : 로컬 캐시 데이터를 업데이트 (updater 함수의 첫 인자는 oldData)
                     queryClient.setQueryData(['chatRoom', roomId], (oldData: ChatRoomDetailData | undefined) => {
                         if (!oldData) return oldData;
                         return {
-                            ...oldData,
+                            ...oldData, // 다른 property들은 유지
                             messages: oldData.messages.map((msg: ChatMessage) => 
                                 Number(msg.id) <= data.lastReadMessageId 
                                     ? { ...msg, isRead: true, readAt: data.readAt } 
@@ -115,7 +119,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
         // 연결 상태 소식 듣기
         const handleStompConnected = () => {
-            console.log("ChatRoomPage: 연결 소식 접수!");
+            console.log("ChatRoomPage: 연결 완료!");
             performSubscribe();
         };
 
@@ -136,12 +140,13 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     }, [roomId, queryClient]);
 
     // STOMP 채팅방 나가기 처리 (브라우저 종료/새로고침 대응)
-    // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행됩니다.
+    // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행
     useEffect(() => {
         const handleBeforeUnload = () => {
             leaveChatRoom();
         };
 
+        // beforeunload : 브라우저 수준의 종료/새로고침시의 대응
         window.addEventListener('beforeunload', handleBeforeUnload);
         
         return () => {
@@ -159,16 +164,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const requestInfo = chatRoomData?.requestInfo;
     const isTeamRecruit = requestInfo?.type === 'TEAM_RECRUIT';
 
-    // API로 받은 기존 채팅 내역 데이터들
-    const remoteMessages = useMemo(() => {
-        return chatRoomData?.messages || [];
-    }, [chatRoomData?.messages]);
-
     const myId = String(user?.id);
 
-    // 실시간 메시지를 도메인 타입으로 변환
-    const mappedSocketMessages = useMemo(() => {
-        return socketMessages.map((msg):ChatMessage => ({
+    // 기존 채팅 내역 + 실시간 채팅 내역 병합
+    const allMessages = useMemo(() => {
+        // API로 받은 기존 채팅 내역 데이터들
+        const remoteMessages = chatRoomData?.messages || [];
+
+        // 실시간 메시지를 도메인 타입으로 변환
+        const mappedSocketMessages = socketMessages.map((msg): ChatMessage => ({
             id: String(msg.messageId),
             roomId: String(msg.roomId),
             senderId: String(msg.senderId),
@@ -176,13 +180,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             createdAt: msg.sendDate,
             isRead: msg.read,
             readAt: msg.readAt
-        }))
-    }, [socketMessages]);
+        }));
 
-    // API 데이터와 소켓 메시지를 합치기
-    const allMessages = useMemo(() => {
         return [...remoteMessages, ...mappedSocketMessages];
-    }, [remoteMessages, mappedSocketMessages]);
+    }, [chatRoomData?.messages, socketMessages]);
 
     // 검색어 필터링 적용
     const localMessages = useMemo(() => {
@@ -192,7 +193,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         );
     }, [allMessages, isSearching, roomSearchQuery]);
 
-    // todo 내가 보낸 제일 마지막 메시지 인덱스 (읽음 표시용)
+    // 내가 보낸 제일 마지막 메시지 인덱스 (읽음 표시용)
     const lastMyMessageIndex = useMemo(() => {
         for (let i = localMessages.length - 1; i >= 0; i--) {
             if (String(localMessages[i].senderId) === myId) return i;
@@ -205,7 +206,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         window.scrollTo(0, document.documentElement.scrollHeight);
     };
 
-    // 1. 레이아웃 안정화 및 초기 스크롤
+    // todo 1. 레이아웃 안정화 및 초기 스크롤
     useLayoutEffect(() => {
         if (!isLoading && !isReady && isSocketReady) {
             if (localMessages.length > 0) {
@@ -275,6 +276,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 채팅방 나가기 함수 (목록에서 삭제)
     const handleExitChat = () => {
         setIsMenuOpen(false);
+        
         setConfirmPopUpConfig({
             title: "채팅방을 나가시겠습니까?",
             content: "방을 나가면 채팅목록에서 사라지며\n다시 복구할 수 없습니다.",

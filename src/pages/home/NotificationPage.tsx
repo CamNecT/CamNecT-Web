@@ -238,7 +238,7 @@ export const NotificationPage = () => {
   const markAsRead = useNotificationStore((state) => state.markAsRead);
   const setItems = useNotificationStore((state) => state.setItems);
 
-  const { data: notificationResponse, error: notificationError } = useQuery({
+  const { data: notificationResponse, error: notificationError, isLoading } = useQuery({
     queryKey: ['notifications', userIdParam],
     queryFn: () => requestNotifications({ userId: userIdParam as string | number, size: 20 }),
     enabled: hasValidUserId,
@@ -312,37 +312,47 @@ export const NotificationPage = () => {
 
   return (
     <HeaderLayout headerSlot={<MainHeader title="알림" />}>
-      <section className="w-full bg-white">
-        {items.map((notification) => (
-          <div
-            key={notification.id}
-            className={`grid min-h-[70px] w-full grid-cols-[50px_minmax(0,1fr)] items-center gap-[13px] px-[25px] py-[10px] border-t border-[var(--Color_Gray_B,#ECECEC)] last:border-b ${
-              notification.isRead ? 'bg-white' : 'bg-[var(--ColorSub2,#F2FCF8)]'
-            }`}
-            role="button"
-            tabIndex={0}
-            onClick={() => handleNotificationClick(notification)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                handleNotificationClick(notification);
-              }
-            }}
-          >
-            {renderIcon(notification)}
-            <div className="flex min-w-0 flex-col gap-[4px]">
-              <div className="flex items-start justify-between gap-[8px]">
-                <p className="min-w-0 truncate text-sb-14 text-[var(--ColorBlack,#202023)]">
-                  [{titleMap[notification.type]}]
-                </p>
-                <span className="shrink-0 text-r-12 text-[var(--ColorGray3,#646464)]">
-                  {notification.dateLabel}
-                </span>
+      <section className="w-full flex-1 bg-white flex flex-col">
+        {items.length > 0 ? (
+          items.map((notification) => (
+            <div
+              key={notification.id}
+              className={`grid min-h-[70px] w-full grid-cols-[50px_minmax(0,1fr)] items-center gap-[13px] px-[25px] py-[10px] border-t border-[var(--Color_Gray_B,#ECECEC)] last:border-b ${
+                notification.isRead ? 'bg-white' : 'bg-[var(--ColorSub2,#F2FCF8)]'
+              }`}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleNotificationClick(notification)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleNotificationClick(notification);
+                }
+              }}
+            >
+              {renderIcon(notification)}
+              <div className="flex min-w-0 flex-col gap-[4px]">
+                <div className="flex items-start justify-between gap-[8px]">
+                  <p className="min-w-0 truncate text-sb-14 text-[var(--ColorBlack,#202023)]">
+                    [{titleMap[notification.type]}]
+                  </p>
+                  <span className="shrink-0 text-r-12 text-[var(--ColorGray3,#646464)]">
+                    {notification.dateLabel}
+                  </span>
+                </div>
+                {renderContent(notification)}
               </div>
-              {renderContent(notification)}
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          !isLoading && (
+            <div className="flex flex-1 flex-col items-center justify-center text-center pb-[100px]">
+              <p className="text-r-18 text-gray-700">
+                아직 도착한 알림이 없어요
+              </p>
+            </div>
+          )
+        )}
       </section>
       {activePopUpConfig && (
         <PopUp
