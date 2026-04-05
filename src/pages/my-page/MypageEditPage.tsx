@@ -168,7 +168,7 @@ export const MypageEditPage = () => {
     });
 
         // 유저를 찾을 수 없음.
-    if (!userId || 0) {
+    if (!userId || userId === 0) {
         return (
             <PopUp
                 type="error"
