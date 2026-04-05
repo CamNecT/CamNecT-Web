@@ -6,24 +6,44 @@ import { EditHeader } from "../../../layouts/headers/EditHeader";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import PopUp from "../../../components/Pop-up";
 import { generateId } from "../../../utils/uuid";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { addExperience, updateExperience, deleteExperience } from "../../../api/userInfoApi";
+import { updateProfilePrivacy } from "../../../api/profileApi";
+import { convertCareerToRequest } from "../utils/dataConverter";
+import type { 
+    ExperienceAddResponse, 
+    ExperienceUpdateResponse, 
+    ExperienceDeleteResponse 
+} from "../../../api-types/userInfoApiTypes";
+import type { ProfilePrivacyUpdateResponse } from "../../../api-types/profileApiTypes";
 
 interface CareerModalProps {
+    userId: number;
     careers: CareerItem[];
-    initialShowPublic: boolean;
+    visibility: {
+        isFollowerVisible: boolean;
+        educationVisibility: boolean;
+        careerVisibility: boolean;
+        certificateVisibility: boolean;
+    };
     onClose: () => void;
-    onSave: (careers: CareerItem[], showPublic: boolean) => void;
 }
 
 type View = 'list' | 'add' | 'edit';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-export default function CareerModal({ careers, initialShowPublic, onClose, onSave }: CareerModalProps) {
+export default function CareerModal({ userId, careers, visibility, onClose }: CareerModalProps) {
+    const queryClient = useQueryClient();
+    const isServerId = (id: string) => /^\d+$/.test(id);
+    const initialShowPublic = visibility.careerVisibility;
+    
     const [currentView, setCurrentView] = useState<View>('list');
     const [listCareers, setListCareers] = useState<CareerItem[]>(careers);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPublic, setShowPublic] = useState(initialShowPublic);
     const [showWarning, setShowWarning] = useState(false);
+    const [saveErrorMessage, setSaveErrorMessage] = useState('');
     
     const [formData, setFormData] = useState<Partial<CareerItem>>({
         organization: '',
@@ -71,12 +91,72 @@ export default function CareerModal({ careers, initialShowPublic, onClose, onSav
         return false;
     }, [formData, currentView, editingId, listCareers]);
 
+    const saveMutation = useMutation({
+        mutationFn: async () => {
+            const tasks: Promise<
+                | ProfilePrivacyUpdateResponse
+                | ExperienceDeleteResponse
+                | ExperienceAddResponse
+                | ExperienceUpdateResponse
+            >[] = [];
+
+            // 1. 공개여부 변경
+            if (showPublic !== initialShowPublic) {
+                tasks.push(updateProfilePrivacy(userId, { 
+                    isFollowerVisible: visibility.isFollowerVisible,
+                    isEducationVisible: visibility.educationVisibility,
+                    isExperienceVisible: showPublic,
+                    isCertificateVisible: visibility.certificateVisibility,
+                }));
+            }
+
+            // 2. 삭제된 항목
+            const deletedIds = careers
+                .filter(orig => !listCareers.find(n => n.id === orig.id))
+                .filter(c => isServerId(c.id))
+                .map(c => Number(c.id));
+
+            for (const id of deletedIds) {
+                tasks.push(deleteExperience(userId, id));
+            }
+
+            // 3. 새로 추가된 항목
+            const addedCareers = listCareers.filter(c => !isServerId(c.id));
+
+            for (const career of addedCareers) {
+                const request = convertCareerToRequest(career);
+                tasks.push(addExperience(userId, request));
+            }
+
+            // 4. 수정된 항목
+            const updatedCareers = listCareers.filter(n => {
+                if (!isServerId(n.id)) return false;
+                const original = careers.find(o => o.id === n.id);
+                return original && JSON.stringify(n) !== JSON.stringify(original);
+            });
+
+            for (const career of updatedCareers) {
+                const request = convertCareerToRequest(career);
+                tasks.push(updateExperience(userId, Number(career.id), request));
+            }
+
+            await Promise.all(tasks);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+            onClose();
+        },
+        onError: () => {
+            setSaveErrorMessage('정보 저장에 실패했습니다. 다시 시도해주세요.');
+        },
+    });
+
     const handleComplete = () => {
         if (!hasListChanges) {
             onClose();
             return;
         }
-        onSave(listCareers, showPublic);
+        saveMutation.mutate();
     };
 
     const handleAddCareer = () => {
@@ -201,9 +281,9 @@ export default function CareerModal({ careers, initialShowPublic, onClose, onSav
                                             hasListChanges ? 'text-primary' : 'text-gray-650'
                                         }`}
                                         onClick={handleComplete}
-                                        disabled={!hasListChanges}
+                                        disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        완료
+                                        {saveMutation.isPending ? '저장중..' : '완료'}
                                     </button>
                                 }
                             />
@@ -601,6 +681,14 @@ export default function CareerModal({ careers, initialShowPublic, onClose, onSav
                     setCurrentView('list');
                 }}
                 onRightClick={() => setShowWarning(false)}
+            />
+            <PopUp
+                isOpen={!!saveErrorMessage}
+                type="error"
+                title="저장 실패"
+                content={saveErrorMessage}
+                buttonText="확인"
+                onClick={() => setSaveErrorMessage('')}
             />
         </div>
     );

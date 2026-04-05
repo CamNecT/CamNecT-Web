@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { requestTagList } from "../../../api/auth";
@@ -6,29 +6,31 @@ import PopUp from "../../../components/Pop-up";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { EditHeader } from "../../../layouts/headers/EditHeader";
+import { updateProfileTags } from "../../../api/profileApi";
 
 interface TagEditModalProps {
+    userId: number;
     tagIds: number[];
     onClose: () => void;
-    onSave: (newIdTags: number[]) => void;
 }
 
 const ALLOWED_CATEGORY_IDS = new Set([1, 2, 3, 4, 5]);
 
 type UiTag = {
-  id: number;
-  name: string;
-  category: number; // categoryId
+    id: number;
+    name: string;
+    category: number; // categoryId
 };
 
 type UiCategory = {
-  id: number; // categoryId
-  name: string; // categoryName
-  tags: UiTag[];
+    id: number; // categoryId
+    name: string; // categoryName
+    tags: UiTag[];
 };
 
-export default function TagEditModal({ tagIds, onClose, onSave }: TagEditModalProps) {
+export default function TagEditModal({ userId, tagIds, onClose }: TagEditModalProps) {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [selectedTagIds, setSelectedTagIds] = useState<number[]>(tagIds);
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -140,6 +142,14 @@ export default function TagEditModal({ tagIds, onClose, onSave }: TagEditModalPr
         return formattedCategories;
     };
 
+    const mutation = useMutation({
+        mutationFn: (newTagIds: number[]) => updateProfileTags(userId, { tagIds: newTagIds }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
+            onClose();
+        },
+    });
+
     const handleClose = () => {
         if (hasChanges) {
             setShowWarning(true);
@@ -153,7 +163,7 @@ export default function TagEditModal({ tagIds, onClose, onSave }: TagEditModalPr
             onClose();
             return;
         }
-        onSave(selectedTagIds);
+        mutation.mutate(selectedTagIds);
     };
 
     const filteredCategories = getFilteredCategories();
@@ -184,9 +194,9 @@ export default function TagEditModal({ tagIds, onClose, onSave }: TagEditModalPr
                                             hasChanges ? 'text-primary' : 'text-gray-650'
                                         }`}
                                         onClick={handleComplete}
-                                        disabled={!hasChanges}
+                                        disabled={!hasChanges || mutation.isPending}
                                     >
-                                        완료
+                                        {mutation.isPending ? '저장중..' : '완료'}
                                     </button>
                                 }
                             />
@@ -251,7 +261,7 @@ export default function TagEditModal({ tagIds, onClose, onSave }: TagEditModalPr
                                 </section>
 
                                 {/*태그 리스트*/}
-                                {selectedTagIds.length < 5 && (
+                                {selectedTagIds.length < 5 ? (
                                     <section className="flex-1 min-h-0 overflow-y-auto pb-[40px]">
                                         <div className="w-full flex flex-col">
                                             {filteredCategories.map(category => (
@@ -276,6 +286,10 @@ export default function TagEditModal({ tagIds, onClose, onSave }: TagEditModalPr
                                             ))}
                                         </div>
                                     </section>
+                                ): (
+                                    <div className="flex flex-1 flex-col items-center justify-center gap-[10px] pb-[40px]">
+                                        <p className="text-r-16 text-gray-650">최대 5개까지만 선택 가능합니다.</p>
+                                    </div>
                                 )}
                             </section>
                         </div>
