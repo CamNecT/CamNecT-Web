@@ -84,11 +84,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // 실시간 읽음 처리 (Read Receipt) 감시 및 캐시 동기화
     useEffect(() => {
-        // 1. 백그라운드일때 OS가 아예 socket을 종료시켰을수도 있으니 체크 (socketInitializer를 호출하면 되는것 아닌지?)
-        if (!stompClient.active) {
-            stompClient.activate();
-        }
-
         let subscription: StompSubscription | null = null;
 
         // 채팅방 구독 함수
