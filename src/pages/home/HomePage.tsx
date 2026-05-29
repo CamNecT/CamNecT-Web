@@ -17,7 +17,7 @@ import CommunityBox from './components/CommunityBox';
 import ContestBox from './components/ContestBox';
 import PointBox from './components/PointBox';
 import RecommendBox from './components/RecommendBox';
-import { coffeeChatRequests, contests, homeGreetingUser, recommendList } from './homeData';
+import { homeGreetingUser } from './homeData';
 import { mapHomeResponseToViewModel } from './homeMapper';
 
 type PopUpConfig = {
@@ -124,11 +124,11 @@ export const HomePage = () => {
 
     const fallbackViewModel = {
         userName: storedUserName ?? homeGreetingUser.name,
-        coffeeChatRequests,
-        coffeeChatTotalCount: coffeeChatRequests.length,
-        pointBalance: 1230,
-        recommendList,
-        contests,
+        coffeeChatRequests: [],
+        coffeeChatTotalCount: 0,
+        pointBalance: 0,
+        recommendList: [],
+        contests: [],
     };
 
     const { data: homeResponse, error: homeError } = useQuery({

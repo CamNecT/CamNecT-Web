@@ -226,6 +226,49 @@ const renderIcon = (notification: NotificationItem) => {
   );
 };
 
+const buildCommunityPostLink = (postId?: number, commentId?: number) => {
+  if (!postId) return null;
+  if (!commentId) return `/community/post/${postId}`;
+
+  const searchParams = new URLSearchParams({
+    commentId: String(commentId),
+  });
+
+  return `/community/post/${postId}?${searchParams.toString()}`;
+};
+
+const resolveNotificationDestination = (notification: NotificationItem) => {
+  if (notification.link) return notification.link;
+
+  switch (notification.type) {
+    case 'coffeeChatRequest':
+    case 'teamApplicationReceived':
+      return notification.requestId
+        ? `/chat/requests/${notification.requestId}`
+        : '/chat/requests';
+    case 'coffeeChatAccepted':
+    case 'chatMessageReceived':
+      return '/chat';
+    case 'teamRecruitAccepted':
+      return notification.requestId
+        ? `/chat/requests/${notification.requestId}`
+        : '/chat/requests';
+    case 'followingPosted':
+      return notification.postId
+        ? buildCommunityPostLink(notification.postId, notification.commentId)
+        : '/community';
+    case 'commentAccepted':
+    case 'reply':
+    case 'comment':
+      return buildCommunityPostLink(notification.postId, notification.commentId);
+    case 'pointUse':
+    case 'pointEarn':
+    case 'default':
+    default:
+      return null;
+  }
+};
+
 export const NotificationPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -236,6 +279,7 @@ export const NotificationPage = () => {
   const hasValidUserId = userIdParam !== null;
   const items = useNotificationStore((state) => state.items);
   const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const markAsUnread = useNotificationStore((state) => state.markAsUnread);
   const setItems = useNotificationStore((state) => state.setItems);
 
   const { data: notificationResponse, error: notificationError, isLoading } = useQuery({
@@ -258,53 +302,33 @@ export const NotificationPage = () => {
   }, [notificationError, isErrorDismissed]);
 
   const handleNotificationClick = async (notification: NotificationItem) => {
-    markAsRead(notification.id);
-    if (hasValidUserId) {
+    const destination = resolveNotificationDestination(notification);
+
+    if (!notification.isRead && hasValidUserId) {
+      markAsRead(notification.id);
+
       try {
         await requestNotificationRead({
           userId: userIdParam as string | number,
           id: notification.id,
         });
         // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
-        queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount'] });
+        queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
         // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
         queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
       } catch (error) {
+        markAsUnread(notification.id);
         const status = getErrorStatus(error);
         const config = getErrorPopUpConfig(status);
         if (config) {
           setPopUpConfig(config);
         }
+        return;
       }
     }
 
-    // 서버가 준 link가 있다면 최우선적으로 거기로 이동
-    if (notification.link) {
-      navigate(notification.link);
-      return;
-    }
-
-    switch (notification.type) {
-      case 'coffeeChatRequest':
-        if (notification.requestId) {
-          navigate(`/chat/requests/${notification.requestId}`);
-        }
-        break;
-      case 'pointUse':
-        // 포인트 사용 - 내역 페이지가 없음 클릭해도 이동 X
-        break;
-      case 'pointEarn':
-        // 포인트 적립 - 내역 페이지가 없음 클릭해도 이동 X
-        break;
-      case 'commentAccepted':
-      case 'reply':
-      case 'comment':
-        if (notification.postId) {
-          navigate(`/community/post/${notification.postId}`);
-        }
-        break;
-      default:
-        break;
+    if (destination) {
+      navigate(destination);
     }
   };
 

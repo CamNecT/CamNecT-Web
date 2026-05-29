@@ -1,6 +1,6 @@
 import type { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { acceptCommunityComment, createCommunityComment, deleteCommunityComment, deleteCommunityPost, getCommunityPostComments, postCommunityBookmark, postCommunityLike, purchaseCommunityPostAccess, updateCommunityComment } from '../../api/community';
 import BottomSheetModalPost, {
   type ActionItem,
@@ -45,6 +45,7 @@ type PopUpConfig = {
 
 const CommunityPostPage = () => {
   const { postId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
   const currentUser = {
@@ -150,6 +151,7 @@ const CommunityPostPage = () => {
     highlightedCommentId,
     replyTarget,
     replyFocusToken,
+    highlightComment,
     handleReplyClick,
     handleSubmitComment,
     handleSaveEdit,
@@ -216,6 +218,20 @@ const CommunityPostPage = () => {
       }
     },
   });
+
+  useEffect(() => {
+    const commentId = searchParams.get('commentId');
+    if (!commentId || !sortedComments.length) return;
+
+    highlightComment(commentId);
+
+    const frameId = window.requestAnimationFrame(() => {
+      const targetElement = document.getElementById(`comment-${commentId}`);
+      targetElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [highlightComment, searchParams, sortedComments.length]);
 
   // 로딩 중에는 단일 PopUp만 노출
   const activePopUpConfig: PopUpConfig | null = isDetailLoading

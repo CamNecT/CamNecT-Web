@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -82,6 +83,17 @@ export const useCommentActions = ({
     [commentList],
   );
 
+  const highlightComment = useCallback((commentId: string) => {
+    setHighlightedCommentId(commentId);
+    if (highlightTimerRef.current) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+    highlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedCommentId(null);
+      highlightTimerRef.current = null;
+    }, 3000);
+  }, []);
+
   const handleReplyClick = (comment: CommentItem) => {
     if (!isInfoPost) return;
     if (replyTarget?.id === comment.id) {
@@ -91,14 +103,7 @@ export const useCommentActions = ({
     }
     setReplyTarget({ id: comment.id, name: comment.author.name });
     setReplyFocusToken((prev) => prev + 1);
-    setHighlightedCommentId(comment.id);
-    if (highlightTimerRef.current) {
-      window.clearTimeout(highlightTimerRef.current);
-    }
-    highlightTimerRef.current = window.setTimeout(() => {
-      setHighlightedCommentId(null);
-      highlightTimerRef.current = null;
-    }, 3000);
+    highlightComment(comment.id);
   };
 
   // 댓글 등록 (답글 포함)
@@ -230,6 +235,7 @@ export const useCommentActions = ({
     highlightedCommentId,
     replyTarget,
     replyFocusToken,
+    highlightComment,
     handleReplyClick,
     handleSubmitComment,
     handleSaveEdit,

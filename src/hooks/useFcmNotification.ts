@@ -1,5 +1,6 @@
 import { getId } from "firebase/installations";
 import { getToken, onMessage } from "firebase/messaging";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import { registerFcmToken } from "../api/push";
 import { installations, messaging } from "../shared/firebase";
@@ -7,6 +8,7 @@ import { useAuthStore } from "../store/useAuthStore";
 
 export const useFcmToken = () => {
     // 브라우저 알림 권한 요청 및 토큰 등록
+    const queryClient = useQueryClient();
 
     // useCallback : handleRequestPermission 함수가 변경되지 않도록 메모이제이션 (HomePage에서 의존성으로 사용중)
     const handleRequestPermission = useCallback(async () => {
@@ -61,10 +63,16 @@ export const useFcmToken = () => {
     useEffect(() => {
         const unsubscribe = onMessage(messaging, (payload) => {
             console.log("🔔 [포그라운드] FCM 메시지 도착:", payload);
+            const userId = useAuthStore.getState().user?.id;
+
+            if (!userId) return;
+
+            queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount'] });
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [queryClient]);
 
     return { handleRequestPermission };
 }

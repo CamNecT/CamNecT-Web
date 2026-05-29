@@ -32,7 +32,6 @@ export const requestNotificationRead = async (params: NotificationReadRequest) =
         {
             params: {
                 userId: params.userId,
-                id: params.id,
             },
         },
     );
