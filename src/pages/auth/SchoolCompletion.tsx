@@ -65,7 +65,14 @@ export const SchoolCompletion = () => {
                     {/* <ButtonWhite label = "재인증" /> */}
                     <Button 
                         label="시작하기"
-                        onClick={() => navigate('/home')}
+                        onClick={() => {
+                            // useAuthStore의 nextStep을 HOME으로 변경
+                            useAuthStore.setState((state) => ({
+                                user: state.user ? { ...state.user, nextStep: 'HOME' } : null
+                            }));
+                            // 홈 화면 이동
+                            navigate('/home');
+                        }}
                     />
                 </div>
             </div>
