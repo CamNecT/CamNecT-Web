@@ -13,6 +13,7 @@ import {
   type NotificationType,
 } from './notificationData';
 import { mapNotificationResponseToItems } from './notificationMapper';
+import { resolveNotificationDestination } from './notificationRouting';
 
 type PopUpConfig = {
   title: string;
@@ -226,53 +227,9 @@ const renderIcon = (notification: NotificationItem) => {
   );
 };
 
-const buildCommunityPostLink = (postId?: number, commentId?: number) => {
-  if (!postId) return null;
-  if (!commentId) return `/community/post/${postId}`;
-
-  const searchParams = new URLSearchParams({
-    commentId: String(commentId),
-  });
-
-  return `/community/post/${postId}?${searchParams.toString()}`;
-};
-
-const resolveNotificationDestination = (notification: NotificationItem) => {
-  if (notification.link) return notification.link;
-
-  switch (notification.type) {
-    case 'coffeeChatRequest':
-    case 'teamApplicationReceived':
-      return notification.requestId
-        ? `/chat/requests/${notification.requestId}`
-        : '/chat/requests';
-    case 'coffeeChatAccepted':
-    case 'chatMessageReceived':
-      return '/chat';
-    case 'teamRecruitAccepted':
-      return notification.requestId
-        ? `/chat/requests/${notification.requestId}`
-        : '/chat/requests';
-    case 'followingPosted':
-      return notification.postId
-        ? buildCommunityPostLink(notification.postId, notification.commentId)
-        : '/community';
-    case 'commentAccepted':
-    case 'reply':
-    case 'comment':
-      return buildCommunityPostLink(notification.postId, notification.commentId);
-    case 'pointUse':
-    case 'pointEarn':
-    case 'default':
-    default:
-      return null;
-  }
-};
-
 export const NotificationPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
   const [isErrorDismissed, setIsErrorDismissed] = useState(false);
   const userId = useAuthStore((state) => state.user?.id);
   const userIdParam = resolveUserIdParam(userId);
@@ -301,38 +258,31 @@ export const NotificationPage = () => {
     return getErrorPopUpConfig(status);
   }, [notificationError, isErrorDismissed]);
 
-  const handleNotificationClick = async (notification: NotificationItem) => {
+  const handleNotificationClick = (notification: NotificationItem) => {
     const destination = resolveNotificationDestination(notification);
 
     if (!notification.isRead && hasValidUserId) {
       markAsRead(notification.id);
 
-      try {
-        await requestNotificationRead({
-          userId: userIdParam as string | number,
-          id: notification.id,
+      requestNotificationRead({
+        userId: userIdParam as string | number,
+        id: notification.id,
+      })
+        .then(() => {
+          // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
+          queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
+          // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
+          queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
+        })
+        .catch(() => {
+          markAsUnread(notification.id);
         });
-        // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
-        queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
-        // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
-        queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
-      } catch (error) {
-        markAsUnread(notification.id);
-        const status = getErrorStatus(error);
-        const config = getErrorPopUpConfig(status);
-        if (config) {
-          setPopUpConfig(config);
-        }
-        return;
-      }
     }
 
     if (destination) {
       navigate(destination);
     }
   };
-
-  const activePopUpConfig = popUpConfig ?? queryErrorConfig;
 
   return (
     <HeaderLayout headerSlot={<MainHeader title="알림" />}>
@@ -378,14 +328,13 @@ export const NotificationPage = () => {
           )
         )}
       </section>
-      {activePopUpConfig && (
+      {queryErrorConfig && (
         <PopUp
-          isOpen={!!activePopUpConfig}
+          isOpen={!!queryErrorConfig}
           type="error"
-          title={activePopUpConfig.title}
-          content={activePopUpConfig.content}
+          title={queryErrorConfig.title}
+          content={queryErrorConfig.content}
           onClick={() => {
-            setPopUpConfig(null);
             setIsErrorDismissed(true);
           }}
         />

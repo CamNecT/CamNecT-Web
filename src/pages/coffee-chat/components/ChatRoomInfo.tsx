@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { ChatUser } from "../../../types/coffee-chat/coffeeChatTypes";
 import { formatFullDateWithDay } from "../../../utils/formatDate";
+import { formatStudentLabel } from "../../../utils/formatStudent";
 
 interface ChatRoomInfoProps {
     partner: ChatUser;
@@ -10,14 +11,6 @@ interface ChatRoomInfoProps {
         content: string;
     }
 }
-
-const formatStudentLabel = (studentId?: string) => {
-    const normalized = studentId?.trim() ?? "";
-    if (!normalized) return "";
-    return !isNaN(Number(normalized)) && normalized.length >= 2
-        ? `${normalized.slice(2, 4)}학번`
-        : normalized;
-};
 
 // 요청분야와 요청내용 연동 완료
 export const ChatRoomInfo = ({ partner, requestInfo }: ChatRoomInfoProps) => {
