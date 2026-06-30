@@ -43,6 +43,7 @@ import { Schedule } from "../pages/schedule/Schedule";
 import { ShopDetailPage } from "../pages/shop/ShopDetailPage";
 import { ShopPage } from "../pages/shop/ShopPage";
 import { AuthGuard } from "./AuthGuard";
+import { FindAccountPage } from "../pages/auth/FindAccountPage";
 
 export const router = createBrowserRouter([
 
@@ -64,6 +65,14 @@ export const router = createBrowserRouter([
             {
                 path: "signup",
                 element: <SignUpPage />,
+            },
+
+            {
+                path: "find-account",
+                children: [
+                    { path: "id", element: <FindAccountPage /> },
+                    { path: "password", element: <FindAccountPage />}
+                ]
             },
 
             // 로그인 필수 페이지들 

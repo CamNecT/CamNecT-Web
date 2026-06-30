@@ -165,9 +165,9 @@ export const LoginPage = () => {
       <Button label="로그인" className="w-full mb-[60px] flex-none" onClick={handleLogin} />
       
       <div className="max-w-[201px] w-full h-[17px] flex justify-between items-center flex-none">
-        <button className="text-gray-650 text-r-12 tracking-[-0.24px]">아이디 찾기</button>
+        <button className="text-gray-650 text-r-12 tracking-[-0.24px]" onClick={() => navigate("/find-account/id")}>아이디 찾기</button>
         <Divider/>
-        <button className="text-gray-650 text-r-12 tracking-[-0.24px]">비밀번호 찾기</button>
+        <button className="text-gray-650 text-r-12 tracking-[-0.24px]" onClick={() => navigate("/find-account/password")}>비밀번호 찾기</button>
         <Divider/>
         <button className="text-gray-650 text-r-12 tracking-[-0.24px]" onClick={() => navigate("/signup")}>회원가입</button>
       </div>
