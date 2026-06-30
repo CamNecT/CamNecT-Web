@@ -93,7 +93,7 @@ export const ChatListPage = () => {
           </div>
         </section>
 
-        <ol>
+        <ul>
           {
             // 검색어 여부로 분기 렌더링
             // todo 길게 클릭 후 삭제 기능 추가
@@ -113,7 +113,7 @@ export const ChatListPage = () => {
               onClick={() => handleChatRoomClick(chatRoom.roomId)}
             />
           ))}
-        </ol>
+        </ul>
         <PopUp isOpen={isLoading} type="loading" />
       </Tabs>
     </FullLayout>
