@@ -202,14 +202,14 @@ export const ProfileStep = ({ onNext }: ProfileStepProps) => {
           <ButtonWhite
             label="건너뛰기"
             onClick={onNext}
-            className="flex-1 !h-[50px] !rounded-[10px]"
+            className="flex-1 h-[50px] rounded-[10px]"
           />
 
           <Button
             disabled={!(introduction && selectedFile) || isSubmitting}
             label={isSubmitting ? "업로드 중..." : "다음"}
             onClick={handleNext}
-            className="flex-1 !h-[50px] !rounded-[10px]"
+            className="flex-1 h-[50px] rounded-[10px]"
           />
         </div>
       </div>
