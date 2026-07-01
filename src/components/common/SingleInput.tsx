@@ -3,6 +3,7 @@ import { forwardRef } from 'react';
 
 interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  labelClassName?: string; // 라벨용 className
   error?: string;
   helperText?: string;
   successMessage?: string;
@@ -15,12 +16,12 @@ interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
  * - forwardRef : props로 받은 ref를 실제 input태그에 주입
  */
 const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
-  ({ label, error, helperText, successMessage, className = '', type = 'text', ...props }, ref) => {
+  ({ label, labelClassName, error, helperText, successMessage, className = '', type = 'text', ...props }, ref) => {
     return (
       <div className={`w-full flex flex-col gap-[8px] ${className}`}>
         {/* 라벨 (optional) */}
         {label && (
-          <label className="text-m-16 text-gray-900 tracking-[-0.32px]">
+          <label className={`text-m-16 text-gray-900 tracking-[-0.32px] ${labelClassName}`}>
             {label}
           </label>
         )}
