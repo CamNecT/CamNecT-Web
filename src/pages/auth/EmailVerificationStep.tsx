@@ -17,6 +17,24 @@ interface EmailVerificationStepProps {
     onNext: () => void;
 }
 
+// 이메일 인증 폼 검증 (zod)
+// z.object : 폼 필드별 유효성 규칙 정의. 검증 실패 시 두 번째 인자 문자열이 errors에 담김
+const emailSchema = z.object({
+    // 1. 이메일 값
+    email: z
+    .string()
+    .min(1, "이메일을 입력해 주세요")
+    .regex(
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        "이메일 형식이 올바르지 않습니다"
+    ),
+    // 2. 이메일 인증번호
+    verificationCode: z.string().length(6, "인증번호 6자리를 입력해 주세요"),
+});
+
+// zod schema에서 type 자동으로 추론 (직접 type 선언 불필요)
+type EmailFormData = z.infer<typeof emailSchema>;
+
 // 이메일 인증 단계
 export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) => {
 
@@ -34,24 +52,6 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
     );
 
     const setLogin = useAuthStore((state) => state.setLogin);
-
-    // 이메일 인증 폼 검증 (zod)
-    // z.object : 폼 필드별 유효성 규칙 정의. 검증 실패 시 두 번째 인자 문자열이 errors에 담김
-    const emailSchema = z.object({
-        // 1. 이메일 값
-        email: z
-        .string()
-        .min(1, "이메일을 입력해 주세요")
-        .regex(
-            /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-            "이메일 형식이 올바르지 않습니다"
-        ),
-        // 2. 이메일 인증번호
-        verificationCode: z.string().length(6, "인증번호 6자리를 입력해 주세요"),
-    });
-
-    // zod schema에서 type 자동으로 추론 (직접 type 선언 불필요)
-    type EmailFormData = z.infer<typeof emailSchema>;
 
     // RHF로 폼 제어
     // resolver : zodResolver로 zod 규칙을 RHF에 연결 (다리 역할)
@@ -149,7 +149,7 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
         if (!emailSent) {
             setPopUpConfig({ title: "인증 오류", content: "먼저 인증 요청을 클릭하여 이메일을 전송해 주세요." });
             return;
-        }
+        }   
 
         emailVerifyMutation.mutate({ ...getEmailVerificationData(), code: codeValue });
     }
