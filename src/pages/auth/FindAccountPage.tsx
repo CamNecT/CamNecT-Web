@@ -14,13 +14,12 @@ export const FindAccountPage = () => {
     ]
     
     // 현재 탭 상태 
-    // todo 탭 상태에 따라 MainHeader title 변경
     const [activeId, setActiveId] = useState<string>('ID');
 
     // todo handle submit 함수 제작
 
     // activeId에따른 다른 form태그 감싸기 -> 함수 동작이 달라진다 (함수에 props로 받아서 다르게 처리)
-    // 
+    // todo 1. RHF + zod로 form 태그 관리
 
     return (
         <HeaderLayout

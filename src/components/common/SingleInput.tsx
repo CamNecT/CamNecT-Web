@@ -1,6 +1,8 @@
 import type { InputHTMLAttributes } from 'react';
 import { forwardRef } from 'react';
 
+// InputHTMLAttributes<HTMLInputElement> : <input>이 원래 받을 수 있는 props 타입
+// extends : 기본 input props를 물려받고, SingleInput 전용 props(label, error 등)를 추가
 interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   labelClassName?: string; // 라벨용 className
@@ -11,11 +13,13 @@ interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 /**
  * SingleInput: 한 줄 입력을 위한 공통 컴포넌트
- * - 디자인 일관성 유지 (Border, Radius, Padding 등)
  * - 에러 메시지 자동 표시
- * - forwardRef : props로 받은 ref를 실제 input태그에 주입
+ * - forwardRef : props로 받은 ref를 실제 input태그에 주입 (ref는 컴포넌트에 직접 사용 불가)
  */
+
+// forwardRef<HTMLInputElement, SingleInputProps> : ref 대상은 input, props 타입은 SingleInputProps
 const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
+  // ...props : placeholder, value, onChange 등 나머지 input props를 실제 input에 전달
   ({ label, labelClassName, error, helperText, successMessage, className = '', type = 'text', ...props }, ref) => {
     return (
       <div className={`w-full flex flex-col gap-[8px] ${className}`}>
@@ -27,6 +31,7 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
         )}
 
         <div className="relative">
+          {/* ref : 부모가 넘긴 ref를 실제 input DOM에 연결 */}
           <input
             ref={ref}
             type={type}
