@@ -85,7 +85,7 @@ export const useChatRooms = (type: ChatRoomListItemType) => {
                     lastMessage: normalizeText(room.lastMessage),
                     lastMessageDate: room.lastMessageTime,
                     unreadCount: room.unreadCount,
-                    isClosed: room.closed,
+                    isClosed: room.closed || room.opponentExited,
                 })),
                 requestExists: response.data.requestExists
             };

@@ -19,22 +19,24 @@ export const resolveNotificationDestination = (notification: NotificationItem) =
     case 'teamApplicationReceived':
       return notification.requestId
         ? `/chat/requests/${notification.requestId}`
-        : '/chat/requests';
+        : null;
     case 'coffeeChatAccepted':
     case 'chatMessageReceived':
       return '/chat';
     case 'teamRecruitAccepted':
       return notification.requestId
         ? `/chat/requests/${notification.requestId}`
-        : '/chat/requests';
+        : null;
     case 'followingPosted':
       return notification.postId
         ? buildCommunityPostLink(notification.postId, notification.commentId)
-        : '/community';
+        : null;
     case 'commentAccepted':
     case 'reply':
     case 'comment':
-      return buildCommunityPostLink(notification.postId, notification.commentId);
+      return notification.postId && notification.commentId
+        ? buildCommunityPostLink(notification.postId, notification.commentId)
+        : null;
     case 'pointUse':
     case 'pointEarn':
       return '/home';

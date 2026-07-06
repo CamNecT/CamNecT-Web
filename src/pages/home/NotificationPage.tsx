@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { viewChatRequestDetail, viewChatRoomDetail } from '../../api/chat';
 import { axiosInstance } from '../../api/axiosInstance';
+import { viewGifticonProduct } from '../../api/gifticon';
 import { requestNotificationRead, requestNotifications } from '../../api/notifications';
+import type { ApiResponse, CommunityPostCommentResponse } from '../../api-types/communityApiTypes';
 import PopUp from '../../components/Pop-up';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
@@ -51,7 +53,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
     return {
       title: '페이지를 찾을 수 없습니다',
       content:
-        '요청하신 페이지는 존재하지 않는 주소입니다.\\n주소를 다시 한번 확인해 주세요.',
+        '요청하신 페이지는 존재하지 않는 주소입니다.',
     };
   }
   if (status === 500) {
@@ -67,7 +69,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
 const getFallbackNavigationPopUpConfig = (): PopUpConfig => ({
   title: '이동할 수 없습니다',
   content:
-    '알림 대상이 삭제되었거나 더 이상 접근할 수 없어요.\\n알림은 읽음 처리되었습니다.',
+    '알림 대상이 삭제되었거나 더 이상 접근할 수 없어요.',
 });
 
 const getReadErrorPopUpConfig = (status: number | null): PopUpConfig => {
@@ -99,6 +101,35 @@ const getDestinationPathname = (destination: string) => {
 const getPathId = (pathname: string, pattern: RegExp) => {
   const match = pathname.match(pattern);
   return match?.[1] ? Number(match[1]) : null;
+};
+
+const isSameOriginDestination = (destination: string) => {
+  try {
+    const url = new URL(destination, window.location.origin);
+    return url.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+const getDestinationSearchParams = (destination: string) => {
+  try {
+    return new URL(destination, window.location.origin).searchParams;
+  } catch {
+    const query = destination.split('?')[1] ?? '';
+    return new URLSearchParams(query);
+  }
+};
+
+const isStaticAppPath = (pathname: string) => {
+  return [
+    '/home',
+    '/home/notices',
+    '/chat',
+    '/chat/requests',
+    '/community',
+    '/shop',
+  ].includes(pathname);
 };
 
 const titleMap: Record<NotificationType, string> = {
@@ -270,7 +301,12 @@ const validateNotificationDestination = async (
   destination: string,
   userId: string | number,
 ) => {
+  if (!isSameOriginDestination(destination)) {
+    throw createNavigationError(getFallbackNavigationPopUpConfig());
+  }
+
   const pathname = getDestinationPathname(destination);
+  const searchParams = getDestinationSearchParams(destination);
   const numericUserId = Number(userId);
 
   const communityPostId = getPathId(pathname, /^\/community\/post\/(\d+)$/);
@@ -278,6 +314,24 @@ const validateNotificationDestination = async (
     await axiosInstance.get(`/api/community/posts/${communityPostId}`, {
       params: { userId: numericUserId },
     });
+
+    const commentId = searchParams.get('commentId');
+    if (commentId) {
+      const response = await axiosInstance.get<ApiResponse<CommunityPostCommentResponse[]>>(
+        `/api/community/posts/${communityPostId}/comments`,
+      );
+      const hasComment = response.data.data.some(
+        (comment) => String(comment.commentId) === commentId,
+      );
+
+      if (!hasComment) {
+        throw createNavigationError({
+          title: '댓글을 찾을 수 없습니다',
+          content:
+            '알림 대상 댓글이 삭제되었거나 더 이상 접근할 수 없어요.',
+        });
+      }
+    }
     return;
   }
 
@@ -301,10 +355,23 @@ const validateNotificationDestination = async (
       throw createNavigationError({
         title: '종료된 커피챗입니다',
         content:
-          '이미 종료되었거나 나간 커피챗이라 이동할 수 없어요.\\n알림은 읽음 처리되었습니다.',
+          '이미 종료되었거나 나간 커피챗이라 이동할 수 없어요.',
       });
     }
+    return;
   }
+
+  const gifticonProductId = getPathId(pathname, /^\/shop\/(\d+)$/);
+  if (gifticonProductId) {
+    await viewGifticonProduct({ productId: gifticonProductId });
+    return;
+  }
+
+  if (isStaticAppPath(pathname)) {
+    return;
+  }
+
+  throw createNavigationError(getFallbackNavigationPopUpConfig());
 };
 
 export const NotificationPage = () => {
