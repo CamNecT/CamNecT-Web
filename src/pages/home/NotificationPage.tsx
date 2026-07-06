@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { viewChatRequestDetail, viewChatRoomDetail } from '../../api/chat';
+import { axiosInstance } from '../../api/axiosInstance';
 import { requestNotificationRead, requestNotifications } from '../../api/notifications';
 import PopUp from '../../components/Pop-up';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
@@ -60,6 +62,43 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
     };
   }
   return null;
+};
+
+const getFallbackNavigationPopUpConfig = (): PopUpConfig => ({
+  title: '이동할 수 없습니다',
+  content:
+    '알림 대상이 삭제되었거나 더 이상 접근할 수 없어요.\\n알림은 읽음 처리되었습니다.',
+});
+
+const getReadErrorPopUpConfig = (status: number | null): PopUpConfig => {
+  return getErrorPopUpConfig(status) ?? {
+    title: '알림을 확인할 수 없습니다',
+    content:
+      '알림을 읽음 처리하는 중 문제가 발생했어요.\\n잠시 후 다시 시도해 주세요.',
+  };
+};
+
+const getNavigationErrorPopUpConfig = (error: unknown): PopUpConfig => {
+  const config = (error as { popUpConfig?: PopUpConfig })?.popUpConfig;
+  if (config) return config;
+
+  const status = getErrorStatus(error);
+  return getErrorPopUpConfig(status) ?? getFallbackNavigationPopUpConfig();
+};
+
+const createNavigationError = (popUpConfig: PopUpConfig) => ({ popUpConfig });
+
+const getDestinationPathname = (destination: string) => {
+  try {
+    return new URL(destination, window.location.origin).pathname;
+  } catch {
+    return destination.split('?')[0] ?? destination;
+  }
+};
+
+const getPathId = (pathname: string, pattern: RegExp) => {
+  const match = pathname.match(pattern);
+  return match?.[1] ? Number(match[1]) : null;
 };
 
 const titleMap: Record<NotificationType, string> = {
@@ -227,9 +266,51 @@ const renderIcon = (notification: NotificationItem) => {
   );
 };
 
+const validateNotificationDestination = async (
+  destination: string,
+  userId: string | number,
+) => {
+  const pathname = getDestinationPathname(destination);
+  const numericUserId = Number(userId);
+
+  const communityPostId = getPathId(pathname, /^\/community\/post\/(\d+)$/);
+  if (communityPostId) {
+    await axiosInstance.get(`/api/community/posts/${communityPostId}`, {
+      params: { userId: numericUserId },
+    });
+    return;
+  }
+
+  const chatRequestId = getPathId(pathname, /^\/chat\/requests\/(\d+)$/);
+  if (chatRequestId) {
+    await viewChatRequestDetail({
+      userId: numericUserId,
+      requestId: chatRequestId,
+    });
+    return;
+  }
+
+  const chatRoomId = getPathId(pathname, /^\/chat\/(\d+)$/);
+  if (chatRoomId) {
+    const response = await viewChatRoomDetail({
+      userId: numericUserId,
+      roomId: chatRoomId,
+    });
+
+    if (response.data.closed || response.data.opponentExited) {
+      throw createNavigationError({
+        title: '종료된 커피챗입니다',
+        content:
+          '이미 종료되었거나 나간 커피챗이라 이동할 수 없어요.\\n알림은 읽음 처리되었습니다.',
+      });
+    }
+  }
+};
+
 export const NotificationPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
   const [isErrorDismissed, setIsErrorDismissed] = useState(false);
   const userId = useAuthStore((state) => state.user?.id);
   const userIdParam = resolveUserIdParam(userId);
@@ -258,31 +339,47 @@ export const NotificationPage = () => {
     return getErrorPopUpConfig(status);
   }, [notificationError, isErrorDismissed]);
 
-  const handleNotificationClick = (notification: NotificationItem) => {
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    setPopUpConfig(null);
     const destination = resolveNotificationDestination(notification);
 
     if (!notification.isRead && hasValidUserId) {
       markAsRead(notification.id);
 
-      requestNotificationRead({
-        userId: userIdParam as string | number,
-        id: notification.id,
-      })
-        .then(() => {
-          // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
-          queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
-          // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
-          queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
-        })
-        .catch(() => {
-          markAsUnread(notification.id);
+      try {
+        await requestNotificationRead({
+          userId: userIdParam as string | number,
+          id: notification.id,
         });
+        // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
+        queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
+        // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
+        queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
+      } catch (error) {
+        markAsUnread(notification.id);
+        setPopUpConfig(getReadErrorPopUpConfig(getErrorStatus(error)));
+        return;
+      }
     }
 
-    if (destination) {
-      navigate(destination);
+    if (!destination) {
+      setPopUpConfig(getFallbackNavigationPopUpConfig());
+      return;
     }
+
+    try {
+      if (hasValidUserId) {
+        await validateNotificationDestination(destination, userIdParam as string | number);
+      }
+    } catch (error) {
+      setPopUpConfig(getNavigationErrorPopUpConfig(error));
+      return;
+    }
+
+    navigate(destination);
   };
+
+  const activePopUpConfig = popUpConfig ?? queryErrorConfig;
 
   return (
     <HeaderLayout headerSlot={<MainHeader title="알림" />}>
@@ -328,13 +425,14 @@ export const NotificationPage = () => {
           )
         )}
       </section>
-      {queryErrorConfig && (
+      {activePopUpConfig && (
         <PopUp
-          isOpen={!!queryErrorConfig}
+          isOpen={!!activePopUpConfig}
           type="error"
-          title={queryErrorConfig.title}
-          content={queryErrorConfig.content}
+          title={activePopUpConfig.title}
+          content={activePopUpConfig.content}
           onClick={() => {
+            setPopUpConfig(null);
             setIsErrorDismissed(true);
           }}
         />

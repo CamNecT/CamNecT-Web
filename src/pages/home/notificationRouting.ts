@@ -37,7 +37,7 @@ export const resolveNotificationDestination = (notification: NotificationItem) =
       return buildCommunityPostLink(notification.postId, notification.commentId);
     case 'pointUse':
     case 'pointEarn':
-      return '/shop';
+      return '/home';
     case 'default':
     default:
       return null;
