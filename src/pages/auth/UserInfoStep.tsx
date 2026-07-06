@@ -17,7 +17,7 @@ interface UserInfoStepProps {
 const passwordPattern = /^(?=.*\d)(?=.*[a-z])[A-Za-z0-9!@#$%^&*()_+={}[\]|\\:;"'<>,.?/~`-]{8,16}$/;
 
 // zod : input 데이터 규칙 검사기
-// .refine() : 추가적인 검증 로직 (비밀번호 확인 검사)
+// .refine() : 필드간 비교
 const userInfoSchema = z.object({
         name: z
             .string()

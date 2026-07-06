@@ -7,9 +7,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 // Id찾기 폼 검증 (zod)
-const FindIdSchema = z.object({
-    name: z.string().min(1, "이름을 입력해주세요"),
-    
+const findIdSchema = z.object({
+    name: z
+        .string()
+        .min(1, "이름을 입력해 주세요")
+        .regex(/^(?:[가-힣]+|[a-zA-Z]+)$/, "이름은 한글 또는 영문만 입력할 수 있습니다"),
+
     email: z
         .string()
         .min(1, "이메일을 입력해주세요")
@@ -19,7 +22,7 @@ const FindIdSchema = z.object({
         )
 });
 
-type FindIdFormData = z.infer<typeof FindIdSchema>;
+type FindIdFormData = z.infer<typeof findIdSchema>;
 
 export const FindIdForm = () => {
 
@@ -27,7 +30,7 @@ export const FindIdForm = () => {
 
     // RHF
     const { register, handleSubmit, formState: { errors, isValid } } = useForm<FindIdFormData>({
-        resolver: zodResolver(FindIdSchema),
+        resolver: zodResolver(findIdSchema),
         mode: "onChange",
         defaultValues: {
             name: "",
@@ -36,14 +39,14 @@ export const FindIdForm = () => {
     });
     
     // ---- 함수 ----
-    const findId = (data: FindIdFormData) => {
+    const handleFindId = (data: FindIdFormData) => {
         // todo 아이디 찾기 mutation 구현   
         // todo 로딩 중 팝업 구현 
         console.log("제출된 정보:", data);
     }
 
     return (
-        <form onSubmit={handleSubmit(findId)} className="flex flex-col gap-[50px] px-[25px]">
+        <form onSubmit={handleSubmit(handleFindId)} className="flex flex-col gap-[50px] px-[25px]">
             <div className="flex flex-col gap-[30px] pt-[50px]">
                 <SingleInput
                     label="이름"
