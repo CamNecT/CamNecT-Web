@@ -1,6 +1,6 @@
 import Card from '../../../components/Card';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import PressableMotion from '../../../components/PressableMotion';
 
 
 // 홈 1/2-2: 커뮤니티 박스 UI
@@ -9,10 +9,8 @@ const CommunityBox = () => {
 
     return (
         //TODO: 카드 클릭 시 Community 라우터 연결
-        <motion.div
+        <PressableMotion
             className="flex-[124_124_0]"
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
         >
             <Card
                 width="100%"
@@ -78,7 +76,7 @@ const CommunityBox = () => {
                     </svg>
                 </div>
             </Card>
-        </motion.div>
+        </PressableMotion>
     );
 };
 

@@ -1,4 +1,5 @@
 import Card from '../../../components/Card';
+import PressableMotion from '../../../components/PressableMotion';
 
 // TODO: 백엔드 커피챗 요청 데이터와 페이지 이동 핸들러(onViewAll)를 연결해야 합니다.
 
@@ -133,13 +134,14 @@ const CoffeeChatBox = ({ requests, totalCount, onViewAll }: CoffeeChatBoxProps) 
                 </div>
             </div>
 
-            <button
+            <PressableMotion
+                as="button"
                 type="button"
                 className="flex w-full cursor-pointer items-center justify-center rounded-[7px] bg-primary px-[10px] py-[10px]"
                 onClick={onViewAll}
             >
                 <span className="text-sb-14 text-white">전체보기</span>
-            </button>
+            </PressableMotion>
         </Card>
     );
 };

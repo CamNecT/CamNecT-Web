@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/Card';
 import Category from '../../../components/Category';
 import Icon from '../../../components/Icon';
+import PressableMotion from '../../../components/PressableMotion';
 
 
 type RecommendBoxProps = {
@@ -104,7 +105,8 @@ function RecommendBox({
             </div>
 
             {/* 3그룹: 커피챗 요청 버튼 */}
-            <button
+            <PressableMotion
+                as="button"
                 type="button"
                 className={`flex w-full items-center justify-center rounded-[10px] bg-[var(--ColorMain,#00C56C)] py-[10px]${
                     onRequestChat ? ' cursor-pointer' : ''
@@ -116,7 +118,7 @@ function RecommendBox({
                 aria-label={`${name} 커피챗 요청하기`}
             >
                 <span className="text-sb-14 text-[color:var(--ColorWhite,#FFF)]">커피챗 요청하기</span>
-            </button>
+            </PressableMotion>
         </Card>
     );
 }
