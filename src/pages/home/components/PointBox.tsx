@@ -15,7 +15,7 @@ const PointBox = ({ points = 0 }: PointBoxProps) => {
         <Card
             width="100%"
             height="135px"
-            className="relative flex flex-col justify-between cursor-pointer border-none bg-gray-900! px-[16px] py-[13px] overflow-hidden [container-type:inline-size] flex-[180_180_0]"
+            className="relative flex flex-col justify-between cursor-pointer rounded-[15px] border-none bg-gray-900! px-[16px] py-[13px] overflow-hidden [container-type:inline-size] flex-[181_181_0]"
             onClick={() => navigate('/shop')}
         >
             {/* 포인트/CTA 텍스트 */}

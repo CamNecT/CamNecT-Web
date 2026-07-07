@@ -36,7 +36,7 @@ function RecommendBox({
         <Card
             width="100%"
             height="auto"
-            className="flex min-h-[161px] flex-col [padding:clamp(12px,4cqw,15px)] gap-[20px]"
+            className="flex min-h-[206px] flex-col gap-[20px] rounded-[10px] border-[#ECECEC] p-[15px]"
             role={onSelect ? 'button' : undefined}
             tabIndex={onSelect ? 0 : undefined}
             onClick={onSelect}
@@ -56,11 +56,11 @@ function RecommendBox({
                             <img
                                 src={profileImage}
                                 alt={`${name} 프로필`}
-                                className="h-[clamp(48px,14cqw,60px)] w-[clamp(48px,14cqw,60px)] shrink-0 rounded-full object-cover"
+                                className="h-[60px] w-[60px] shrink-0 rounded-full object-cover"
                             />
                         ) : (
                             <div
-                                className="h-[clamp(48px,14cqw,60px)] w-[clamp(48px,14cqw,60px)] shrink-0 rounded-full bg-[#D5D5D5]"
+                                className="h-[60px] w-[60px] shrink-0 rounded-full bg-[#D5D5D5]"
                                 aria-hidden
                             />
                         )}
@@ -75,7 +75,7 @@ function RecommendBox({
                         </div>
                     </div>
                 </div>
-                <div className="py-[9px]">
+                <div className="pt-[9px]">
                     <button
                         type="button"
                         className="flex items-center justify-center"
@@ -92,13 +92,13 @@ function RecommendBox({
 
             {/* 2그룹: 카테고리와 소개글 */}
             <div className="flex min-w-0 flex-col gap-[10px] pl-[7px]">
-                <div className="flex flex-wrap gap-[5px]">
+                <div className="flex flex-wrap gap-[3px]">
                     {categories.map((category, index) => (
                         <Category key={`${name}-${category}-${index}`} label={category} />
                     ))}
                 </div>
 
-                <p className="line-clamp-3 text-r-14 text-[color:var(--ColorGray3,#646464)] tracking-[-0.56px]">
+                <p className="line-clamp-2 text-r-14 text-[color:var(--ColorGray3,#646464)]">
                     {intro}
                 </p>
             </div>
@@ -106,7 +106,7 @@ function RecommendBox({
             {/* 3그룹: 커피챗 요청 버튼 */}
             <button
                 type="button"
-                className={`flex w-full items-center justify-center rounded-[clamp(8px,2.8cqw,10px)] bg-[var(--ColorMain,#00C56C)] py-[10px]${
+                className={`flex w-full items-center justify-center rounded-[10px] bg-[var(--ColorMain,#00C56C)] py-[10px]${
                     onRequestChat ? ' cursor-pointer' : ''
                 }`}
                 onClick={(event) => {
