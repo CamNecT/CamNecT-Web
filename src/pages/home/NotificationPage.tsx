@@ -69,7 +69,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
 const getFallbackNavigationPopUpConfig = (): PopUpConfig => ({
   title: '이동할 수 없습니다',
   content:
-    '알림 대상이 삭제되었거나 더 이상 접근할 수 없어요.',
+    '해당 항목이 삭제되어 접근할 수 없어요.',
 });
 
 const getReadErrorPopUpConfig = (status: number | null): PopUpConfig => {
@@ -328,7 +328,7 @@ const validateNotificationDestination = async (
         throw createNavigationError({
           title: '댓글을 찾을 수 없습니다',
           content:
-            '알림 대상 댓글이 삭제되었거나 더 이상 접근할 수 없어요.',
+            '댓글이 삭제되어 접근할 수 없어요.',
         });
       }
     }
@@ -355,7 +355,7 @@ const validateNotificationDestination = async (
       throw createNavigationError({
         title: '종료된 커피챗입니다',
         content:
-          '이미 종료되었거나 나간 커피챗이라 이동할 수 없어요.',
+          '이미 종료된 커피챗이라 이동할 수 없어요.',
       });
     }
     return;
