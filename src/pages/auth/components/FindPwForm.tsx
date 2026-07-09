@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import PopUp from "../../../components/Pop-up";
+import Icon from "../../../components/Icon";
 
 const emailSchema = z.object({
     // 1. Id
@@ -58,6 +59,7 @@ export const FindPwForm = () => {
 
     const [isCodeSent, setIsCodeSent] = useState<boolean>(false);
     const [isCodeVerified, setIsCodeVerified] = useState<boolean>(false);
+    const [showPassword, setShowPassword] = useState<boolean>(false);
     const [popUpConfig, setPopUpConfig] = useState<{ title: string; content: string } | null>(null);
 
     // RHF
@@ -125,8 +127,19 @@ export const FindPwForm = () => {
                         label="비밀번호"
                         labelClassName="pl-[3px]"
                         placeholder="비밀번호를 입력해 주세요"
+                        type={showPassword ? "text" : "password"}
+                        inputClassName="pr-[50px]"
                         {...registerPw("password")}
                         error={errorsPw.password?.message}
+                        rightIcon={
+                            <Icon
+                                name={showPassword ? "eyeOpen" : "eyeClosed"}
+                                className={showPassword ? "w-[24px] h-[24px]" : "w-[22px] h-[20px]"}
+                            />
+                        }
+                        rightIconAriaLabel="비밀번호 표시/숨김"
+                        rightIconAriaPressed={showPassword}
+                        onRightIconClick={() => setShowPassword((prev) => !prev)}
                     />
                     <SingleInput
                         label="비밀번호 확인"

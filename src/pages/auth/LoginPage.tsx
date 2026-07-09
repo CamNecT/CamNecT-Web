@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../api/auth";
 import Button from "../../components/Button";
+import Icon from "../../components/Icon";
 import PopUp from "../../components/Pop-up";
 import { useAuthRedirect } from "../../hooks/useAuthRedirect";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -22,22 +23,6 @@ const Logo = ({ className }: { className?: string }) => {
           <path d="M276.962 47.0779V33.4952H272.256V25.0929H274.857C276.591 25.0929 277.457 24.2085 277.457 22.4396V16.6274H286.002V25.0929H296.342V33.4952H286.002V46.1935C286.002 47.836 287.116 48.91 288.664 48.91C290.398 48.91 291.45 47.6465 291.45 45.5617H299.499C299.499 52.7005 295.041 57.3123 288.107 57.3123C281.172 57.3123 276.962 53.2059 276.962 47.0779Z" fill="#00C56C"/>
         </svg>
     );
-}
-
-const EyeCloedIcon = () => {
-  return (
-    <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2.78269 5.973C1.85323 7.07718 1.16112 8.3632 0.75 9.75C2.03359 14.088 6.02545 17.25 10.7505 17.25C11.737 17.25 12.6908 17.112 13.5949 16.855M5.01606 3.978C6.71756 2.84786 8.71193 2.24688 10.7505 2.25C15.4755 2.25 19.4664 5.412 20.75 9.748C20.0466 12.1173 18.5365 14.1616 16.4849 15.522M5.01606 3.978L1.80906 0.75M5.01606 3.978L8.64231 7.628M16.4849 15.522L19.6919 18.75M16.4849 15.522L12.8587 11.872C13.1355 11.5934 13.355 11.2627 13.5048 10.8986C13.6546 10.5346 13.7317 10.1445 13.7317 9.7505C13.7317 9.3565 13.6546 8.96636 13.5048 8.60235C13.355 8.23834 13.1355 7.9076 12.8587 7.629C12.5819 7.3504 12.2533 7.1294 11.8917 6.97863C11.53 6.82785 11.1424 6.75025 10.751 6.75025C10.3596 6.75025 9.97196 6.82785 9.61032 6.97863C9.24868 7.1294 8.92008 7.3504 8.6433 7.629M12.8577 11.871L8.64429 7.63" stroke="#A1A1A1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
-}
-
-const EyeOpenIcon = () => {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5C17 19.5 21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12C15 10.34 13.66 9 12 9Z" fill="#A1A1A1"/>
-    </svg>
-  )
 }
 
 const Divider = () => {
@@ -157,7 +142,10 @@ export const LoginPage = () => {
               onClick={() => setShowPassword(!showPassword)} aria-label="비밀번호 표시/숨김" aria-pressed={showPassword}
               className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center"
             >
-              {showPassword ? <EyeOpenIcon /> : <EyeCloedIcon />} 
+              <Icon
+                name={showPassword ? "eyeOpen" : "eyeClosed"}
+                className={showPassword ? "w-[24px] h-[24px]" : "w-[22px] h-[20px]"}
+              />
           </button>
         </div>
       </div>

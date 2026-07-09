@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 import { forwardRef } from 'react';
 
 // InputHTMLAttributes<HTMLInputElement> : <input>이 원래 받을 수 있는 props 타입
@@ -9,6 +9,11 @@ interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   helperText?: string;
   successMessage?: string;
+  inputClassName?: string; // 내부 input태그의 className
+  rightIcon?: ReactNode;
+  rightIconAriaLabel?: string;
+  rightIconAriaPressed?: boolean;
+  onRightIconClick?: () => void; 
 }
 
 /**
@@ -20,7 +25,21 @@ interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
 // forwardRef<HTMLInputElement, SingleInputProps> : ref 대상은 input, props 타입은 SingleInputProps
 const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
   // ...props : placeholder, value, onChange 등 나머지 input props를 실제 input에 전달
-  ({ label, labelClassName, error, helperText, successMessage, className = '', type = 'text', ...props }, ref) => {
+  ({
+    label,
+    labelClassName,
+    error,
+    helperText,
+    successMessage,
+    className = '',
+    inputClassName = '',
+    rightIcon,
+    rightIconAriaLabel,
+    rightIconAriaPressed,
+    onRightIconClick,
+    type = 'text',
+    ...props
+  }, ref) => {
     return (
       <div className={`w-full flex flex-col gap-[8px] ${className}`}>
         {/* 라벨 (optional) */}
@@ -36,7 +55,7 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
             ref={ref}
             type={type}
             className={`
-              w-full h-[60px] px-[20px] rounded-[10px] border bg-white
+              w-full h-[48px] pl-[20px] pr-[20px] rounded-[5px] border bg-white
               text-r-16 text-gray-900 placeholder:text-gray-400
               focus:outline-none transition-all duration-200
               ${error 
@@ -44,9 +63,28 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
                 : 'border-gray-150 focus:border-primary' // 정상일 때
               }
               disabled:bg-gray-50 disabled:text-gray-400
+              ${inputClassName}
             `}
             {...props}
           />
+          {rightIcon && (
+            onRightIconClick ? ( 
+              // click가능한 아이콘일때 
+              <button
+                type="button"
+                onClick={onRightIconClick}
+                aria-label={rightIconAriaLabel}
+                aria-pressed={rightIconAriaPressed}
+                className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center"
+              >
+                {rightIcon}
+              </button>
+            ) : (
+              <span className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center">
+                {rightIcon}
+              </span>
+            )
+          )}
         </div>
 
         {/* 에러 > 성공 메시지 > 도움말 메시지 */}
