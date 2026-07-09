@@ -70,8 +70,7 @@ export const router = createBrowserRouter([
             {
                 path: "find-account",
                 children: [
-                    { path: "id", element: <FindAccountPage /> },
-                    { path: "password", element: <FindAccountPage />}
+                    { path: ":tab", element: <FindAccountPage /> },
                 ]
             },
 
