@@ -1,10 +1,14 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import z from "zod";
+import { findId } from "../../../api/auth";
 import Button from "../../../components/Button";
 import SingleInput from "../../../components/common/SingleInput";
-import { useState } from "react";
 import PopUp from "../../../components/Pop-up";
-import z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 
 // Id찾기 폼 검증 (zod)
 const findIdSchema = z.object({
@@ -26,7 +30,8 @@ type FindIdFormData = z.infer<typeof findIdSchema>;
 
 export const FindIdForm = () => {
 
-    const [popUpConfig, setPopUpConfig] = useState<{ title: string; content: string } | null>(null);
+    const [popUpConfig, setPopUpConfig] = useState<{ title: ReactNode; content: ReactNode } | null>(null);
+    const navigate = useNavigate();
 
     // RHF
     const { register, handleSubmit, formState: { errors, isValid } } = useForm<FindIdFormData>({
@@ -37,12 +42,32 @@ export const FindIdForm = () => {
             email: "",
         }
     });
+
+    // 아이디 찾기 mutation
+    const findIdMutation = useMutation({
+        mutationFn: findId,
+        onSuccess: (data, variables) => {
+            setPopUpConfig({
+                title: (
+                    <>
+                        {variables.name}님의 아이디는{'\n'}
+                        <span className='text-b-18 text-primary'>{data.username}</span>
+                        입니다.
+                    </>
+                ),
+                content: ""
+            })
+        },
+        // todo onError 작성하기 (error case 명세서 작성 이후)
+    })
     
     // ---- 함수 ----
     const handleFindId = (data: FindIdFormData) => {
-        // todo 아이디 찾기 mutation 구현   
-        // todo 로딩 중 팝업 구현 
-        console.log("제출된 정보:", data);
+        findIdMutation.mutate({
+            name: data.name,
+            email: data.email
+        });
+        // todo 에러 시 각 폼의 에러문구 추가
     }
 
     return (
@@ -79,16 +104,17 @@ export const FindIdForm = () => {
                     title={popUpConfig.title}
                     content={popUpConfig.content}
                     onClick={() => {
+                        // 아이디 안내 팝업 '확인' 클릭시
                         setPopUpConfig(null);
+                        navigate("/login"); // 로그인 페이지로 이동
                     }}
                 />
             )}
 
-            {/* <PopUp 
-                isOpen={} 
+            <PopUp 
+                isOpen={findIdMutation.isPending} 
                 type="loading" 
-                title="인증번호를 전송하고 있습니다..." 
-            /> */}
+            />
         </form>
     );
 };
