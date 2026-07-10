@@ -3,7 +3,8 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useCommunityErrorPopupStore } from "../store/useCommunityErrorPopupStore";
 
 export const communityAxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  // dev에서는 상대경로("")로 요청해 Vite proxy를 태우고, 프로덕션에서는 실제 백엔드 주소를 사용
+  baseURL: import.meta.env.DEV ? "" : import.meta.env.VITE_API_BASE_URL,
   timeout: 9500,
   headers: {
     "Content-Type": "application/json",

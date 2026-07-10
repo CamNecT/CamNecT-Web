@@ -3,7 +3,8 @@ import { useAuthStore } from "../store/useAuthStore";
 
 // Axios 인스턴스 (API 모듈화)
 export const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL,
+    // dev에서는 상대경로("")로 요청해 Vite proxy를 태우고, 프로덕션에서는 실제 백엔드 주소를 사용
+    baseURL: import.meta.env.DEV ? "" : import.meta.env.VITE_API_BASE_URL,
     timeout: 9500, // Vercel Proxy는 10초이상 응답 지연 시 504 에러 발생 
     headers: {
         "Content-Type": "application/json",
