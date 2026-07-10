@@ -3,7 +3,7 @@ import { getToken, onMessage } from "firebase/messaging";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import { registerFcmToken } from "../api/push";
-import { installations, messaging } from "../shared/firebase";
+import { getFirebaseMessaging, installations } from "../shared/firebase";
 import { useAuthStore } from "../store/useAuthStore";
 
 export const useFcmToken = () => {
@@ -15,6 +15,17 @@ export const useFcmToken = () => {
         // 브라우저가 Notification API를 지원하는지 확인
         if (!("Notification" in window)) {
             console.warn("이 브라우저는 알림 기능을 지원하지 않습니다.");
+            return;
+        }
+
+        if (!window.isSecureContext || !("serviceWorker" in navigator)) {
+            console.warn("현재 접속 환경에서는 푸시 알림을 지원하지 않습니다.");
+            return;
+        }
+
+        const messaging = await getFirebaseMessaging();
+        if (!messaging) {
+            console.warn("Firebase Messaging을 지원하지 않는 브라우저입니다.");
             return;
         }
 
@@ -61,17 +72,27 @@ export const useFcmToken = () => {
 
     // 포그라운드(앱을 보고 있을 때) 메시지 수신 로그
     useEffect(() => {
-        const unsubscribe = onMessage(messaging, (payload) => {
-            console.log("🔔 [포그라운드] FCM 메시지 도착:", payload);
-            const userId = useAuthStore.getState().user?.id;
+        let unsubscribe: (() => void) | undefined;
+        let isMounted = true;
 
-            if (!userId) return;
+        getFirebaseMessaging().then((messaging) => {
+            if (!isMounted || !messaging) return;
 
-            queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount'] });
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            unsubscribe = onMessage(messaging, (payload) => {
+                console.log("🔔 [포그라운드] FCM 메시지 도착:", payload);
+                const userId = useAuthStore.getState().user?.id;
+
+                if (!userId) return;
+
+                queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount'] });
+                queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            });
         });
 
-        return () => unsubscribe();
+        return () => {
+            isMounted = false;
+            unsubscribe?.();
+        };
     }, [queryClient]);
 
     return { handleRequestPermission };
