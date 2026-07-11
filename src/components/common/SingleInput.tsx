@@ -44,7 +44,7 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
       <div className={`w-full flex flex-col gap-[8px] ${className}`}>
         {/* 라벨 (optional) */}
         {label && (
-          <label className={`text-m-16 text-gray-900 tracking-[-0.32px] ${labelClassName}`}>
+          <label className={`text-sb-16 text-gray-750 tracking-[-0.64px] ${labelClassName}`}>
             {label}
           </label>
         )}
@@ -97,7 +97,7 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
             *{successMessage}
           </p>
         ) : helperText ? (
-          <p className="text-r-12 text-gray-600 tracking-[-0.24px] font-normal pl-[2px]">
+          <p className="text-[10px] leading-[140%] text-gray-750 tracking-[-0.4px] font-normal pl-[10px]">
             *{helperText}
           </p>
         ) : null}

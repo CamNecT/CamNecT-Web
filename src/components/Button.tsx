@@ -12,7 +12,7 @@ const Button = ({ label, className = '', disabled, ...props }: ButtonProps) => {
     <button
       disabled={disabled}
       className={twMerge(
-        `max-w-[325px] w-full h-[50px] rounded-[25px] flex items-center justify-center text-SB-18 rotate-0 transition
+        `max-w-[325px] w-full h-[50px] rounded-[25px] flex items-center justify-center text-sb-18 tracking-[-0.72px] rotate-0 transition
         ${disabled 
           ? 'bg-gray-150 text-gray-750 cursor-not-allowed' 
           : 'bg-primary text-white cursor-pointer active:scale-95 active:brightness-95'

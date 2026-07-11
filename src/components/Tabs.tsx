@@ -12,12 +12,14 @@ type TabsProps = {
   onChange: (id: string) => void;
   children?: ReactNode;
   className?: string;
+  isVisible?: boolean;
 };
 
-export function Tabs({ tabs, activeId, onChange, children, className = '' }: TabsProps) {
-  return (
+export function Tabs({ tabs, activeId, onChange, children, className = '', isVisible = true }: TabsProps) {
+  return ( 
     <div className={`w-full ${className}`}>
-      <div className='relative flex w-full justify-evenly pb-2.5'>
+      {isVisible &&
+        <div className='relative flex w-full justify-evenly pb-2.5'>
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -38,8 +40,9 @@ export function Tabs({ tabs, activeId, onChange, children, className = '' }: Tab
           </button>
         ))}
         {/* 하단 전체 가로선 */}
-        <span className='absolute left-0 right-0 bottom-0 h-[1px] bg-gray-650' />
-      </div>
+          <span className='absolute left-0 right-0 bottom-0 h-[1px] bg-gray-650' />
+        </div>
+      }
       {children && <div>{children}</div>}
     </div>
   );
