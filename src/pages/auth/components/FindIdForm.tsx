@@ -73,9 +73,7 @@ export const FindIdForm = () => {
             })
         },
         onError: (error: AxiosError) => {
-            // todo SingleInput 다시 타이핑 시에 setError초기화
             const status = error.response?.status;
-            // 서버에서 내려주는 에러 객체의 구조에 따라 접근 (data.message)
             const errorData = error.response?.data as { invalidProperties?: string[] };
             const invalidProperties = errorData?.invalidProperties ?? []; 
 

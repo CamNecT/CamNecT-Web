@@ -5,16 +5,16 @@ import type {
     DeleteAccountRequest, DeleteAccountResponse,
     EmailRequest,
     EmailResponse, EmailVerificationRequest, EmailVerificationResponse,
+    FindIdRequest, FindIdResponse,
+    FindPasswordEmailRequest, FindPasswordEmailResponse,
+    FindPasswordEmailVerifyRequest, FindPasswordEmailVerifyResponse,
+    FindPasswordResetRequest,
     IdDuplicateCheckRequest, IdDuplicateCheckResponse, LoginRequest, LoginResponse,
     ProfileImagePresignRequest, ProfileImagePresignResponse,
     ProfileOnboardingRequest, ProfileOnboardingResponse,
     SchoolVerificationPresignRequest, SchoolVerificationPresignResponse,
     SchoolVerificationUploadRequest, SchoolVerificationUploadResponse,
-    TagListResponse, VerificationCompleteRequest, VerificationCompleteResponse,
-    FindIdRequest, FindIdResponse,
-    FindPasswordEmailRequest, FindPasswordEmailResponse,
-    FindPasswordEmailVerifyRequest, FindPasswordEmailVerifyResponse,
-    FindPasswordResetRequest
+    TagListResponse, VerificationCompleteRequest, VerificationCompleteResponse
 } from "../api-types/authApiTypes";
 import { axiosInstance } from "./axiosInstance";
 
@@ -141,7 +141,7 @@ export const findPasswordEmailReqeust = async (data: FindPasswordEmailRequest) =
 }
 
 // 16. 비밀번호 찾기 이메일 인증 확인 API [POST] (/api/auth/password/reset/email/verify)
-export const findPasswordEmailVerifyReqeust = async (data: FindPasswordEmailVerifyRequest) => {
+export const findPasswordEmailVerifyRequest = async (data: FindPasswordEmailVerifyRequest) => {
     
     const response = await axiosInstance.post<FindPasswordEmailVerifyResponse>("/api/auth/password/reset/email/verify", data);
     return response.data;
