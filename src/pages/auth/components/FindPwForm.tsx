@@ -102,6 +102,7 @@ export const FindPwForm = () => {
         setIsCodeSent(true);
     }
 
+    // todo handleSendCode와 동일
     const handleResendCode = () => {
         // useMutate (인증번호 재발송 API)
         console.log("인증번호 재발송 버튼 클릭");
@@ -151,7 +152,7 @@ export const FindPwForm = () => {
                 </div>
 
                 <Button
-                    label="비밀번호 재설정"
+                    label="비밀번호 재설정 완료"
                     type = "submit"
                     className="max-w-none rounded-[10px]"
                     disabled = {!isValidPw}
@@ -177,6 +178,7 @@ export const FindPwForm = () => {
                     />
 
                     {isCodeSent && (
+                        // todo 6자리 인증번호 입력시마다 API 호출 (불일치 시 SingleInput에 error text) + 비밀번호 재설정 버튼 활성화 여부
                         <div className="flex items-center gap-2.5">
                             <SingleInput
                                 placeholder="인증번호를 입력해 주세요" 

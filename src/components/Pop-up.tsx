@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 // 팝업 유형: 안내/경고/확인/로딩
-type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
+export type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
 
 // 공통 팝업 props (유형별로 필요한 값만 사용)
 type PopUpProps = {

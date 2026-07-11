@@ -9,6 +9,10 @@ import { findId } from "../../../api/auth";
 import Button from "../../../components/Button";
 import SingleInput from "../../../components/common/SingleInput";
 import PopUp from "../../../components/Pop-up";
+import type { AxiosError } from "axios";
+import type { PopUpType } from "../../../components/Pop-up";
+
+// [중요] 동명이인이 다른 유효한 이메일로 찾을때 불일치 필드 식별 불가 상황 -> 동명이인 발생 시 문제
 
 // Id찾기 폼 검증 (zod)
 const findIdSchema = z.object({
@@ -28,13 +32,22 @@ const findIdSchema = z.object({
 
 type FindIdFormData = z.infer<typeof findIdSchema>;
 
+// API 응답 error message와 매핑하기 위한 타입
+type ErrorKey = "name" | "email";
+
+const singleInputErrorMessage: Record<ErrorKey, string> = {
+    name: "입력한 이름이 가입 정보와 일치하지 않습니다.",
+    email: "입력한 이메일이 가입 정보와 일치하지 않습니다.",
+    //misMatch: "입력하신 정보와 일치하는 아이디가 없습니다."
+};
+
 export const FindIdForm = () => {
 
-    const [popUpConfig, setPopUpConfig] = useState<{ title: ReactNode; content: ReactNode } | null>(null);
+    const [popUpConfig, setPopUpConfig] = useState<{ type: PopUpType, title: ReactNode; content: ReactNode } | null>(null);
     const navigate = useNavigate();
 
     // RHF
-    const { register, handleSubmit, formState: { errors, isValid } } = useForm<FindIdFormData>({
+    const { register, handleSubmit, setError, clearErrors, formState: { errors, isValid } } = useForm<FindIdFormData>({
         resolver: zodResolver(findIdSchema),
         mode: "onChange",
         defaultValues: {
@@ -48,6 +61,7 @@ export const FindIdForm = () => {
         mutationFn: findId,
         onSuccess: (data, variables) => {
             setPopUpConfig({
+                type: "confirm",
                 title: (
                     <>
                         {variables.name}님의 아이디는{'\n'}
@@ -58,7 +72,41 @@ export const FindIdForm = () => {
                 content: ""
             })
         },
-        // todo onError 작성하기 (error case 명세서 작성 이후)
+        onError: (error: AxiosError) => {
+            // todo SingleInput 다시 타이핑 시에 setError초기화
+            const status = error.response?.status;
+            // 서버에서 내려주는 에러 객체의 구조에 따라 접근 (data.message)
+            const errorData = error.response?.data as { invalidProperties?: string[] };
+            const invalidProperties = errorData?.invalidProperties ?? []; 
+
+            if (status === 400) {
+                const hasNameError = invalidProperties.includes("name");
+                const hasEmailError = invalidProperties.includes("email");
+                
+                if (hasNameError) {
+                    setError("name", {
+                        type: "server",
+                        message: singleInputErrorMessage["name"],
+                    });
+                }
+                
+                if (hasEmailError) {
+                    setError("email", {
+                        type: "server",
+                        message: singleInputErrorMessage["email"],
+                    });
+                }
+
+                // 이름 <-> 이메일이 불일치하는 경우는 생략
+
+            } else {
+                setPopUpConfig({
+                    type: "error",
+                    title:"아이디 찾기에 실패하였습니다.",
+                    content: "관리자에게 문의주세요.",
+                })
+            }
+        }
     })
     
     // ---- 함수 ----
@@ -67,7 +115,6 @@ export const FindIdForm = () => {
             name: data.name,
             email: data.email
         });
-        // todo 에러 시 각 폼의 에러문구 추가
     }
 
     return (
@@ -77,7 +124,9 @@ export const FindIdForm = () => {
                     label="이름"
                     labelClassName="pl-[3px]"
                     placeholder="이름을 입력해 주세요"
-                    {...register("name")}
+                    {...register("name", {
+                        onChange: () => clearErrors("name"),
+                    })}
                     error={errors.name?.message}
                 />
 
@@ -85,7 +134,9 @@ export const FindIdForm = () => {
                     label="이메일"
                     labelClassName="pl-[3px]"
                     placeholder="가입 이메일을 입력해 주세요"
-                    {...register("email")}
+                    {...register("email",{
+                        onChange: () => clearErrors("email"),
+                    })}
                     error={errors.email?.message}
                 />
             </div>
@@ -100,13 +151,15 @@ export const FindIdForm = () => {
             {popUpConfig && (
                 <PopUp
                     isOpen={true}
-                    type="confirm"
+                    type={popUpConfig.type}
                     title={popUpConfig.title}
                     content={popUpConfig.content}
                     onClick={() => {
                         // 아이디 안내 팝업 '확인' 클릭시
                         setPopUpConfig(null);
-                        navigate("/login"); // 로그인 페이지로 이동
+                        if(popUpConfig.type == 'confirm'){
+                            navigate("/login"); // 로그인 페이지로 이동
+                        }
                     }}
                 />
             )}
