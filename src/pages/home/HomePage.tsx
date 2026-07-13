@@ -4,13 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestHome } from '../../api/home';
 import { requestNotificationUnreadCount } from '../../api/notifications';
-import Badge from '../../components/Badge';
 import Card from '../../components/Card';
-import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
 import { useFcmToken } from '../../hooks/useFcmNotification';
 import { FullLayout } from '../../layouts/FullLayout';
-import { Logo } from '../../layouts/headers/HomeHeader';
+import { HomeHeader } from '../../layouts/headers/HomeHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { usePointStore } from '../../store/usePointStore';
@@ -177,24 +175,13 @@ export const HomePage = () => {
         <FullLayout>
             <div className="mx-auto w-full max-w-[430px] bg-white">
                 <section className="bg-primary px-[25px] pt-[64px] pb-[62px]">
-                    <div className="flex items-center justify-between">
-                        <span
-                            role="img"
-                            aria-label="캠넥트 로고"
-                            className="text-white [&_svg]:h-[27px] [&_svg]:w-[138px] [&_path]:fill-white"
-                        >
-                            <Logo />
-                        </span>
-                        <button
-                            type="button"
-                            aria-label="알림"
-                            className="relative inline-flex h-6 w-6 items-center justify-center text-white [&_path]:stroke-white"
-                            onClick={() => navigate('/home/notices')}
-                        >
-                            <Icon name="alarm" />
-                            {hasUnreadNotifications ? <Badge /> : null}
-                        </button>
-                    </div>
+                    <HomeHeader
+                        showBadge={hasUnreadNotifications}
+                        variant="onPrimary"
+                        sticky={false}
+                        useSafeArea={false}
+                        className="!max-w-none !bg-transparent !px-0 !py-0"
+                    />
 
                     {/* 1-1: 사용자 인사 메시지 */}
                     <div className="mt-[36px] flex flex-col gap-[4px] px-[5px]">
