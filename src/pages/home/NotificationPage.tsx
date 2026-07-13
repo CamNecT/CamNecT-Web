@@ -379,6 +379,7 @@ export const NotificationPage = () => {
   const queryClient = useQueryClient();
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
   const [isErrorDismissed, setIsErrorDismissed] = useState(false);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const userId = useAuthStore((state) => state.user?.id);
   const userIdParam = resolveUserIdParam(userId);
   const hasValidUserId = userIdParam !== null;
@@ -446,10 +447,61 @@ export const NotificationPage = () => {
     navigate(destination);
   };
 
+  const handleMarkAllAsRead = async () => {
+    if (!hasValidUserId || isMarkingAllRead) return;
+
+    const unreadItems = items.filter((item) => !item.isRead);
+    if (unreadItems.length === 0) return;
+
+    setPopUpConfig(null);
+    setIsMarkingAllRead(true);
+
+    const previousItems = items;
+    setItems(items.map((item) => ({ ...item, isRead: true })));
+
+    try {
+      await Promise.all(
+        unreadItems.map((item) =>
+          requestNotificationRead({
+            userId: userIdParam as string | number,
+            id: item.id,
+          }),
+        ),
+      );
+
+      queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
+    } catch (error) {
+      setItems(previousItems);
+      setPopUpConfig(getReadErrorPopUpConfig(getErrorStatus(error)));
+    } finally {
+      setIsMarkingAllRead(false);
+    }
+  };
+
   const activePopUpConfig = popUpConfig ?? queryErrorConfig;
+  const hasUnreadNotifications = items.some((item) => !item.isRead);
 
   return (
-    <HeaderLayout headerSlot={<MainHeader title="알림" />}>
+    <HeaderLayout
+      headerSlot={
+        <MainHeader
+          title="알림"
+          rightElement={
+            items.length > 0 ? (
+              <button
+                type="button"
+                className="text-m-16 text-[var(--ColorGray4,#A1A1A1)] disabled:cursor-default disabled:opacity-50"
+                onClick={handleMarkAllAsRead}
+                disabled={isMarkingAllRead || !hasUnreadNotifications}
+              >
+                모두 읽음
+              </button>
+            ) : null
+          }
+        />
+      }
+    >
       <section className="w-full flex-1 bg-white flex flex-col">
         {items.length > 0 ? (
           items.map((notification) => (
