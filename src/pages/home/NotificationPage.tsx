@@ -50,21 +50,21 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
     return {
       title: '접근 권한이 없습니다',
       content:
-        '요청하신 페이지를 볼 수 있는 권한이 없어요.\\n관리자에게 문의하시거나 권한을 확인해 주세요.',
+        '요청한 내용을 볼 권한이 없어요.',
     };
   }
   if (status === 404) {
     return {
       title: '페이지를 찾을 수 없습니다',
       content:
-        '요청하신 페이지는 존재하지 않는 주소입니다.',
+        '요청한 페이지를 찾을 수 없어요.',
     };
   }
   if (status === 500) {
     return {
       title: '시스템 오류가 발생했습니다',
       content:
-        '서비스 이용에 불편을 드려 죄송합니다.\\n잠시 후 다시 시도해 주세요.',
+        '잠시 후 다시 시도해 주세요.',
     };
   }
   return null;
@@ -75,7 +75,7 @@ const getFallbackNavigationPopUpConfig = (notification?: NotificationItem): PopU
   if (!notification) {
     return {
       title: '알림으로 이동할 수 없어요',
-      content: '연결된 화면이 사라졌거나 접근할 수 없는 상태예요.',
+      content: '연결된 화면을 열 수 없어요.',
     };
   }
 
@@ -85,13 +85,13 @@ const getFallbackNavigationPopUpConfig = (notification?: NotificationItem): PopU
       return {
         title: '커피챗을 열 수 없어요',
         content:
-          '요청이 취소되었거나 종료된 커피챗일 수 있어요.\\n커피챗 목록에서 다시 확인해 주세요.',
+          '요청이 취소되었거나 종료된 커피챗이에요.',
       };
     case 'chatMessageReceived':
       return {
         title: '채팅방을 열 수 없어요',
         content:
-          '이미 종료되었거나 나간 채팅방일 수 있어요.\\n커피챗 목록에서 다시 확인해 주세요.',
+          '이미 종료되었거나 나간 채팅방이에요.',
       };
     case 'comment':
     case 'reply':
@@ -99,33 +99,33 @@ const getFallbackNavigationPopUpConfig = (notification?: NotificationItem): PopU
       return {
         title: '게시글을 확인할 수 없어요',
         content:
-          '게시글이나 댓글이 삭제되었을 수 있어요.\\n커뮤니티에서 최신 내용을 확인해 주세요.',
+          '게시글이나 댓글이 삭제되었을 수 있어요.',
       };
     case 'followingPosted':
       return {
         title: '새 게시글을 열 수 없어요',
         content:
-          '작성자가 게시글을 삭제했거나 볼 수 없는 게시글이에요.',
+          '삭제되었거나 볼 수 없는 게시글이에요.',
       };
     case 'teamApplicationReceived':
     case 'teamRecruitAccepted':
       return {
         title: '모집 글을 확인할 수 없어요',
         content:
-          '모집이 종료되었거나 삭제된 글일 수 있어요.\\n대외활동에서 다시 확인해 주세요.',
+          '모집이 종료되었거나 삭제된 글이에요.',
       };
     case 'pointUse':
     case 'pointEarn':
       return {
         title: '포인트 내역을 열 수 없어요',
         content:
-          '연결된 포인트 또는 상품 정보를 찾을 수 없어요.\\n잠시 후 다시 확인해 주세요.',
+          '연결된 포인트 내역을 찾을 수 없어요.',
       };
     default:
       return {
         title: '알림으로 이동할 수 없어요',
         content:
-          '연결된 화면이 사라졌거나 접근할 수 없는 상태예요.',
+          '연결된 화면을 열 수 없어요.',
       };
   }
 };
@@ -135,28 +135,28 @@ const getReadErrorPopUpConfig = (status: number | null, isAll = false): PopUpCon
   if (status === 403) {
     return {
       title: '알림을 읽음 처리할 수 없어요',
-      content: '현재 계정으로 이 알림을 변경할 권한이 없어요.\\n다시 로그인한 뒤 시도해 주세요.',
+      content: '이 알림을 변경할 권한이 없어요.',
     };
   }
   if (status === 404) {
     return {
       title: isAll ? '읽을 알림을 찾지 못했어요' : '알림을 찾지 못했어요',
       content: isAll
-        ? '이미 삭제되었거나 최신 목록에 없는 알림이 포함되어 있어요.\\n목록을 새로고침해 주세요.'
-        : '이미 삭제되었거나 최신 목록에 없는 알림이에요.\\n목록을 새로고침해 주세요.',
+        ? '목록에 없는 알림이 포함되어 있어요.'
+        : '이미 삭제되었거나 목록에 없는 알림이에요.',
     };
   }
   if (status === 500) {
     return {
       title: '알림 처리에 실패했어요',
       content:
-        '서버에서 알림 상태를 바꾸지 못했어요.\\n잠시 후 다시 시도해 주세요.',
+        '서버 오류로 알림 상태를 바꾸지 못했어요.',
     };
   }
   return {
     title: isAll ? '모든 알림을 읽음 처리하지 못했어요' : '알림을 읽음 처리하지 못했어요',
     content:
-      '네트워크 상태가 불안정할 수 있어요.\\n잠시 후 다시 시도해 주세요.',
+      '네트워크 상태를 확인한 뒤 다시 시도해 주세요.',
   };
 };
 
@@ -173,7 +173,7 @@ const getNavigationErrorPopUpConfig = (
     return {
       title: '알림 내용을 볼 수 없어요',
       content:
-        '이 알림과 연결된 화면을 볼 권한이 없어요.\\n계정 권한을 확인해 주세요.',
+        '이 알림과 연결된 화면을 볼 권한이 없어요.',
     };
   }
   if (status === 404) {
@@ -183,7 +183,7 @@ const getNavigationErrorPopUpConfig = (
     return {
       title: '알림 화면으로 이동하지 못했어요',
       content:
-        '연결된 정보를 확인하는 중 문제가 생겼어요.\\n잠시 후 다시 시도해 주세요.',
+        '연결된 정보를 확인하는 중 문제가 생겼어요.',
     };
   }
   return getFallbackNavigationPopUpConfig(notification);
@@ -430,7 +430,7 @@ const validateNotificationDestination = async (
         throw createNavigationError({
           title: '댓글을 확인할 수 없어요',
           content:
-            '알림으로 받은 댓글이 삭제되었거나 더 이상 볼 수 없는 상태예요.',
+            '댓글이 삭제되었거나 볼 수 없는 상태예요.',
         });
       }
     }
@@ -457,7 +457,7 @@ const validateNotificationDestination = async (
       throw createNavigationError({
         title: '커피챗을 열 수 없어요',
         content:
-          '이미 종료되었거나 나간 커피챗이라 채팅방으로 이동할 수 없어요.',
+          '이미 종료되었거나 나간 커피챗이에요.',
       });
     }
     return;
