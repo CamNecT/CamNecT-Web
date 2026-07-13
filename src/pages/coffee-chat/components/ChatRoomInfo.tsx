@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { ChatUser } from "../../../types/coffee-chat/coffeeChatTypes";
 import { formatFullDateWithDay } from "../../../utils/formatDate";
+import { formatStudentLabel } from "../../../utils/formatStudent";
 
 interface ChatRoomInfoProps {
     partner: ChatUser;
@@ -14,6 +15,11 @@ interface ChatRoomInfoProps {
 // 요청분야와 요청내용 연동 완료
 export const ChatRoomInfo = ({ partner, requestInfo }: ChatRoomInfoProps) => {
     const navigate = useNavigate();
+    const studentLabel = formatStudentLabel(partner.studentId);
+    const partnerName = partner.name?.trim() || "알 수 없음";
+    const partnerMajor = partner.major?.trim() || "";
+    const requestTags = requestInfo.tags ?? [];
+    const partnerTags = partner.tags ?? [];
 
     return (
         <div className="flex flex-col gap-[10px] px-[25px]">
@@ -28,21 +34,21 @@ export const ChatRoomInfo = ({ partner, requestInfo }: ChatRoomInfoProps) => {
                                 <img src={partner.profileImg} alt="프로필 이미지" className="w-[84px] h-[84px] rounded-full object-cover" />
                             ) : (
                                 <div className="w-[84px] h-[84px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                                    <span className="text-gray-700 text-[36px] font-bold">{partner.name.charAt(0)}</span>
+                                    <span className="text-gray-700 text-[36px] font-bold">{partnerName.charAt(0)}</span>
                                 </div>
                             )}
                         </div>
                         <div className="flex flex-col items-center gap-[7px]">
                             <h3 className="text-b-18-hn text-gray-900 text-center tracking-[-0.72px]">
-                                {partner.name}
+                                {partnerName}
                             </h3>
                             <p className="text-r-12-hn text-gray-750 text-center tracking-[-0.48px]">
-                                {partner.major} {!isNaN(Number(partner.studentId)) && partner.studentId.length >= 2 ? `${partner.studentId.slice(2, 4)}학번` : partner.studentId}
+                                {[partnerMajor, studentLabel].filter(Boolean).join(' ')}
                             </p>
                         </div>
                     </div>
                     <div className="w-full flex flex-wrap gap-[5px] justify-center">
-                        {partner.tags?.map((tag) => (
+                        {partnerTags.map((tag) => (
                             <span
                                 key={tag}
                                 className="flex justify-center items-center rounded-[3px] border border-primary bg-green-50 px-[5px] py-[3px] text-R-12-hn text-primary"
@@ -63,7 +69,7 @@ export const ChatRoomInfo = ({ partner, requestInfo }: ChatRoomInfoProps) => {
                 <div className="flex flex-col gap-[7px]">
                     <p className="text-sb-16 text-gray-900 tracking-[-0.64px]">요청 분야</p>
                     <div className="flex flex-wrap gap-[10px]">
-                        {requestInfo.tags?.map((tag) => (
+                        {requestTags.map((tag) => (
                             <span
                                 key={tag}
                                 className="flex justify-center items-center rounded-[3px] border border-primary bg-white px-[8px] py-[4px] text-R-12-hn text-primary"
@@ -75,7 +81,7 @@ export const ChatRoomInfo = ({ partner, requestInfo }: ChatRoomInfoProps) => {
                 </div>
                 <div className="flex flex-col gap-[7px]">
                     <p className="text-sb-16 text-gray-900 tracking-[-0.64px]">요청 내용</p>
-                    <p className="text-r-14 text-gray-750 tracking-[-0.56px] whitespace-pre-wrap">{requestInfo.content}</p>
+                    <p className="text-r-14 text-gray-750 tracking-[-0.56px] whitespace-pre-wrap">{requestInfo.content || '요청 내용이 없습니다.'}</p>
                 </div>
             </section>
         </div>

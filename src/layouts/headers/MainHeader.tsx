@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import Badge from '../../components/Badge';
@@ -23,6 +23,7 @@ type LeftAction = {
 type MainHeaderProps = {
   title?: string;
   rightActions?: HeaderAction[];
+  rightElement?: ReactNode;
   leftAction?: LeftAction;
   leftIcon?: 'empty';
   leftAriaLabel?: string;
@@ -36,6 +37,7 @@ type MainHeaderProps = {
 export const MainHeader = ({
   title,
   rightActions,
+  rightElement,
   leftAction,
   leftIcon,
   leftAriaLabel,
@@ -104,6 +106,7 @@ export const MainHeader = ({
         </div>
       ) : null}
       <div className='flex min-w-[28px] flex-1 items-center justify-end gap-[15px] z-10'>
+        {rightElement ?? null}
         {/* 오른쪽 액션 아이콘들: 없으면 아무 것도 렌더하지 않음 */}
         {normalizedRightActions.length > 0
           ? normalizedRightActions.map((action, index) => (

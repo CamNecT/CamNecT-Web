@@ -4,6 +4,19 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import type { ChatMessage, ChatRoomListItem, ChatRoomListItemType, ChatUser } from "../types/coffee-chat/coffeeChatTypes";
 
+const normalizeText = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    return String(value);
+};
+
+const normalizeStringArray = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+
+    return value
+        .map((item) => normalizeText(item).trim())
+        .filter((item) => item.length > 0);
+};
+
 // API 응답 데이터를 가공한 최종 상세 데이터 타입
 export interface ChatRoomDetailData {
     partner: ChatUser & { tags: string[] };
@@ -64,15 +77,15 @@ export const useChatRooms = (type: ChatRoomListItemType) => {
                     type: type,
                     partner: {
                         id: String(room.opponentId), 
-                        name: room.opponentName,
-                        major: room.opponentMajor,
-                        studentId: room.opponentStudentYear,
+                        name: normalizeText(room.opponentName),
+                        major: normalizeText(room.opponentMajor),
+                        studentId: normalizeText(room.opponentStudentYear),
                         profileImg: room.opponentProfileImgUrl,
                     },
-                    lastMessage: room.lastMessage,
+                    lastMessage: normalizeText(room.lastMessage),
                     lastMessageDate: room.lastMessageTime,
                     unreadCount: room.unreadCount,
-                    isClosed: room.closed,
+                    isClosed: room.closed || room.opponentExited,
                 })),
                 requestExists: response.data.requestExists
             };
@@ -101,19 +114,19 @@ export const useChatRoom = (roomId: string) => {
                 // 커피챗 상대 정보
                 partner: {
                     id: String(data.opponentId),
-                    name: data.opponentName,
-                    major: data.opponentMajor,
-                    studentId: data.opponentStudentYear,
+                    name: normalizeText(data.opponentName),
+                    major: normalizeText(data.opponentMajor),
+                    studentId: normalizeText(data.opponentStudentYear),
                     profileImg: data.opponentProfileImg,
-                    tags: data.opponentTags, // 상대방 전문 분야
+                    tags: normalizeStringArray(data.opponentTags), // 상대방 전문 분야
                 },
                 // 커피챗 요청 상세 정보 (카드 영역)
                 requestInfo: {
                     createdAt: data.requestAt,
                     type: data.requestType,
-                    tags: data.requestTags || [], 
-                    content: data.requestContent,
-                    recruitmentTitle: data.recruitmentTitle,
+                    tags: normalizeStringArray(data.requestTags),
+                    content: normalizeText(data.requestContent),
+                    recruitmentTitle: normalizeText(data.recruitmentTitle),
                     recruitmentId: data.recruitmentId,
                     activityId: data.activityId,
                 },
@@ -157,15 +170,15 @@ export const useChatRequests = (type: ChatRoomListItemType) => {
                 type: type,
                 partner: {
                     id: String(room.opponentId), 
-                    name: room.opponentName,
-                    major: room.opponentMajor,
-                    studentId: room.opponentStudentYear,
+                    name: normalizeText(room.opponentName),
+                    major: normalizeText(room.opponentMajor),
+                    studentId: normalizeText(room.opponentStudentYear),
                     profileImg: room.opponentProfileImg,
                 },
-                lastMessage: room.requestContent,
+                lastMessage: normalizeText(room.requestContent),
                 lastMessageDate: room.createdAt,
                 unreadCount: 0, // 요청은 1번 밖에 못보내므로 
-                requestPostTitle: room.recruitmentTitle,
+                requestPostTitle: normalizeText(room.recruitmentTitle),
                 recruitmentId: room.recruitmentId,
             }));
         },
@@ -194,18 +207,18 @@ export const useChatRequestRoom = (requestId: string) => {
                 // 커피챗 상대 정보
                 partner: {
                     id: String(data.opponentId),
-                    name: data.opponentName,
-                    major: data.opponentMajor,
-                    studentId: data.opponentStudentYear,
+                    name: normalizeText(data.opponentName),
+                    major: normalizeText(data.opponentMajor),
+                    studentId: normalizeText(data.opponentStudentYear),
                     profileImg: data.opponentProfileImg,
-                    tags: data.opponentTags, // 상대방 전문 분야
+                    tags: normalizeStringArray(data.opponentTags), // 상대방 전문 분야
                 },
                 // 커피챗 요청 상세 정보 (카드 영역)
                 requestInfo: {
                     createdAt: data.createdAt,
                     type: data.requestType,
-                    tags: data.requestTags || [], 
-                    content: data.requestContent,
+                    tags: normalizeStringArray(data.requestTags),
+                    content: normalizeText(data.requestContent),
                 }
             };
         },
