@@ -26,6 +26,10 @@ export interface NotificationReadRequest {
   id: number | string;
 }
 
+export interface NotificationReadAllRequest {
+  userId: number | string;
+}
+
 export interface NotificationListResponse {
   status: number;
   message: string;
@@ -41,6 +45,7 @@ export interface NotificationUnreadCountResponse {
 }
 
 export type NotificationReadResponse = void;
+export type NotificationReadAllResponse = void;
 
 export interface NotificationListData {
   items: NotificationApiItem[];

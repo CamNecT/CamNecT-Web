@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging } from "firebase/messaging";
+import { getMessaging, isSupported, type Messaging } from "firebase/messaging";
 import { getInstallations } from "firebase/installations";
 
 const firebaseConfig = {
@@ -15,8 +15,23 @@ const firebaseConfig = {
 // Firebase App 초기화
 const app = initializeApp(firebaseConfig);
 
-// messaging(푸시알림) 및 설치 (FID 발급용) 객체
-export const messaging = getMessaging(app);
+let messagingPromise: Promise<Messaging | null> | null = null;
+
+// messaging(푸시알림) 객체는 지원 브라우저에서만 지연 생성
+export const getFirebaseMessaging = () => {
+  if (!messagingPromise) {
+    messagingPromise = isSupported()
+      .then((supported) => (supported ? getMessaging(app) : null))
+      .catch((error) => {
+        console.warn("Firebase Messaging 지원 여부 확인 실패", error);
+        return null;
+      });
+  }
+
+  return messagingPromise;
+};
+
+// 설치 (FID 발급용) 객체
 export const installations = getInstallations(app);
 
 export default app;

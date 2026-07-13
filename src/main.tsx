@@ -6,7 +6,7 @@ import { router } from './router/router';
 import './styles/global.css'
 
 // Service Worker 등록 (브라우저 실행 시) -> 푸시알림 받기 위해
-if ('serviceWorker' in navigator) {
+if (window.isSecureContext && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/firebase-messaging-sw.js')
