@@ -70,6 +70,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
   return null;
 };
 
+// 알림 종류별로 사용자가 다음 행동을 알 수 있도록 이동 실패 문구를 구체화한다.
 const getFallbackNavigationPopUpConfig = (notification?: NotificationItem): PopUpConfig => {
   if (!notification) {
     return {
@@ -129,6 +130,7 @@ const getFallbackNavigationPopUpConfig = (notification?: NotificationItem): PopU
   }
 };
 
+// 읽음 처리는 UI를 먼저 갱신하기 때문에 실패 시 되돌릴 수 있는 문구를 별도로 관리한다.
 const getReadErrorPopUpConfig = (status: number | null, isAll = false): PopUpConfig => {
   if (status === 403) {
     return {
@@ -158,6 +160,7 @@ const getReadErrorPopUpConfig = (status: number | null, isAll = false): PopUpCon
   };
 };
 
+// 서버 검증 실패와 앱 내부에서 만든 이동 불가 사유를 같은 팝업 형태로 맞춘다.
 const getNavigationErrorPopUpConfig = (
   error: unknown,
   notification?: NotificationItem,
@@ -395,6 +398,7 @@ const renderIcon = (notification: NotificationItem) => {
   );
 };
 
+// 알림 클릭 전에 대상 리소스가 아직 접근 가능한지 확인해 빈 화면 이동을 막는다.
 const validateNotificationDestination = async (
   destination: string,
   userId: string | number,
@@ -509,6 +513,7 @@ export const NotificationPage = () => {
     setPopUpConfig(null);
     const destination = resolveNotificationDestination(notification);
 
+    // 개별 알림은 낙관적으로 읽음 처리하고, API 실패 시 원래 상태로 되돌린다.
     if (!notification.isRead && hasValidUserId) {
       markAsRead(notification.id);
 
@@ -557,6 +562,7 @@ export const NotificationPage = () => {
     setPopUpConfig(null);
     setIsMarkingAllRead(true);
 
+    // 전체 읽음도 즉시 화면에 반영하되, read-all API 실패 시 이전 목록을 복구한다.
     const previousItems = items;
     setItems(items.map((item) => ({ ...item, isRead: true })));
 
