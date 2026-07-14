@@ -371,7 +371,8 @@ export const WritePage = () => {
                         attachments,
                     },
                 });
-                navigate(`/community/post/${postId}`);
+                // 저장 후 뒤로가기로 수정 페이지에 다시 돌아오지 않도록 히스토리를 교체한다.
+                navigate(`/community/post/${postId}`, { replace: true });
                 return;
             }
 
@@ -386,7 +387,8 @@ export const WritePage = () => {
                 },
             });
             const nextPostId = response.data.postId;
-            navigate(`/community/post/${nextPostId}`);
+            // 작성 후 뒤로가기로 글쓰기 페이지에 다시 돌아오지 않도록 히스토리를 교체한다.
+            navigate(`/community/post/${nextPostId}`, { replace: true });
         } catch (error) {
             if (error instanceof Error && error.name === 'UploadLimitError') {
                 setErrorPopUp({

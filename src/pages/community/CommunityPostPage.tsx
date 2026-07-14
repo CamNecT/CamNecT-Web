@@ -248,8 +248,9 @@ const CommunityPostPage = () => {
           <MainHeader
             title='커뮤니티'
             leftAction={{
-              onClick: () => navigate('/community', { replace: true }),
-              ariaLabel: '커뮤니티로 이동',
+              // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
+              onClick: () => navigate(-1),
+              ariaLabel: '이전 페이지로 이동',
             }}
             rightActions={[
               { icon: 'option', onClick: () => {}, ariaLabel: '게시글 옵션 열기' },
@@ -611,8 +612,9 @@ const CommunityPostPage = () => {
         <MainHeader
           title='커뮤니티'
           leftAction={{
-            onClick: () => navigate('/community', { replace: true }),
-            ariaLabel: '커뮤니티로 이동',
+            // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
+            onClick: () => navigate(-1),
+            ariaLabel: '이전 페이지로 이동',
           }}
           rightActions={[
             { icon: 'option', onClick: handleOpenPostOptions, ariaLabel: '게시글 옵션 열기' },
