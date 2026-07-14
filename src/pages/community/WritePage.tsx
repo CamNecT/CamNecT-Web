@@ -30,6 +30,7 @@ export const WritePage = () => {
 
     const [editPost, setEditPost] = useState<CommunityPostDetail | null>(null);
     const didInitEditRef = useRef(false);
+    // 수정 전 첨부파일 목록과 비교해서 변경 여부를 판단하기 위해 보관한다.
     const originalAttachmentKeysRef = useRef<string[]>([]);
 
     const initialBoardType = (editPost?.boardType as BoardType | undefined) ?? null;
@@ -75,6 +76,7 @@ export const WritePage = () => {
     );
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+    // sortOrder 기준으로 정렬된 기존 첨부파일 키 목록을 만든다.
     const getSortedAttachmentKeys = (
         attachments: NonNullable<CommunityPostDetail['attachments']>,
     ) =>
@@ -83,6 +85,7 @@ export const WritePage = () => {
             .sort((a, b) => a.sortOrder - b.sortOrder)
             .map((attachment) => attachment.fileKey);
 
+    // 첨부파일 순서/구성이 수정 전과 같은지 확인한다.
     const areAttachmentKeysEqual = (left: string[], right: string[]) =>
         left.length === right.length && left.every((key, index) => key === right[index]);
 
@@ -341,6 +344,7 @@ export const WritePage = () => {
             );
             if (isEditMode && postId) {
                 const currentExistingAttachmentKeys = getSortedAttachmentKeys(existingAttachments);
+                // 변경 없음은 null, 전체 삭제는 빈 배열, 유지/추가는 finalKey/tempKey로 전달한다.
                 const hasAttachmentChanges =
                     newAttachments.length > 0 ||
                     !areAttachmentKeysEqual(

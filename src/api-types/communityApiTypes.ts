@@ -74,6 +74,7 @@ export type CommunityAttachment = {
   fileSize: number;
 };
 
+// 수정 시 첨부파일은 기존 파일(finalKey)과 신규 업로드 파일(tempKey)을 구분해서 전달한다.
 export type UpdateCommunityAttachment =
   | {
       finalKey: string;
