@@ -30,6 +30,7 @@ export const WritePage = () => {
 
     const [editPost, setEditPost] = useState<CommunityPostDetail | null>(null);
     const didInitEditRef = useRef(false);
+    const originalAttachmentKeysRef = useRef<string[]>([]);
 
     const initialBoardType = (editPost?.boardType as BoardType | undefined) ?? null;
     const initialTitle = editPost?.title ?? '';
@@ -73,6 +74,17 @@ export const WritePage = () => {
         editPost?.categories ?? [],
     );
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    const getSortedAttachmentKeys = (
+        attachments: NonNullable<CommunityPostDetail['attachments']>,
+    ) =>
+        attachments
+            .slice()
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((attachment) => attachment.fileKey);
+
+    const areAttachmentKeysEqual = (left: string[], right: string[]) =>
+        left.length === right.length && left.every((key, index) => key === right[index]);
 
     const openBoardSelector = () => {
         setDraftBoardType(boardType);
@@ -224,6 +236,7 @@ export const WritePage = () => {
 
     useEffect(() => {
         didInitEditRef.current = false;
+        originalAttachmentKeysRef.current = [];
         setEditPost(null);
     }, [postId]);
 
@@ -255,6 +268,7 @@ export const WritePage = () => {
         setSelectedTags(mappedTags);
         setExistingAttachments(editPost.attachments ?? []);
         setNewAttachments([]);
+        originalAttachmentKeysRef.current = getSortedAttachmentKeys(editPost.attachments ?? []);
         didInitEditRef.current = true;
     }, [isEditMode, editPost, mapTagIdsToNames]);
 
@@ -325,18 +339,23 @@ export const WritePage = () => {
                 })),
                 numericUserId,
             );
-            const existingAttachmentsToSend = existingAttachments
-                .slice()
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map((attachment) => ({
-                    fileKey: attachment.fileKey,
-                    width: attachment.width,
-                    height: attachment.height,
-                    fileSize: attachment.fileSize,
-                }));
-            const mergedAttachments = [...existingAttachmentsToSend, ...uploadedAttachments];
-
             if (isEditMode && postId) {
+                const currentExistingAttachmentKeys = getSortedAttachmentKeys(existingAttachments);
+                const hasAttachmentChanges =
+                    newAttachments.length > 0 ||
+                    !areAttachmentKeysEqual(
+                        originalAttachmentKeysRef.current,
+                        currentExistingAttachmentKeys,
+                    );
+                const attachments = hasAttachmentChanges
+                    ? [
+                        ...currentExistingAttachmentKeys.map((finalKey) => ({ finalKey })),
+                        ...uploadedAttachments.map((attachment) => ({
+                            tempKey: attachment.fileKey,
+                        })),
+                    ]
+                    : null;
+
                 await updateCommunityPost({
                     postId,
                     params: { userId: numericUserId },
@@ -345,7 +364,7 @@ export const WritePage = () => {
                         content: content.trim(),
                         anonymous: false,
                         tagIds,
-                        attachments: mergedAttachments,
+                        attachments,
                     },
                 });
                 navigate(`/community/post/${postId}`);

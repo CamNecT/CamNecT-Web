@@ -74,6 +74,14 @@ export type CommunityAttachment = {
   fileSize: number;
 };
 
+export type UpdateCommunityAttachment =
+  | {
+      finalKey: string;
+    }
+  | {
+      tempKey: string;
+    };
+
 export type CommunityUploadPresignItemRequest = {
   contentType: string;
   size: number;
@@ -140,7 +148,7 @@ export type UpdateCommunityPostBody = {
   content: string;
   anonymous: boolean;
   tagIds: number[];
-  attachments?: CommunityAttachment[];
+  attachments: UpdateCommunityAttachment[] | null;
 };
 
 export type UpdateCommunityPostResult = string;
