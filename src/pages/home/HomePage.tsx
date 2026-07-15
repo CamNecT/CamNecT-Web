@@ -17,7 +17,7 @@ import CommunityBox from './components/CommunityBox';
 import ContestBox from './components/ContestBox';
 import PointBox from './components/PointBox';
 import RecommendBox from './components/RecommendBox';
-import { coffeeChatRequests, contests, homeGreetingUser, recommendList } from './homeData';
+import { homeGreetingUser } from './homeData';
 import { mapHomeResponseToViewModel } from './homeMapper';
 
 type PopUpConfig = {
@@ -124,11 +124,11 @@ export const HomePage = () => {
 
     const fallbackViewModel = {
         userName: storedUserName ?? homeGreetingUser.name,
-        coffeeChatRequests,
-        coffeeChatTotalCount: coffeeChatRequests.length,
-        pointBalance: 1230,
-        recommendList,
-        contests,
+        coffeeChatRequests: [],
+        coffeeChatTotalCount: 0,
+        pointBalance: 0,
+        recommendList: [],
+        contests: [],
     };
 
     const { data: homeResponse, error: homeError } = useQuery({
@@ -171,22 +171,30 @@ export const HomePage = () => {
     }, [homeError, unreadCountError, isErrorDismissed]);
 
     return (
-        // 홈 1번 영역: 인사말, 커피챗 요청, 일정 카드, 포인트/커뮤니티 카드 틀 구성
-        <FullLayout headerSlot={<HomeHeader showBadge={hasUnreadNotifications} />} >
-            <div className="w-full mx-auto bg-white">
-                <section
-                    className="flex w-full flex-col gap-[15px] px-[25px] pt-[17px] pb-[30px]"
-                >
+        // 홈 1번 영역: 인사말, 커피챗 요청, 포인트/커뮤니티 카드 틀 구성
+        <FullLayout>
+            <div className="mx-auto w-full max-w-[430px] bg-white">
+                <section className="bg-primary px-[25px] pt-[64px] pb-[62px]">
+                    <HomeHeader
+                        showBadge={hasUnreadNotifications}
+                        variant="onPrimary"
+                        sticky={false}
+                        useSafeArea={false}
+                        className="!max-w-none !bg-transparent !px-0 !py-0"
+                    />
+
                     {/* 1-1: 사용자 인사 메시지 */}
-                    <div className="flex flex-col cursor-pointer gap-[7px] px-[6px] py-[13px]">
-                        <p className="text-sb-18 text-gray-900 tracking-[-0.04em]">
-                            안녕하세요, <span className="text-primary">{userName}</span>님!
+                    <div className="mt-[36px] flex flex-col gap-[4px] px-[5px]">
+                        <p className="text-b-20 text-white">
+                            안녕하세요, {userName}님!
                         </p>
-                        <p className="text-m-14 text-gray-750 tracking-[-0.04em]">
+                        <p className="text-r-16 text-[#F0F0F0]">
                             오늘도 성공적인 캠퍼스 라이프를 응원합니다!
                         </p>
                     </div>
+                </section>
 
+                <section className="-mt-[22px] flex w-full flex-col gap-[20px] px-[25px] pb-[53px]">
                     <CoffeeChatBox
                         requests={homeViewModel.coffeeChatRequests}
                         totalCount={homeViewModel.coffeeChatTotalCount}
@@ -204,9 +212,18 @@ export const HomePage = () => {
 
                 {/* 홈 2번 영역: 추천 동문 리스트 */}
                 <section
-                    className="flex w-full flex-col gap-[10px] bg-[var(--color-gray-100)] px-[25px] py-[30px]"
+                    className="flex w-full flex-col gap-[14px] bg-[var(--color-gray-100)] px-[25px] pt-[30px] pb-[60px]"
                 >
-                    <p className="text-sb-20 text-black tracking-[-0.04em]">추천동문</p>
+                    <button
+                        type="button"
+                        className="flex w-fit items-center gap-[5px]"
+                        onClick={() => navigate('/alumni')}
+                    >
+                        <span className="text-sb-20 text-black">추천 동문</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M8.25 4.5L15.75 12L8.25 19.5" stroke="#646464" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </button>
 
                     <div className="flex w-full flex-col gap-[20px]">
                         <div className="flex w-full flex-col gap-[15px]">
@@ -248,7 +265,7 @@ export const HomePage = () => {
                 </section>
 
                 {/* 홈 3번 영역: 주목받은 공모전 리스트 */}
-                <section className="flex w-full flex-col gap-[10px] bg-white p-[25px]">
+                <section className="flex w-full flex-col gap-[10px] bg-white px-[25px] pt-[25px] pb-[60px]">
                     <ContestBox
                         contests={homeViewModel.contests}
                         onTitleClick={() => navigate('/activity')}

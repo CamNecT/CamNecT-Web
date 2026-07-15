@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { stompClient } from "../api/stompClient";
+import { isStompEnabled, stompClient } from "../api/stompClient";
 import { useAuthStore } from "../store/useAuthStore";
 
 // 로그인 / 로그아웃 시 소켓 연결/해제 (커피챗 실시간 수신을 위해)
@@ -10,6 +10,13 @@ export const useSocketInitializer = () => {
 
     // 로그인 상태 바뀔 때만 수행
     useEffect(() => {
+        if (!isStompEnabled) {
+            if (stompClient.active) {
+                stompClient.deactivate();
+            }
+            return;
+        }
+
         // 로그아웃 체크 또는 가입 완료 전(HOME이 아닌 경우) 연결 방지
         if (!isAuthenticated || !user?.id || user?.nextStep !== 'HOME') {
             if (stompClient.active) {
