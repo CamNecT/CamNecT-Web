@@ -12,6 +12,16 @@ import SingleInput from "../../../components/common/SingleInput";
 import Icon from "../../../components/Icon";
 import PopUp from "../../../components/Pop-up";
 import type { PopUpType } from "../../../components/Pop-up";
+import {
+    AUTH_ERROR_CODES,
+    FIND_PASSWORD_EMAIL_SEND_ERROR_MESSAGES,
+    PASSWORD_RESET_ERROR_MESSAGES,
+    PASSWORD_RESET_POPUP_MESSAGES,
+    PASSWORD_RESET_VERIFY_ATTEMPT_ERROR_MESSAGES,
+    PASSWORD_RESET_VERIFY_ERROR_MESSAGES,
+    PASSWORD_RESET_VERIFY_POPUP_MESSAGES,
+} from "../../../constants/serverErrors/authErrors";
+import { getServerErrorCode } from "../../../utils/getServerErrorCode";
 import SmallButton from "./SmallButton";
 
 interface FindPwFormProps {
@@ -66,28 +76,7 @@ type EmailFormData = z.infer<typeof emailSchema>;
 
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
-// API 응답 error message와 매핑하기 위한 타입
-// todo 안쓰는 것들 삭제 예정 
-type ErrorKey =
-    | "username"
-    | "email"
-    | "code"
-    | "verificationCodeUnavailable"
-    | "verificationCodeExpiredOrUsed"
-    | "verificationCodeAttemptsExceeded"
-    | "accountRestrictedOrEmailUnverified"
-    | "password";
-
-const singleInputErrorMessage: Record<ErrorKey, string> = {
-    username: "입력한 아이디가 가입 정보와 일치하지 않습니다.",
-    email: "입력한 이메일이 가입 정보와 일치하지 않습니다.",
-    code: "인증번호가 일치하지 않습니다.",
-    verificationCodeUnavailable: "활성화된 인증번호가 없습니다. 인증번호를 다시 받아주세요.",
-    verificationCodeExpiredOrUsed: "만료되었거나 이미 사용된 인증번호입니다. 인증번호를 다시 받아주세요.",
-    verificationCodeAttemptsExceeded: "인증번호 입력 시도 횟수를 초과했습니다. 인증번호를 다시 받아주세요.",
-    accountRestrictedOrEmailUnverified: "계정이 비활성화되어 있습니다.",
-    password: "이전 비밀번호는 사용할 수 없습니다."
-};
+const MAX_CODE_ATTEMPTS = 5; // 최대 인증번호 시도 횟수 
 
 export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProps) => {
 
@@ -95,12 +84,16 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
     const [isCodeVerified, setIsCodeVerified] = useState<boolean>(false);
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [popUpConfig, setPopUpConfig] = useState<{ type: PopUpType, title: ReactNode; content: ReactNode } | null>(null);
+    // todo 인증번호 시도횟수 초과에 따른 추후 규칙 필요 (ex 2차 인증 진행... etc)
+    const [codeAttemptsCount, setCodeAttemptsCount] = useState<number>(0); 
+
 
     const navigate = useNavigate();
 
     // RHF
     const { register: registerEmail, control: controlEmail,
             setError: setErrorEmail, clearErrors: clearErrorsEmail,
+            resetField: resetEmailField,
             getValues: getEmailValues, 
             formState: { errors: errorsEmail } } = useForm<EmailFormData>({
         
@@ -109,7 +102,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
         defaultValues: {
             username: "",
             email: "",
-            verificationCode: ""
+            verificationCode: "" // 최대 5회까지만 입력 가능
         }
     });
 
@@ -138,13 +131,19 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
     });
 
     // ---- useMutation ----
+    // 이메일 인증 발송 
     const sendCodeMutation = useMutation({
         mutationFn: findPasswordEmailReqeust,
         onSuccess: () => {
             setIsCodeSent(true);
+            setIsCodeVerified(false);
+            setCodeAttemptsCount(0);
+            resetEmailField("verificationCode");
+            clearErrorsEmail("verificationCode");
         },
         onError: (error: AxiosError) => {
             const status = error.response?.status;
+            const errorCode = getServerErrorCode(error);
             const errorData = error.response?.data as { invalidProperties?: string[] };
             const invalidProperties = errorData?.invalidProperties ?? []; 
 
@@ -155,90 +154,163 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                 if (hasUsernameError) {
                     setErrorEmail("username", {
                         type: "server",
-                        message: singleInputErrorMessage["username"],
+                        message: FIND_PASSWORD_EMAIL_SEND_ERROR_MESSAGES.username,
                     });
                 }
                 
                 if (hasEmailError) {
                     setErrorEmail("email", {
                         type: "server",
-                        message: singleInputErrorMessage["email"],
+                        message: FIND_PASSWORD_EMAIL_SEND_ERROR_MESSAGES.email,
                     });
                 }
             }
 
             if (status === 403) { 
-                // todo code까지 추가로 확인 (정지 사용자 경우도 포함) -> 정지 사용자는 서버에서 취급 안할 예정
+                // 41301: 이메일 미인증
+                if (errorCode === AUTH_ERROR_CODES.common.emailUnverified) {
+                    setErrorEmail("verificationCode", {
+                        type: "server",
+                        message: FIND_PASSWORD_EMAIL_SEND_ERROR_MESSAGES.emailUnverified,
+                    });
+                    return;
+                }
+
+                // 41302: 정지된 사용자
+                if (errorCode === AUTH_ERROR_CODES.common.accountRestricted) {
+                    setErrorEmail("verificationCode", {
+                        type: "server",
+                        message: FIND_PASSWORD_EMAIL_SEND_ERROR_MESSAGES.accountRestricted,
+                    });
+                    return;
+                }
+
                 setErrorEmail("verificationCode", {
                     type: "server",
-                    message: singleInputErrorMessage["code"],
+                    message: FIND_PASSWORD_EMAIL_SEND_ERROR_MESSAGES.accountStatusUnavailable,
                 });
             }
         }
     });
 
+    // 이메일 인증 확인 
     const verifyCodeMutation = useMutation({
         mutationFn: findPasswordEmailVerifyRequest,
         onSuccess: () => {
             setIsCodeVerified(true);
+            setCodeAttemptsCount(0);
         },
         onError: (error: AxiosError) => {
             const status = error.response?.status;
-            const errorData = error.response?.data as { code?: string };
-            const errorCode = errorData?.code;
+            const errorCode = getServerErrorCode(error);
 
             if (status === 400) {
-                if (errorCode === "42032") {
+                // 40000: 이메일 또는 인증번호 형식 오류
+                if (errorCode === AUTH_ERROR_CODES.common.invalidRequest) {
                     setErrorEmail("verificationCode", {
                         type: "server",
-                        message: singleInputErrorMessage["code"],
+                        message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.verificationCodeFormat,
                     });
                     return;
                 }
 
-                // todo 서버 응답 code 값 직접 테스트 후 아래 케이스를 세분화
-                // - 활성 인증번호 없음: singleInputErrorMessage["verificationCodeUnavailable"]
-                // - 만료/사용됨: singleInputErrorMessage["verificationCodeExpiredOrUsed"]
+                // 42030: 활성화된 인증번호 없음
+                if (errorCode === AUTH_ERROR_CODES.passwordResetVerify.verificationCodeUnavailable) {
+                    setErrorEmail("verificationCode", {
+                        type: "server",
+                        message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.verificationCodeUnavailable,
+                    });
+                    return;
+                }
+
+                // 42031: 만료되었거나 이미 사용된 인증번호
+                if (errorCode === AUTH_ERROR_CODES.passwordResetVerify.verificationCodeExpiredOrUsed) {
+                    setErrorEmail("verificationCode", {
+                        type: "server",
+                        message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.verificationCodeExpiredOrUsed,
+                    });
+                    return;
+                }
+
+                // 42032: 인증번호 불일치
+                if (errorCode === AUTH_ERROR_CODES.passwordResetVerify.verificationCodeMismatch) {
+                    setCodeAttemptsCount((prev) => Math.min(prev + 1, MAX_CODE_ATTEMPTS));
+                    setErrorEmail("verificationCode", {
+                        type: "server",
+                        message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.code,
+                    });
+                    return;
+                }
+
                 setErrorEmail("verificationCode", {
                     type: "server",
-                    message: singleInputErrorMessage["code"],
+                    message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.verificationCodeFormat,
                 });
 
                 return;
             }
 
             if (status === 403) {
-                // 정지된 사용자 or 이메일 미인증 (이메일 미인증은 확인 필요)
-                if (errorCode === "41302") {
+                // 41301: 이메일 미인증
+                if (errorCode === AUTH_ERROR_CODES.common.emailUnverified) {
+                    setErrorEmail("email", {
+                        type: "server",
+                        message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.emailUnverified,
+                    });
+                    return;
+                }
+
+                // 41302: 정지된 사용자
+                if (errorCode === AUTH_ERROR_CODES.common.accountRestricted) {
 
                     setErrorEmail("email", {
                         type: "server",
-                        message: singleInputErrorMessage["accountRestrictedOrEmailUnverified"],
+                        message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.accountRestricted,
                     });
 
                     return;
                 }
             }
 
-            // todo 인증번호 횟수 초과 횟수 파악
+            // 41401: 사용자를 찾을 수 없음
+            if (status === 404 && errorCode === AUTH_ERROR_CODES.common.userNotFound) {
+                setErrorEmail("email", {
+                    type: "server",
+                    message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.userNotFound,
+                });
+                return;
+            }
+
+            // 42920: 인증번호 시도 횟수 초과
             if (status === 429) {
+                setCodeAttemptsCount(MAX_CODE_ATTEMPTS);
                 setErrorEmail("verificationCode", {
                     type: "server",
-                    message: singleInputErrorMessage["verificationCodeAttemptsExceeded"],
+                    message: PASSWORD_RESET_VERIFY_ERROR_MESSAGES.verificationCodeAttemptsExceeded,
                 });
 
                 return;
             }
 
+            // 50000: resetToken 발급 또는 내부 오류
+            if (status === 500) {
+                setPopUpConfig({
+                    type: "error",
+                    title: PASSWORD_RESET_VERIFY_POPUP_MESSAGES.internal.title,
+                    content: PASSWORD_RESET_VERIFY_POPUP_MESSAGES.internal.content,
+                });
+                return;
+            }
+
             setPopUpConfig({
                 type: "error",
-                title: "인증에 실패하였습니다.",
-                content: "관리자에게 문의주세요.",
+                title: PASSWORD_RESET_VERIFY_POPUP_MESSAGES.fallback.title,
+                content: PASSWORD_RESET_VERIFY_POPUP_MESSAGES.fallback.content,
             });
         }
     });
 
-    // todo 서버 복구 이후 수정
+    // 비밀번호 재설정
     const resetPasswordMutation = useMutation({
         mutationFn: findPasswordResetReqeust,
         onSuccess: () => {
@@ -250,20 +322,89 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
         },
         onError: (error: AxiosError) => {
             const status = error.response?.status;
+            const errorCode = getServerErrorCode(error);
 
-            
             if (status === 400) {
+                // 40000: resetToken 또는 새 비밀번호 누락
+                if (errorCode === AUTH_ERROR_CODES.common.invalidRequest) {
+                    setErrorPw("password", {
+                        type: "server",
+                        message: PASSWORD_RESET_ERROR_MESSAGES.passwordFormat,
+                    });
+                    return;
+                }
+
+                // 41010: 비밀번호 정책 위반
+                if (errorCode === AUTH_ERROR_CODES.passwordReset.passwordPolicyViolation) {
+                    setErrorPw("password", {
+                        type: "server",
+                        message: PASSWORD_RESET_ERROR_MESSAGES.passwordPolicy,
+                    });
+                    return;
+                }
+
+                // 41011: 기존 비밀번호와 동일
+                if (errorCode === AUTH_ERROR_CODES.passwordReset.sameAsCurrentPassword) {
+                    setErrorPw("password", {
+                        type: "server",
+                        message: PASSWORD_RESET_ERROR_MESSAGES.sameAsCurrentPassword,
+                    });
+                    return;
+                }
+
                 setErrorPw("password", {
                     type: "server",
-                    message: singleInputErrorMessage["password"],
+                    message: PASSWORD_RESET_ERROR_MESSAGES.passwordFormat,
+                });
+                return;
+            }
+
+            if (status === 401) {
+                // 40100: resetToken 누락, 만료, 변조
+                if (errorCode === AUTH_ERROR_CODES.passwordReset.invalidResetToken) {
+                    setPopUpConfig({
+                        type: "error",
+                        title: PASSWORD_RESET_POPUP_MESSAGES.invalidResetToken.title,
+                        content: PASSWORD_RESET_POPUP_MESSAGES.invalidResetToken.content,
+                    });
+                    return;
+                }
+
+                // 41106: resetToken 타입이 PASSWORD_RESET이 아님
+                if (errorCode === AUTH_ERROR_CODES.passwordReset.invalidResetTokenType) {
+                    setPopUpConfig({
+                        type: "error",
+                        title: PASSWORD_RESET_POPUP_MESSAGES.invalidResetToken.title,
+                        content: PASSWORD_RESET_POPUP_MESSAGES.invalidResetToken.content,
+                    });
+                    return;
+                }
+            }
+
+            // 41401: 사용자를 찾을 수 없음
+            if (status === 404 && errorCode === AUTH_ERROR_CODES.common.userNotFound) {
+                setPopUpConfig({
+                    type: "error",
+                    title: PASSWORD_RESET_POPUP_MESSAGES.userNotFound.title,
+                    content: PASSWORD_RESET_POPUP_MESSAGES.userNotFound.content,
+                });
+                return;
+            }
+
+            // 50000: 비밀번호 암호화, 저장 또는 내부 오류
+            if (status === 500) {
+                setPopUpConfig({
+                    type: "error",
+                    title: PASSWORD_RESET_POPUP_MESSAGES.internal.title,
+                    content: PASSWORD_RESET_POPUP_MESSAGES.internal.content,
                 });
                 return;
             }
 
             setPopUpConfig({
                 type: "error",
-                title: "비밀번호 재설정에 실패하였습니다.",
-                content: "관리자에게 문의주세요.",
+                title: PASSWORD_RESET_POPUP_MESSAGES.fallback.title,
+                content: PASSWORD_RESET_POPUP_MESSAGES.fallback.content,
             });
         }
     })
@@ -275,7 +416,6 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
     }
 
     const handleResendCode = () => {
-
         sendCodeMutation.mutate({ username: usernameValue, email: emailValue });
     }
 
@@ -289,17 +429,25 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
             verifyCodeMutation.mutate({ email, code: value });
         }
     };
+
+    const codeAttemptText = `[${Math.min(Math.max(codeAttemptsCount, 1), MAX_CODE_ATTEMPTS)} / ${MAX_CODE_ATTEMPTS}]`;
+    // 인증번호 시도 횟수 표시가 필요한 에러 메시지
+    const verificationCodeErrorMessage = errorsEmail.verificationCode?.message
+        ? PASSWORD_RESET_VERIFY_ATTEMPT_ERROR_MESSAGES.has(errorsEmail.verificationCode.message)
+            ? `${errorsEmail.verificationCode.message} ${codeAttemptText}`
+            : errorsEmail.verificationCode.message
+        : undefined;
     
     const handleResetPw = (data: PasswordFormData) => {
-        // mutation에서 받은 서버의 response (umounte시 초기화)
+        // mutation에서 받은 서버의 response (unmount시 초기화)
         const resetToken = verifyCodeMutation.data?.resetToken; 
         
         // 토큰이 없을 경우
         if (!resetToken) {
             setPopUpConfig({
                 type: "error",
-                title: "비밀번호 재설정에 실패하였습니다.",
-                content: "관리자에게 문의주세요.",
+                title: PASSWORD_RESET_POPUP_MESSAGES.fallback.title,
+                content: PASSWORD_RESET_POPUP_MESSAGES.fallback.content,
             });
             return;
         }
@@ -359,6 +507,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                             label="아이디"
                             labelClassName="pl-[3px]"
                             placeholder="아이디를 입력해 주세요"
+                            disabled={isCodeSent}
                             {...registerEmail("username", {
                                 onChange: () => clearErrorsEmail("username"),
                             })}
@@ -370,6 +519,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                                 label="이메일"
                                 labelClassName="pl-[3px]"
                                 placeholder="가입 이메일을 입력해 주세요"
+                                disabled={isCodeSent}
                                 {...registerEmail("email", {
                                     onChange: () => clearErrorsEmail("email"),
                                 })}
@@ -380,11 +530,11 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                                 <div className="flex items-start gap-2.5">
                                     <SingleInput
                                         placeholder="인증번호를 입력해 주세요" 
-                                        disabled = {isCodeVerified}
+                                        disabled = {isCodeVerified || codeAttemptsCount >= MAX_CODE_ATTEMPTS}
                                         {...registerEmail("verificationCode", {
                                             onChange: handleVerificationCodeChange,
                                         })}
-                                        error={errorsEmail.verificationCode?.message}
+                                        error={verificationCodeErrorMessage}
                                     /> 
                                     <SmallButton 
                                         label="재발송" 

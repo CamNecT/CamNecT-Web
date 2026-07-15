@@ -147,10 +147,10 @@ export const findPasswordEmailVerifyRequest = async (data: FindPasswordEmailVeri
     return response.data;
 }
 
-// 17. 비밀번호 재설정 API [POST] (/api/auth/password/reset)
+// 17. 비밀번호 재설정 API [PATCH] (/api/auth/password/reset)
 export const findPasswordResetReqeust = async (data: FindPasswordResetRequest) => {
     
-    const response = await axiosInstance.post("/api/auth/password/reset", data);
+    const response = await axiosInstance.patch("/api/auth/password/reset", data);
     return response.data;
 }
 
