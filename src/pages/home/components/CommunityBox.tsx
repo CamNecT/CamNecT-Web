@@ -1,5 +1,6 @@
 import Card from '../../../components/Card';
 import { useNavigate } from 'react-router-dom';
+import PressableMotion from '../../../components/PressableMotion';
 
 
 // 홈 1/2-2: 커뮤니티 박스 UI
@@ -8,23 +9,26 @@ const CommunityBox = () => {
 
     return (
         //TODO: 카드 클릭 시 Community 라우터 연결
-        <Card
-            width="100%"
-            height="135px"
-            className="relative cursor-pointer overflow-hidden border-none !bg-primary pt-[13px] pl-[15px] flex-[124_124_0]"
-            onClick={() => navigate('/community')}
+        <PressableMotion
+            className="flex-[124_124_0]"
         >
-            <div className="relative z-10 flex flex-col gap-[6px]">
-                <span className="text-sb-18 text-white tracking-[-0.04em]">
-                    커뮤니티
-                </span>
-                <span className="text-m-14 text-[#F2FCF8] tracking-[-0.04em]">
-                    바로가기
-                </span>
-            </div>
+            <Card
+                width="100%"
+                height="135px"
+                className="relative cursor-pointer overflow-hidden rounded-[15px] border-none !bg-primary pt-[13px] pl-[15px]"
+                onClick={() => navigate('/community')}
+            >
+                <div className="relative z-10 flex flex-col gap-[6px]">
+                    <span className="text-sb-18 text-white tracking-[-0.04em]">
+                        커뮤니티
+                    </span>
+                    <span className="text-m-14 text-[#F2FCF8] tracking-[-0.04em]">
+                        바로가기
+                    </span>
+                </div>
 
-            <div className="pointer-events-none absolute -right-[28px] -bottom-[25px] h-[160px] w-[150px]" aria-hidden>
-                <svg xmlns="http://www.w3.org/2000/svg" width="124" height="135" viewBox="0 0 124 135" fill="none">
+                <div className="pointer-events-none absolute -right-[28px] -bottom-[25px] h-[160px] w-[150px]" aria-hidden>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="124" height="135" viewBox="0 0 124 135" fill="none">
                 <mask id="mask0_1718_6802"
                 style={{ maskType: 'alpha' }}
                 maskUnits="userSpaceOnUse" x="0" y="0" width="124" height="135">
@@ -69,9 +73,10 @@ const CommunityBox = () => {
                         <stop offset="1" stopColor="#ECFFE1" />
                     </linearGradient>
                 </defs>
-            </svg>
-            </div>
-        </Card>
+                    </svg>
+                </div>
+            </Card>
+        </PressableMotion>
     );
 };
 

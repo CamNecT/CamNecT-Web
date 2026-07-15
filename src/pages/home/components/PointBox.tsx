@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/Card';
+import PressableMotion from '../../../components/PressableMotion';
 
 type PointBoxProps = {
     points?: number;
@@ -12,28 +13,29 @@ const PointBox = ({ points = 0 }: PointBoxProps) => {
 
     return (
         //TODO: 쿠폰교환 페이지 라우터 연결
-        <Card
-            width="100%"
-            height="135px"
-            className="relative flex flex-col justify-between cursor-pointer border-none bg-gray-900! px-[16px] py-[13px] overflow-hidden [container-type:inline-size] flex-[180_180_0]"
-            onClick={() => navigate('/shop')}
-        >
-            {/* 포인트/CTA 텍스트 */}
-            <div className="flex flex-col gap-[8px]">
-                <span className="text-sb-18 text-primary tracking-[-0.04em]">
-                    {formattedPoints} P
-                </span>
-                <span className="text-m-14 tracking-[-0.04em] text-[var(--color-gray-150)]">
-                    쿠폰 교환하기
-                </span>
-            </div>
-
-            {/* 카드 배경 장식 */}
-            <div
-                aria-hidden
-                className="absolute top-[27px] right-[clamp(8px,8cqw,28px)] h-[90.951px] w-[123.244px] opacity-70 drop-shadow-[0_0_25.2px_rgba(236,255,225,0.30)]"
+        <PressableMotion className="flex-[181_181_0]">
+            <Card
+                width="100%"
+                height="135px"
+                className="relative flex flex-col justify-between cursor-pointer rounded-[15px] border-none bg-gray-900! px-[16px] py-[13px] overflow-hidden [container-type:inline-size]"
+                onClick={() => navigate('/shop')}
             >
-                <svg width="143" height="121" viewBox="0 0 143 121" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* 포인트/CTA 텍스트 */}
+                <div className="flex flex-col gap-[8px]">
+                    <span className="text-sb-18 text-primary tracking-[-0.04em]">
+                        {formattedPoints} P
+                    </span>
+                    <span className="text-m-14 tracking-[-0.04em] text-[var(--color-gray-150)]">
+                        쿠폰 교환하기
+                    </span>
+                </div>
+
+                {/* 카드 배경 장식 */}
+                <div
+                    aria-hidden
+                    className="absolute top-[27px] right-[clamp(8px,8cqw,28px)] h-[90.951px] w-[123.244px] opacity-70 drop-shadow-[0_0_25.2px_rgba(236,255,225,0.30)]"
+                >
+                    <svg width="143" height="121" viewBox="0 0 143 121" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g opacity="0.7" filter="url(#filter0_d_1718_6773)">
                         <path d="M138.986 91.7616C140.095 94.2837 138.954 97.2257 136.438 98.343C138.962 97.2438 141.901 98.3927 143.011 100.915L152.374 122.207L97.4033 146.38L88.0402 125.088C86.9312 122.566 88.0721 119.622 90.5884 118.505C88.0642 119.605 85.1244 118.457 84.0151 115.935L54.7449 49.3733L109.715 25.2002L138.986 91.7616Z" fill="#00C56C" />
                         <path d="M138.986 91.7616C140.095 94.2837 138.954 97.2257 136.438 98.343C138.962 97.2438 141.901 98.3927 143.011 100.915L152.374 122.207L97.4033 146.38L88.0402 125.088C86.9312 122.566 88.0721 119.622 90.5884 118.505C88.0642 119.605 85.1244 118.457 84.0151 115.935L54.7449 49.3733L109.715 25.2002L138.986 91.7616Z" fill="url(#paint0_linear_1718_6773)" />
@@ -79,10 +81,11 @@ const PointBox = ({ points = 0 }: PointBoxProps) => {
                             <stop offset="1" stopColor="#ECFFE1" />
                         </linearGradient>
                     </defs>
-                </svg>
+                    </svg>
 
-            </div>
-        </Card>
+                </div>
+            </Card>
+        </PressableMotion>
     );
 };
 
