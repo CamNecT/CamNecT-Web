@@ -62,7 +62,7 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
                 ? 'border-red-500 focus:border-red-500' // 에러가 있을 때
                 : 'border-gray-150 focus:border-primary' // 정상일 때
               }
-              disabled:bg-gray-50 disabled:text-gray-400
+              disabled:bg-gray-50 disabled:text-gray-750
               ${inputClassName}
             `}
             {...props}
