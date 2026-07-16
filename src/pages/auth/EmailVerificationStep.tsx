@@ -173,40 +173,37 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
                 </h1>
 
                 <div className="flex-1 overflow-y-auto space-y-[20px] pt-[40px] scrollbar-hide">
-                    <div className='flex items-start gap-[10px]'>
-                        <SingleInput
-                            className="flex-1"
-                            label='이메일 인증'
-                            placeholder='이메일을 입력해 주세요'
-                            {...register("email")} // name, onChange, onBlur, ref를 한 번에 input에 연결
-                            error={errors.email?.message} // zod 검증 실패 시 에러 문자열, 통과 시 undefined
-                            successMessage={emailSent ? "메일이 전송되었습니다. 메일함을 확인해 주세요!" : ""}
-                        />
+                    {/* 이메일 인증 : 인증요청 버튼은 action 슬롯에 넣어 인풋과 자동 정렬 */}
+                    <SingleInput
+                        label='이메일 인증'
+                        placeholder='이메일을 입력해 주세요'
+                        {...register("email")} // name, onChange, onBlur, ref를 한 번에 input에 연결
+                        error={errors.email?.message} // zod 검증 실패 시 에러 문자열, 통과 시 undefined
+                        successMessage={emailSent ? "메일이 전송되었습니다. 메일함을 확인해 주세요!" : ""}
+                        action={
+                            <SmallButton
+                                label="인증요청"
+                                type="button"
+                                disabled={!emailValue || !!errors.email} // 이메일 값 || 에러 있으면 버튼 비활성화
+                                onClick={handleEmailRequest}
+                            />
+                        }
+                    />
 
-                        <SmallButton
-                            label="인증요청"
-                            type="button"
-                            className="mt-[36px]"
-                            disabled={!emailValue || !!errors.email} // 이메일 값 || 에러 있으면 버튼 비활성화
-                            onClick={handleEmailRequest}
-                        />
-                    </div>
-
-                    <div className='flex items-start gap-[10px]'>
-                        <SingleInput
-                            className = "flex-1"
-                            placeholder="인증 번호 6자리를 입력해 주세요"
-                            {...register("verificationCode")}
-                            error={errors.verificationCode?.message}
-                        />
-                        <SmallButton 
-                            onClick={handleEmailVerify}
-                            label="인증하기" 
-                            type="button"
-                            className="mt-[6px]"
-                            disabled={!emailSent || codeValue.length !== 6}  
-                        />
-                    </div>
+                    {/* 인증번호 : 인증하기 버튼도 동일하게 action 슬롯으로 정렬 */}
+                    <SingleInput
+                        placeholder="인증 번호 6자리를 입력해 주세요"
+                        {...register("verificationCode")}
+                        error={errors.verificationCode?.message}
+                        action={
+                            <SmallButton
+                                onClick={handleEmailVerify}
+                                label="인증하기"
+                                type="button"
+                                disabled={!emailSent || codeValue.length !== 6}
+                            />
+                        }
+                    />
                 </div>
 
                 <div className="h-[40px] flex-none" />

@@ -13,7 +13,8 @@ interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
   rightIcon?: ReactNode;
   rightIconAriaLabel?: string;
   rightIconAriaPressed?: boolean;
-  onRightIconClick?: () => void; 
+  onRightIconClick?: () => void;
+  action?: ReactNode; // 인풋과 같은 행에 붙는 버튼 등 (중복확인, 인증요청)
 }
 
 /**
@@ -37,6 +38,7 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
     rightIconAriaLabel,
     rightIconAriaPressed,
     onRightIconClick,
+    action,
     type = 'text',
     ...props
   }, ref) => {
@@ -49,42 +51,48 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
           </label>
         )}
 
-        <div className="relative">
-          {/* ref : 부모가 넘긴 ref를 실제 input DOM에 연결 */}
-          <input
-            ref={ref}
-            type={type}
-            className={`
-              w-full h-[48px] pl-[20px] pr-[20px] rounded-[5px] border bg-white
-              text-r-16 text-gray-900 placeholder:text-gray-400
-              focus:outline-none transition-all duration-200
-              ${error 
-                ? 'border-red-500 focus:border-red-500' // 에러가 있을 때
-                : 'border-gray-150 focus:border-primary' // 정상일 때
-              }
-              disabled:bg-gray-50 disabled:text-gray-750
-              ${inputClassName}
-            `}
-            {...props}
-          />
-          {rightIcon && (
-            onRightIconClick ? ( 
-              // click가능한 아이콘일때 
-              <button
-                type="button"
-                onClick={onRightIconClick}
-                aria-label={rightIconAriaLabel}
-                aria-pressed={rightIconAriaPressed}
-                className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center"
-              >
-                {rightIcon}
-              </button>
-            ) : (
-              <span className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center">
-                {rightIcon}
-              </span>
-            )
-          )}
+        {/* 인풋 행 : 라벨/에러와 분리해 인풋과 action(버튼)만 같은 높이로 정렬 */}
+        <div className="flex items-start gap-[10px]">
+          <div className="relative flex-1">
+            {/* ref : 부모가 넘긴 ref를 실제 input DOM에 연결 */}
+            <input
+              ref={ref}
+              type={type}
+              className={`
+                w-full h-[48px] pl-[20px] pr-[20px] rounded-[5px] border bg-white
+                text-r-16 text-gray-900 placeholder:text-gray-400
+                focus:outline-none transition-all duration-200
+                ${error
+                  ? 'border-red-500 focus:border-red-500' // 에러가 있을 때
+                  : 'border-gray-150 focus:border-primary' // 정상일 때
+                }
+                disabled:bg-gray-50 disabled:text-gray-750
+                ${inputClassName}
+              `}
+              {...props}
+            />
+            {rightIcon && (
+              onRightIconClick ? (
+                // click가능한 아이콘일때
+                <button
+                  type="button"
+                  onClick={onRightIconClick}
+                  aria-label={rightIconAriaLabel}
+                  aria-pressed={rightIconAriaPressed}
+                  className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center"
+                >
+                  {rightIcon}
+                </button>
+              ) : (
+                <span className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  {rightIcon}
+                </span>
+              )
+            )}
+          </div>
+
+          {/* action : 인풋과 같은 행에서 자동 정렬 (mt 매직넘버 불필요) */}
+          {action}
         </div>
 
         {/* 에러 > 성공 메시지 > 도움말 메시지 */}

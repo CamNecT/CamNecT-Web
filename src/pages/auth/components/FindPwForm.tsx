@@ -527,22 +527,23 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                             />
 
                             {isCodeSent && (
-                                <div className="flex items-start gap-2.5">
-                                    <SingleInput
-                                        placeholder="인증번호를 입력해 주세요" 
-                                        disabled = {isCodeVerified || codeAttemptsCount >= MAX_CODE_ATTEMPTS}
-                                        {...registerEmail("verificationCode", {
-                                            onChange: handleVerificationCodeChange,
-                                        })}
-                                        error={verificationCodeErrorMessage}
-                                    /> 
-                                    <SmallButton 
-                                        label="재발송" 
-                                        type="button"
-                                        disabled={isCodeVerified}
-                                        onClick={handleResendCode}
-                                    />
-                                </div>
+                                // 인증번호 : 재발송 버튼도 action 슬롯으로 통일
+                                <SingleInput
+                                    placeholder="인증번호를 입력해 주세요"
+                                    disabled={isCodeVerified || codeAttemptsCount >= MAX_CODE_ATTEMPTS}
+                                    {...registerEmail("verificationCode", {
+                                        onChange: handleVerificationCodeChange,
+                                    })}
+                                    error={verificationCodeErrorMessage}
+                                    action={
+                                        <SmallButton
+                                            label="재발송"
+                                            type="button"
+                                            disabled={isCodeVerified}
+                                            onClick={handleResendCode}
+                                        />
+                                    }
+                                />
                             )}
                         </div>
                     </div>

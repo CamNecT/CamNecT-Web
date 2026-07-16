@@ -145,25 +145,24 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
                 {/* 2. 입력 섹션 (스크롤 가능) */}
                 {/* overflow-y-auto : 넘치면 스크롤, flex-1 : 남은 공간 차지 (유동적) */}
                 <div className="flex-1 overflow-y-auto space-y-[30px] pt-[40px] scrollbar-hide">
-                    <div className='flex items-start gap-[10px]'>
-                        <SingleInput 
-                            className="flex-1"
-                            label='아이디' 
-                            placeholder='아이디를 입력해 주세요' 
-                            {...register("username", {
-                                onChange: () => setIsUserNameChecked(false),
-                            })} 
-                            error={errors.username?.message}
-                            successMessage={isUserNameChecked ? "사용 가능한 아이디입니다" : ""}
-                        />
-                        <SmallButton 
-                            label="중복확인" 
-                            type="button"
-                            className="mt-[36px]"
-                            disabled={!userNameValue || !!errors.username}
-                            onClick={handleCheckUserName}
-                        />
-                    </div> 
+                    {/* 아이디 : 중복확인 버튼은 action 슬롯에 넣어 인풋과 자동 정렬 */}
+                    <SingleInput
+                        label='아이디'
+                        placeholder='아이디를 입력해 주세요'
+                        {...register("username", {
+                            onChange: () => setIsUserNameChecked(false),
+                        })}
+                        error={errors.username?.message}
+                        successMessage={isUserNameChecked ? "사용 가능한 아이디입니다" : ""}
+                        action={
+                            <SmallButton
+                                label="중복확인"
+                                type="button"
+                                disabled={!userNameValue || !!errors.username}
+                                onClick={handleCheckUserName}
+                            />
+                        }
+                    />
 
                     {/* 비밀번호 그룹: 라벨 하나에 인풋 두 개가 '긴밀하게' 붙어있는 구조 */}
                     <div className="space-y-[12px]">
