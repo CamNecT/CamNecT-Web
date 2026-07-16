@@ -12,6 +12,10 @@ import { getCommunityHome, getCommunityPosts } from '../../api/community';
 import type { CommunityPostItem, Sort, Tab } from '../../api-types/communityApiTypes';
 import { mapToInfoPost, mapToQuestionPost } from '../../utils/communityMapper';
 
+type CommunityPageProps = {
+  isAdmin?: boolean;
+};
+
 const tabItems: TabItem[] = [
   { id: 'all', label: '전체' },
   { id: 'info', label: '정보' },
@@ -50,7 +54,7 @@ const mapSortKeyToApiSort = (sortKey: SortKey): Sort => {
 };
 
 
-export const CommunityPage = () => {
+export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
   const navigate = useNavigate();
   // 탭 선택 및 검색 UI 상태
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -321,6 +325,7 @@ export const CommunityPage = () => {
           posts={infoPostsFromApi}
           sortKey={infoSortKey}
           onSortChange={setInfoSortKey}
+          isAdmin={isAdmin}
         />
       );
     if (activeTab === 'question')
@@ -329,6 +334,7 @@ export const CommunityPage = () => {
           posts={questionPostsFromApi}
           sortKey={questionSortKey}
           onSortChange={setQuestionSortKey}
+          isAdmin={isAdmin}
         />
       );
     return (
@@ -371,8 +377,15 @@ export const CommunityPage = () => {
           <MainHeader
             title='커뮤니티'
             leftAction={{
-              onClick: () => navigate('/home', { replace: true }),
-              ariaLabel: '홈으로 이동',
+              onClick: () => {
+                if (isAdmin) {
+                  navigate(-1);
+                  return;
+                }
+
+                navigate('/home', { replace: true });
+              },
+              ariaLabel: isAdmin ? '이전 화면으로 이동' : '홈으로 이동',
             }}
             rightActions={
               activeTab === 'all'

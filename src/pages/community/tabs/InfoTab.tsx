@@ -23,10 +23,11 @@ type InfoTabProps = {
   posts: InfoPost[];
   sortKey: SortKey;
   onSortChange: (next: SortKey) => void;
+  isAdmin?: boolean;
 };
 
 // 정보 탭: 필터 + 정렬 + 정보글 리스트
-const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
+const InfoTab = ({ posts, sortKey, onSortChange, isAdmin = false }: InfoTabProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
@@ -141,7 +142,7 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
         allTags={filterTags}
       />
 
-      <WriteButton />
+      <WriteButton hasBottomNav={isAdmin}/>
     </div>
   );
 };

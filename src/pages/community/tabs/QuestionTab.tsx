@@ -22,10 +22,11 @@ type QuestionTabProps = {
   posts: QuestionPost[];
   sortKey: SortKey;
   onSortChange: (next: SortKey) => void;
+  isAdmin?: boolean;
 };
 
 // 질문 탭: 필터 + 정렬 + 질문글 리스트
-const QuestionTab = ({ posts, sortKey, onSortChange }: QuestionTabProps) => {
+const QuestionTab = ({ posts, sortKey, onSortChange, isAdmin = false }: QuestionTabProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
@@ -167,7 +168,7 @@ const QuestionTab = ({ posts, sortKey, onSortChange }: QuestionTabProps) => {
         ]}
       />
 
-      <WriteButton />
+      <WriteButton hasBottomNav={isAdmin}/>
     </div>
   );
 };
