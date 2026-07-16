@@ -28,7 +28,7 @@ export const AUTH_ERROR_CODES = {
 export const FIND_PASSWORD_EMAIL_SEND_ERROR_MESSAGES = {
     username: "입력한 아이디가 가입 정보와 일치하지 않습니다.",
     email: "입력한 이메일이 가입 정보와 일치하지 않습니다.",
-    emailUnverified: "이메일 인증이 완료되지 않은 계정입니다.",
+    emailUnverified: "회원가입 이메일 인증 후 이용할 수 있습니다.",
     accountRestricted: "계정이 비활성화되어 있습니다.",
     accountStatusUnavailable: "계정 상태를 확인해 주세요.",
 } as const;
@@ -40,7 +40,7 @@ export const PASSWORD_RESET_VERIFY_ERROR_MESSAGES = {
     verificationCodeUnavailable: "인증번호를 다시 받아주세요.",
     verificationCodeExpiredOrUsed: "만료된 인증번호입니다.",
     verificationCodeAttemptsExceeded: "시도 횟수를 초과했습니다.",
-    emailUnverified: "이메일 인증이 완료되지 않은 계정입니다.",
+    emailUnverified: "회원가입 이메일 인증 후 이용할 수 있습니다.",
     accountRestricted: "계정이 비활성화되어 있습니다.",
     userNotFound: "사용자를 찾을 수 없습니다.",
 } as const;
