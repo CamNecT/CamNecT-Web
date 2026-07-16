@@ -206,7 +206,7 @@ export const ProfileStep = ({ onNext }: ProfileStepProps) => {
           />
 
           <Button
-            disabled={!(introduction && selectedFile) || isSubmitting}
+            disabled={!(introduction || selectedFile) || isSubmitting}
             label={isSubmitting ? "업로드 중..." : "다음"}
             onClick={handleNext}
             className="flex-1 h-[50px] rounded-[10px]"
