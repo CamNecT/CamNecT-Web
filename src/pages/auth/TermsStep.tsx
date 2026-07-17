@@ -9,6 +9,11 @@ interface TermsStepProps {
     onNext: () => void;
 }
 
+const terms = [
+    { id: 'serviceTerms', label: '서비스 이용 약관', required: true },
+    { id: 'privacyTerms', label: '개인정보 수집 및 이용 동의', required: true }
+];
+
 // 이용약관 단계
 export const TermsStep = ({ onNext }: TermsStepProps) => {
     const { agreements, setAgreements } = useSignupStore();
@@ -20,13 +25,8 @@ export const TermsStep = ({ onNext }: TermsStepProps) => {
         isOpen: false,
         type: null
     });
-    
-    const allChecked = localAgreements.serviceTerms && localAgreements.privacyTerms;
 
-    const terms = [
-        { id: 'serviceTerms', label: '서비스 이용 약관', required: true },
-        { id: 'privacyTerms', label: '개인정보 수집 및 이용 동의', required: true }
-    ];
+    const allChecked = localAgreements.serviceTerms && localAgreements.privacyTerms;
 
     // 이용약관 모달 열기
     const handleModalOpen = (type: 'service' | 'privacy') => {
