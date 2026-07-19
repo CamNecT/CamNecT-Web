@@ -131,7 +131,7 @@ export const InterestsStep = ({ onNext }: InterestsStepProps) => {
                 <div className="flex items-center gap-[10px] w-full max-w-[325px]">
                     <ButtonWhite
                         label={isSubmitting ? "처리 중..." : "건너뛰기"}
-                        className="flex-1 !h-[50px] !rounded-[10px]"
+                        className="flex-1 h-[50px] rounded-[10px]"
                         disabled={isSubmitting}
                         onClick={handleNext}
                     />
@@ -139,7 +139,7 @@ export const InterestsStep = ({ onNext }: InterestsStepProps) => {
                     <Button
                         label={isSubmitting ? "제출 중..." : "다음"}
                         disabled={selectedTags.length === 0 || isSubmitting}
-                        className="flex-1 !h-[50px] !rounded-[10px]"
+                        className="flex-1 h-[50px] rounded-[10px]"
                         onClick={handleNext}
                     />
                 </div>

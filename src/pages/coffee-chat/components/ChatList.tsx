@@ -1,5 +1,6 @@
 import type { ChatRoomListItem } from "../../../types/coffee-chat/coffeeChatTypes";
 import { formatDate } from "../../../utils/formatDate";
+import { formatStudentLabel } from "../../../utils/formatStudent";
 
 interface ChatListProps {
     chatRoom: ChatRoomListItem;
@@ -11,6 +12,11 @@ interface ChatListProps {
 
 // 
 export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = false, onClick }: ChatListProps) => {
+    const partnerName = chatRoom.partner.name?.trim() || "알 수 없음";
+    const partnerMajor = chatRoom.partner.major?.trim() || "";
+    const studentLabel = formatStudentLabel(chatRoom.partner.studentId);
+    const partnerMeta = [partnerMajor, studentLabel].filter(Boolean).join(' ');
+
     return (
         <li 
             className={`border-b border-gray-150 py-[15px] ${isFirstPaddingDisabled ? 'first:pt-0' : ''} ${isClosed ? 'bg-gray-150' : ''}`}
@@ -25,7 +31,7 @@ export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = 
                         <img src={chatRoom.partner.profileImg} alt="프로필 이미지" className="w-[60px] h-[60px] rounded-full object-cover" />
                     ) : (
                         <div className="w-[60px] h-[60px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                            <span className="text-gray-500 text-[18px] font-bold">{chatRoom.partner.name.charAt(0)}</span>
+                            <span className="text-gray-500 text-[18px] font-bold">{partnerName.charAt(0)}</span>
                         </div>
                     )}
                 </div>
@@ -35,10 +41,10 @@ export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = 
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-[4px] min-w-0">
                             <span className={`flex-none text-[18px] font-bold leading-[140%] tracking-[-0.36px] truncate ${isClosed ? 'text-gray-800' : 'text-[#202023]'}`}>
-                                {chatRoom.partner.name}
+                                {partnerName}
                             </span>
                             <span className="truncate text-[14px] font-normal text-gray-800 leading-[140%] tracking-[-0.56px] whitespace-nowrap">
-                                · {chatRoom.partner.major} {!isNaN(Number(chatRoom.partner.studentId)) && chatRoom.partner.studentId.length >= 2 ? `${chatRoom.partner.studentId.slice(2, 4)}학번` : chatRoom.partner.studentId}
+                                {partnerMeta ? `· ${partnerMeta}` : ''}
                             </span>
                         </div>
                         {/* 날짜 */}

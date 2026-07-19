@@ -14,36 +14,11 @@ interface UserInfoStepProps {
     onNext: () => void;
 }
 
-// 가입자 정보 입력 단계 (아이디 / 비밀번호 / 이름 / 전화번호)
-export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
+const passwordPattern = /^(?=.*\d)(?=.*[a-z])[A-Za-z0-9!@#$%^&*()_+={}[\]|\\:;"'<>,.?/~`-]{8,16}$/;
 
-    const [isUserNameChecked, setIsUserNameChecked] = useState(false);  // 아이디 중복확인 여부
-
-     const { 
-        username, setUsername, 
-        password, setPassword, 
-        name, setName, 
-        phoneNum, setPhoneNum 
-    } = useSignupStore(
-        useShallow((state) => ({
-            username: state.username,
-            setUsername: state.setUsername,
-            password: state.password,
-            setPassword: state.setPassword,
-            name: state.name,
-            setName: state.setName,
-            phoneNum: state.phoneNum,
-            setPhoneNum: state.setPhoneNum
-        }))
-    );
-    
-    // 비밀번호 정규화 
-    // 문자열로 사용할 경우 (예: new RegExp 사용 시)
-    const passwordPattern = /^(?=.*\d)(?=.*[a-z])[A-Za-z0-9!@#$%^&*()_+={}[\]|\\:;"'<>,.?/~`-]{8,16}$/;
-
-    // zod : input 데이터 규칙 검사기 
-    // .refine() : 추가적인 검증 로직 (비밀번호 확인 검사)
-    const userInfoSchema = z.object({
+// zod : input 데이터 규칙 검사기
+// .refine() : 필드간 비교
+const userInfoSchema = z.object({
         name: z
             .string()
             .min(1, "이름을 입력해 주세요")
@@ -68,8 +43,31 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
         path: ["confirmPassword"],
     });
 
-    // .infer : zod 스키마에서 만든 사용자 입력 요소를 타입화
-    type UserInfoFormData = z.infer<typeof userInfoSchema>;
+// .infer : zod 스키마에서 만든 사용자 입력 요소를 타입화
+type UserInfoFormData = z.infer<typeof userInfoSchema>;
+
+// 가입자 정보 입력 단계 (아이디 / 비밀번호 / 이름 / 전화번호)
+export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
+
+    const [isUserNameChecked, setIsUserNameChecked] = useState(false);  // 아이디 중복확인 여부
+
+    const {
+        username, setUsername,
+        password, setPassword,
+        name, setName,
+        phoneNum, setPhoneNum
+    } = useSignupStore(
+        useShallow((state) => ({
+            username: state.username,
+            setUsername: state.setUsername,
+            password: state.password,
+            setPassword: state.setPassword,
+            name: state.name,
+            setName: state.setName,
+            phoneNum: state.phoneNum,
+            setPhoneNum: state.setPhoneNum
+        }))
+    );
 
     // React Hook Form : 여러개의 input 값 관리 (유효성 검사, 에러처리, submit처리)
     // isValid : 입력된 데이터들 유효확인
@@ -77,13 +75,13 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
         setError, clearErrors, formState: { errors, isValid } } = useForm({
         resolver: zodResolver(userInfoSchema), // 검증은 zod로
         mode: "onChange", // 입력될 때 마다 검사
-        defaultValues: {  
-        name: name,
-        phoneNum: phoneNum,
-        username: username,
-        password: password,
-        confirmPassword: ""
-    }
+        defaultValues: {
+            name: name,
+            phoneNum: phoneNum,
+            username: username,
+            password: password,
+            confirmPassword: ""
+        }
     });
 
     // SingleInput에 입력되는 값들 실시간 감지
@@ -147,25 +145,24 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
                 {/* 2. 입력 섹션 (스크롤 가능) */}
                 {/* overflow-y-auto : 넘치면 스크롤, flex-1 : 남은 공간 차지 (유동적) */}
                 <div className="flex-1 overflow-y-auto space-y-[30px] pt-[40px] scrollbar-hide">
-                    <div className='flex items-start gap-[10px]'>
-                        <SingleInput 
-                            className="flex-1"
-                            label='아이디' 
-                            placeholder='아이디를 입력해 주세요' 
-                            {...register("username", {
-                                onChange: () => setIsUserNameChecked(false),
-                            })} 
-                            error={errors.username?.message}
-                            successMessage={isUserNameChecked ? "사용 가능한 아이디입니다" : ""}
-                        />
-                        <SmallButton 
-                            label="중복확인" 
-                            type="button"
-                            className="mt-[36px]"
-                            disabled={!userNameValue || !!errors.username}
-                            onClick={handleCheckUserName}
-                        />
-                    </div> 
+                    {/* 아이디 : 중복확인 버튼은 action 슬롯에 넣어 인풋과 자동 정렬 */}
+                    <SingleInput
+                        label='아이디'
+                        placeholder='아이디를 입력해 주세요'
+                        {...register("username", {
+                            onChange: () => setIsUserNameChecked(false),
+                        })}
+                        error={errors.username?.message}
+                        successMessage={isUserNameChecked ? "사용 가능한 아이디입니다" : ""}
+                        action={
+                            <SmallButton
+                                label="중복확인"
+                                type="button"
+                                disabled={!userNameValue || !!errors.username}
+                                onClick={handleCheckUserName}
+                            />
+                        }
+                    />
 
                     {/* 비밀번호 그룹: 라벨 하나에 인풋 두 개가 '긴밀하게' 붙어있는 구조 */}
                     <div className="space-y-[12px]">

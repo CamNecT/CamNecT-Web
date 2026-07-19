@@ -1,46 +1,98 @@
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 import { forwardRef } from 'react';
 
+// InputHTMLAttributes<HTMLInputElement> : <input>이 원래 받을 수 있는 props 타입
+// extends : 기본 input props를 물려받고, SingleInput 전용 props(label, error 등)를 추가
 interface SingleInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  labelClassName?: string; // 라벨용 className
   error?: string;
   helperText?: string;
   successMessage?: string;
+  inputClassName?: string; // 내부 input태그의 className
+  rightIcon?: ReactNode;
+  rightIconAriaLabel?: string;
+  rightIconAriaPressed?: boolean;
+  onRightIconClick?: () => void;
+  action?: ReactNode; // 인풋과 같은 행에 붙는 버튼 등 (중복확인, 인증요청)
 }
 
 /**
  * SingleInput: 한 줄 입력을 위한 공통 컴포넌트
- * - 디자인 일관성 유지 (Border, Radius, Padding 등)
  * - 에러 메시지 자동 표시
- * - forwardRef : props로 받은 ref를 실제 input태그에 주입
+ * - forwardRef : props로 받은 ref를 실제 input태그에 주입 (ref는 컴포넌트에 직접 사용 불가)
  */
+
+// forwardRef<HTMLInputElement, SingleInputProps> : ref 대상은 input, props 타입은 SingleInputProps
 const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
-  ({ label, error, helperText, successMessage, className = '', type = 'text', ...props }, ref) => {
+  // ...props : placeholder, value, onChange 등 나머지 input props를 실제 input에 전달
+  ({
+    label,
+    labelClassName,
+    error,
+    helperText,
+    successMessage,
+    className = '',
+    inputClassName = '',
+    rightIcon,
+    rightIconAriaLabel,
+    rightIconAriaPressed,
+    onRightIconClick,
+    action,
+    type = 'text',
+    ...props
+  }, ref) => {
     return (
       <div className={`w-full flex flex-col gap-[8px] ${className}`}>
         {/* 라벨 (optional) */}
         {label && (
-          <label className="text-m-16 text-gray-900 tracking-[-0.32px]">
+          <label className={`text-sb-16 text-gray-750 tracking-[-0.64px] ${labelClassName}`}>
             {label}
           </label>
         )}
 
-        <div className="relative">
-          <input
-            ref={ref}
-            type={type}
-            className={`
-              w-full h-[60px] px-[20px] rounded-[10px] border bg-white
-              text-r-16 text-gray-900 placeholder:text-gray-400
-              focus:outline-none transition-all duration-200
-              ${error 
-                ? 'border-red-500 focus:border-red-500' // 에러가 있을 때
-                : 'border-gray-150 focus:border-primary' // 정상일 때
-              }
-              disabled:bg-gray-50 disabled:text-gray-400
-            `}
-            {...props}
-          />
+        {/* 인풋 행 : 라벨/에러와 분리해 인풋과 action(버튼)만 같은 높이로 정렬 */}
+        <div className="flex items-start gap-[10px]">
+          <div className="relative flex-1">
+            {/* ref : 부모가 넘긴 ref를 실제 input DOM에 연결 */}
+            <input
+              ref={ref}
+              type={type}
+              className={`
+                w-full h-[48px] pl-[20px] pr-[20px] rounded-[5px] border bg-white
+                text-r-16 text-gray-900 placeholder:text-gray-400
+                focus:outline-none transition-all duration-200
+                ${error
+                  ? 'border-red-500 focus:border-red-500' // 에러가 있을 때
+                  : 'border-gray-150 focus:border-primary' // 정상일 때
+                }
+                disabled:bg-gray-50 disabled:text-gray-750
+                ${inputClassName}
+              `}
+              {...props}
+            />
+            {rightIcon && (
+              onRightIconClick ? (
+                // click가능한 아이콘일때
+                <button
+                  type="button"
+                  onClick={onRightIconClick}
+                  aria-label={rightIconAriaLabel}
+                  aria-pressed={rightIconAriaPressed}
+                  className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center"
+                >
+                  {rightIcon}
+                </button>
+              ) : (
+                <span className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  {rightIcon}
+                </span>
+              )
+            )}
+          </div>
+
+          {/* action : 인풋과 같은 행에서 자동 정렬 (mt 매직넘버 불필요) */}
+          {action}
         </div>
 
         {/* 에러 > 성공 메시지 > 도움말 메시지 */}
@@ -53,7 +105,7 @@ const SingleInput = forwardRef<HTMLInputElement, SingleInputProps>(
             *{successMessage}
           </p>
         ) : helperText ? (
-          <p className="text-r-12 text-gray-600 tracking-[-0.24px] font-normal pl-[2px]">
+          <p className="text-[10px] leading-[140%] text-gray-750 tracking-[-0.4px] font-normal pl-[10px]">
             *{helperText}
           </p>
         ) : null}

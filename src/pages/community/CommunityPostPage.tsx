@@ -1,6 +1,6 @@
 import type { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { acceptCommunityComment, createCommunityComment, deleteCommunityComment, deleteCommunityPost, getCommunityPostComments, postCommunityBookmark, postCommunityLike, purchaseCommunityPostAccess, updateCommunityComment } from '../../api/community';
 import BottomSheetModalPost, {
   type ActionItem,
@@ -45,6 +45,7 @@ type PopUpConfig = {
 
 const CommunityPostPage = () => {
   const { postId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
   const currentUser = {
@@ -150,6 +151,7 @@ const CommunityPostPage = () => {
     highlightedCommentId,
     replyTarget,
     replyFocusToken,
+    highlightComment,
     handleReplyClick,
     handleSubmitComment,
     handleSaveEdit,
@@ -217,6 +219,20 @@ const CommunityPostPage = () => {
     },
   });
 
+  useEffect(() => {
+    const commentId = searchParams.get('commentId');
+    if (!commentId || !sortedComments.length) return;
+
+    highlightComment(commentId);
+
+    const frameId = window.requestAnimationFrame(() => {
+      const targetElement = document.getElementById(`comment-${commentId}`);
+      targetElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [highlightComment, searchParams, sortedComments.length]);
+
   // 로딩 중에는 단일 PopUp만 노출
   const activePopUpConfig: PopUpConfig | null = isDetailLoading
     ? {
@@ -232,8 +248,9 @@ const CommunityPostPage = () => {
           <MainHeader
             title='커뮤니티'
             leftAction={{
-              onClick: () => navigate('/community', { replace: true }),
-              ariaLabel: '커뮤니티로 이동',
+              // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
+              onClick: () => navigate(-1),
+              ariaLabel: '이전 페이지로 이동',
             }}
             rightActions={[
               { icon: 'option', onClick: () => {}, ariaLabel: '게시글 옵션 열기' },
@@ -595,8 +612,9 @@ const CommunityPostPage = () => {
         <MainHeader
           title='커뮤니티'
           leftAction={{
-            onClick: () => navigate('/community', { replace: true }),
-            ariaLabel: '커뮤니티로 이동',
+            // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
+            onClick: () => navigate(-1),
+            ariaLabel: '이전 페이지로 이동',
           }}
           rightActions={[
             { icon: 'option', onClick: handleOpenPostOptions, ariaLabel: '게시글 옵션 열기' },

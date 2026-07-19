@@ -153,6 +153,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [isReady, setIsReady] = useState(false);
 
     const isLoading = isRoomLoading;
+    const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited;
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const roomInfo = chatRoomData?.partner;
@@ -245,6 +246,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // 메시지 전송 함수 
     const handleSendMessage = (text: string) => {
+        if (isChatUnavailable) return;
         sendMessage(text);
     }
 
@@ -547,7 +549,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             </div>
 
             {/* 고정된 입력창 */}
-            {!isTerminated && <TypingArea onSend={handleSendMessage} />}
+            {!isChatUnavailable && <TypingArea onSend={handleSendMessage} />}
             
             <PopUp isOpen={isLoading} type="loading" />
             

@@ -76,12 +76,13 @@ const CommentItem = ({
                   : ''
           }`}
         >
-          <div
-            className='flex gap-[10px]'
-            style={{
-              padding: '20px 25px',
-              paddingLeft: isReply ? '35px' : '25px',
-            }}
+        <div
+          id={`comment-${comment.id}`}
+          className='flex gap-[10px]'
+          style={{
+            padding: '20px 25px',
+            paddingLeft: isReply ? '35px' : '25px',
+          }}
           >
             {isReply ? <Icon name='reply' className='h-6 w-6 shrink-0' /> : null}
             <div className='text-[16px] leading-[160%] text-[var(--ColorGray2,#A1A1A1)]'>
@@ -107,6 +108,7 @@ const CommentItem = ({
         }`}
       >
         <div
+          id={`comment-${comment.id}`}
           className={`flex gap-[10px] ${
             isReply ? 'py-[15px] pl-[35px] pr-[25px]' : 'px-[25px] pb-[20px] pt-[17px]'
           }`}
