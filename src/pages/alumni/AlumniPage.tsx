@@ -29,12 +29,6 @@ export const AlumniSearchPage = () => {
   const abortRef = useRef<AbortController | null>(null);
   const { filterCategories, filterTags, mapTagNamesToIds } = useTagList();
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-  const isTagSearch = useMemo(() => {
-    if (!normalizedSearchTerm) return false;
-    return filterTags.some((tag) =>
-      tag.name.toLowerCase().includes(normalizedSearchTerm),
-    );
-  }, [filterTags, normalizedSearchTerm]);
   const selectedTagIds = useMemo(
     () => mapTagNamesToIds(selectedTags),
     [mapTagNamesToIds, selectedTags],
@@ -53,7 +47,8 @@ export const AlumniSearchPage = () => {
         // 서버 필터 결과를 받아 클라이언트 모델로 변환합니다.
         const response = await getAlumniList({
           userId: meUserId ?? undefined,
-          name: isTagSearch ? undefined : trimmedName || undefined,
+          // 검색어는 태그명 여부와 관계없이 항상 name 파라미터로 전달한다.
+          name: trimmedName || undefined,
           tags: selectedTagIds,
           signal: controller.signal,
         });
@@ -76,7 +71,7 @@ export const AlumniSearchPage = () => {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [isTagSearch, searchTerm, selectedTagIds, selectedTags]);
+  }, [meUserId, searchTerm, selectedTagIds]);
 
   // 선택된 태그만 만족하는 동문만 추립니다.
   const filteredList = useMemo(() => {

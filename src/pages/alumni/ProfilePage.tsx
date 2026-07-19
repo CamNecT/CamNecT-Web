@@ -26,6 +26,13 @@ const REPLACE_IMAGE = replaceImg;
 
 const profilePlaceholder = defaultImg;
 
+const getErrorMessage = (error: unknown) => {
+  if (!(error instanceof AxiosError)) return '';
+  const data = error.response?.data;
+  if (!data || typeof data !== 'object' || !('message' in data)) return '';
+  return typeof data.message === 'string' ? data.message : '';
+};
+
 type AlumniProfilePageProps = {
   enableCoffeeChatModal?: boolean;
 };
@@ -203,6 +210,7 @@ const AlumniProfileContent = ({
       return true;
     } catch (error) {
       const status = error instanceof AxiosError ? error.response?.status : undefined;
+      const errorMessage = getErrorMessage(error);
       if (status === 400) {
         setPopUpConfig({
           title: '전송 실패',
@@ -211,7 +219,9 @@ const AlumniProfileContent = ({
       } else if (status === 409) {
         setPopUpConfig({
           title: '전송 실패',
-          content: '이미 대기 중인 커피챗 요청이 존재합니다.',
+          content: errorMessage.includes('활성화된 채팅방')
+            ? '이미 활성화된 채팅방이 존재합니다.'
+            : '이미 대기 중인 커피챗 요청이 존재합니다.',
         });
       } else {
         setPopUpConfig({
