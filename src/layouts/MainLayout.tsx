@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import Icon from '../components/Icon';
-import { isStandalone } from '../hooks/useIsStandalone';
+import { isStandalone } from '../utils/isStandalone';
 
 type MainLayoutProps = {
   title: string;

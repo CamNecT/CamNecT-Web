@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import Icon, {type IconName} from '../../components/Icon';
 import { useNavigate } from 'react-router-dom';
-import { isStandalone } from '../../hooks/useIsStandalone';
+import { isStandalone } from '../../utils/isStandalone';
 
 type LeftAction = {
   icon?: IconName;

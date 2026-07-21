@@ -1,5 +1,5 @@
 import Icon from '../../components/Icon';
-import { isStandalone } from '../../hooks/useIsStandalone';
+import { isStandalone } from '../../utils/isStandalone';
 
 interface LoginHeaderProps {
   onBack: () => void;

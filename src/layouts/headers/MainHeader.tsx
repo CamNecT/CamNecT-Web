@@ -5,7 +5,7 @@ import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
 import { logout } from '../../api/profileApi';
 import { useAuthStore } from '../../store/useAuthStore';
-import { isStandalone } from '../../hooks/useIsStandalone';
+import { isStandalone } from '../../utils/isStandalone';
 
 type HeaderAction = {
   icon: IconName;
