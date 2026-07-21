@@ -174,7 +174,7 @@ export const HomePage = () => {
         // 홈 1번 영역: 인사말, 커피챗 요청, 포인트/커뮤니티 카드 틀 구성
         <FullLayout>
             <div className="mx-auto w-full max-w-[430px] bg-white">
-                <section className="bg-primary px-[25px] pt-[64px] pb-[62px]">
+                <section className="bg-primary px-[25px] pt-[22px] pb-[62px]">
                     <HomeHeader
                         showBadge={hasUnreadNotifications}
                         variant="onPrimary"
