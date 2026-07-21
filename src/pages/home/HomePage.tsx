@@ -128,6 +128,7 @@ export const HomePage = () => {
         userName: storedUserName ?? homeGreetingUser.name,
         coffeeChatRequests: [],
         coffeeChatTotalCount: 0,
+        recruitmentTotalCount: 0,
         pointBalance: 0,
         recommendList: [],
         contests: [],
@@ -192,7 +193,7 @@ export const HomePage = () => {
                             onClick={() => navigate('/home/notices')}
                         >
                             <Icon name="alarm" />
-                            {hasUnreadNotifications ? <Badge /> : null}
+                            {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
                         </button>
                     </div>
 
@@ -207,10 +208,10 @@ export const HomePage = () => {
                     </div>
                 </section>
 
-                <section className="-mt-[22px] flex w-full flex-col gap-[20px] px-[25px] pb-[53px]">
+                <section className="-mt-[32px] flex w-full flex-col gap-[20px] px-[25px] pb-[40px]">
                     <CoffeeChatBox
-                        requests={homeViewModel.coffeeChatRequests}
-                        totalCount={homeViewModel.coffeeChatTotalCount}
+                        coffeeChatCount={homeViewModel.coffeeChatTotalCount}
+                        teamRecruitCount={homeViewModel.recruitmentTotalCount}
                         onViewAll={() => navigate('/chat/requests')}
                     />
                     {/* 1-2: 일정 박스 + 포인트/커뮤니티 박스 */}

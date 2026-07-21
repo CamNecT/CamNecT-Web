@@ -12,10 +12,8 @@ export interface HomeData {
     user: {
         displayName: string;
     };
-    coffeeChat: {
-        pendingCount: number;
-        latest2: CoffeeChatLatestItem[];
-    };
+    coffeeChat: HomeRequestGroup<CoffeeChatLatestItem>;
+    recruitment: HomeRequestGroup<RecruitmentLatestItem>;
     point: {
         balance: number;
     };
@@ -29,12 +27,28 @@ export interface HomeData {
     };
 }
 
+export interface HomeRequestGroup<TLatestItem> {
+    pendingCount: number;
+    latest2: TLatestItem[];
+}
+
 export interface CoffeeChatLatestItem {
     requestId: number;
     senderUserId: number;
     senderName: string;
     majorName: string;
     studentNo: string;
+}
+
+export interface RecruitmentLatestItem {
+    requestId: number;
+    senderUserId: number;
+    senderName: string;
+    majorName: string;
+    studentNo: string;
+    recruitmentId?: number;
+    recruitmentTitle?: string;
+    activityId?: number;
 }
 
 export interface AlumniItem {

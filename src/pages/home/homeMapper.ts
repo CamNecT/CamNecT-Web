@@ -8,6 +8,7 @@ export type HomeViewModel = {
     userName: string;
     coffeeChatRequests: CoffeeChatRequest[];
     coffeeChatTotalCount: number;
+    recruitmentTotalCount: number;
     pointBalance: number;
     recommendList: RecommendBoxProps[];
     contests: Contest[];
@@ -107,6 +108,10 @@ export const mapHomeResponseToViewModel = (
             typeof data.coffeeChat?.pendingCount === "number"
                 ? data.coffeeChat.pendingCount
                 : coffeeChatRequests.length,
+        recruitmentTotalCount:
+            typeof data.recruitment?.pendingCount === "number"
+                ? data.recruitment.pendingCount
+                : data.recruitment?.latest2?.length ?? fallback.recruitmentTotalCount,
         pointBalance:
             typeof data.point?.balance === "number" ? data.point.balance : fallback.pointBalance,
         recommendList,
