@@ -76,7 +76,7 @@ export const MainHeader = ({
 
   return (
     <header
-      className={twMerge('sticky left-0 right-0 top-0 z-50 inline-flex min-h-[48px] w-full items-center bg-white px-[25px] py-[10px] [container-type:inline-size] relative', className)}
+      className={twMerge('sticky left-0 right-0 top-0 z-50 inline-flex min-h-[48px] w-full items-center bg-white px-[25px] py-[10px] [container-type:inline-size]', className)}
       style={{
         // top은 0을 유지해 배경이 노치까지 이어지게 하고, safe-area는 paddingTop에서만 더함
         // (top에도 safe area 더하면 이중 계산되어 콘텐츠가 필요 이상으로 밀려남)

@@ -25,7 +25,7 @@ export const EditHeader = ({ title, rightElement, leftAction }: EditHeaderProps)
   return (
     <header
       //고정 헤더.
-      className='sticky left-0 right-0 top-0 z-50 inline-flex w-full items-center bg-white px-[25px] py-[10px] [container-type:inline-size] relative'
+      className='sticky left-0 right-0 top-0 z-50 inline-flex w-full items-center bg-white px-[25px] py-[10px] [container-type:inline-size]'
       style={{
         paddingTop: `calc(${headerPaddingTop}px + env(safe-area-inset-top, 0px))`,
       }}

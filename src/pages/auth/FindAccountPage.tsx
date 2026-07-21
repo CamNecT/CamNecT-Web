@@ -26,24 +26,24 @@ export const FindAccountPage = () => {
     return (
         <HeaderLayout
             headerSlot={
-                <MainHeader
-                    title={headerTitle}
-                    leftAction={isPasswordResetStep
-                        ? { onClick: () => setIsPasswordResetStep(false) }
-                        : undefined
-                    }
-                />
+                <div className='sticky top-0 z-50 bg-white'>
+                    <MainHeader
+                        title={headerTitle}
+                        leftAction={isPasswordResetStep
+                            ? { onClick: () => setIsPasswordResetStep(false) }
+                            : undefined
+                        }
+                    />
+                    <Tabs
+                        tabs={tabs}
+                        activeId={tab ?? 'id'} // ?? : nullish 병합 연산자 -> 왼쪽이 null || undefined 이면 오른쪽값 사용
+                        onChange={(id) => navigate(`/find-account/${id}`, {replace: true})}
+                        isVisible={!isPasswordResetStep}
+                    />
+                </div>
             }
         >
-            <Tabs
-                tabs={tabs}
-                activeId={tab ?? 'id'} // ?? : nullish 병합 연산자 -> 왼쪽이 null || undefined 이면 오른쪽값 사용
-                onChange={(id) => navigate(`/find-account/${id}`, {replace: true})}
-                isVisible={!isPasswordResetStep}
-            >
-                {tab === 'id' ? <FindIdForm /> : <FindPwForm isPasswordResetStep = {isPasswordResetStep} onCodeVerified = {() => setIsPasswordResetStep(true)} />}
-            </Tabs>
-
+            {tab === 'id' ? <FindIdForm /> : <FindPwForm isPasswordResetStep = {isPasswordResetStep} onCodeVerified = {() => setIsPasswordResetStep(true)} />}
         </HeaderLayout>
     )
 }
