@@ -1,6 +1,8 @@
 import type {
     NotificationListRequest,
     NotificationListResponse,
+    NotificationReadAllRequest,
+    NotificationReadAllResponse,
     NotificationReadRequest,
     NotificationReadResponse,
     NotificationUnreadCountRequest,
@@ -28,6 +30,20 @@ export const requestNotificationUnreadCount = async (params: NotificationUnreadC
 export const requestNotificationRead = async (params: NotificationReadRequest) => {
     const response = await axiosInstance.patch<NotificationReadResponse>(
         `/api/notifications/${params.id}/read`,
+        null,
+        {
+            params: {
+                userId: params.userId,
+            },
+        },
+    );
+    return response.data;
+};
+
+// 모든 알림 읽음 처리 API [PATCH] (/api/notifications/read-all)
+export const requestNotificationReadAll = async (params: NotificationReadAllRequest) => {
+    const response = await axiosInstance.patch<NotificationReadAllResponse>(
+        "/api/notifications/read-all",
         null,
         {
             params: {

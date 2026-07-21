@@ -140,7 +140,7 @@ export type UpdateCommunityPostBody = {
   content: string;
   anonymous: boolean;
   tagIds: number[];
-  attachments?: CommunityAttachment[];
+  attachments: CommunityAttachment[] | null;
 };
 
 export type UpdateCommunityPostResult = string;

@@ -99,7 +99,7 @@ export const ChatRequestListPage = () => {
         activeId={activeId}
         onChange={handleTabChange}
       >
-        <ol>
+        <ul>
           {
             activeId === 'TEAM_RECRUIT' ? 
               // Object.entries : Object -> Array ([index0, index1])
@@ -109,7 +109,7 @@ export const ChatRequestListPage = () => {
                 const requestCount = chatRoomList.length;
                 
                 return (
-                  <div key={key} className="flex flex-col">
+                  <li key={key} className="flex flex-col">
                     <ChatPostAccordian
                       title={key}
                       isOpen={isOpen}
@@ -117,7 +117,7 @@ export const ChatRequestListPage = () => {
                       onClick={() => togglePostTitle(key)}
                     />
                     {isOpen && (
-                      <ol>
+                      <ul>
                         {chatRoomList.map((chatRoom) => (
                           <ChatList 
                             key={chatRoom.roomId} 
@@ -126,9 +126,9 @@ export const ChatRequestListPage = () => {
                             onClick={() => handleChatRoomClick(chatRoom.roomId)}
                           />
                         ))}
-                      </ol>
+                      </ul>
                     )}
-                  </div>
+                  </li>
                 )
               })
             : 
@@ -141,7 +141,7 @@ export const ChatRequestListPage = () => {
                 />
               ))
           }
-        </ol>
+        </ul>
 
 
         <AllRequestDeleteButton

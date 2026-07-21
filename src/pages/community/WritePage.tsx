@@ -30,6 +30,8 @@ export const WritePage = () => {
 
     const [editPost, setEditPost] = useState<CommunityPostDetail | null>(null);
     const didInitEditRef = useRef(false);
+    // 수정 전 첨부파일 목록과 비교해서 변경 여부를 판단하기 위해 보관한다.
+    const originalAttachmentKeysRef = useRef<string[]>([]);
 
     const initialBoardType = (editPost?.boardType as BoardType | undefined) ?? null;
     const initialTitle = editPost?.title ?? '';
@@ -73,6 +75,20 @@ export const WritePage = () => {
         editPost?.categories ?? [],
     );
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    // sortOrder 기준으로 정렬된 기존 첨부파일 키 목록을 만든다.
+    const getSortedAttachments = (
+        attachments: NonNullable<CommunityPostDetail['attachments']>,
+    ) => attachments.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+
+    const getSortedAttachmentKeys = (
+        attachments: NonNullable<CommunityPostDetail['attachments']>,
+    ) =>
+        getSortedAttachments(attachments).map((attachment) => attachment.fileKey);
+
+    // 첨부파일 순서/구성이 수정 전과 같은지 확인한다.
+    const areAttachmentKeysEqual = (left: string[], right: string[]) =>
+        left.length === right.length && left.every((key, index) => key === right[index]);
 
     const openBoardSelector = () => {
         setDraftBoardType(boardType);
@@ -224,6 +240,7 @@ export const WritePage = () => {
 
     useEffect(() => {
         didInitEditRef.current = false;
+        originalAttachmentKeysRef.current = [];
         setEditPost(null);
     }, [postId]);
 
@@ -255,6 +272,7 @@ export const WritePage = () => {
         setSelectedTags(mappedTags);
         setExistingAttachments(editPost.attachments ?? []);
         setNewAttachments([]);
+        originalAttachmentKeysRef.current = getSortedAttachmentKeys(editPost.attachments ?? []);
         didInitEditRef.current = true;
     }, [isEditMode, editPost, mapTagIdsToNames]);
 
@@ -325,18 +343,35 @@ export const WritePage = () => {
                 })),
                 numericUserId,
             );
-            const existingAttachmentsToSend = existingAttachments
-                .slice()
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map((attachment) => ({
-                    fileKey: attachment.fileKey,
-                    width: attachment.width,
-                    height: attachment.height,
-                    fileSize: attachment.fileSize,
-                }));
-            const mergedAttachments = [...existingAttachmentsToSend, ...uploadedAttachments];
-
             if (isEditMode && postId) {
+                const currentExistingAttachments = getSortedAttachments(existingAttachments);
+                const currentExistingAttachmentKeys = currentExistingAttachments.map(
+                    (attachment) => attachment.fileKey,
+                );
+                // 변경 없음은 null, 전체 삭제는 빈 배열, 유지/추가는 모두 fileKey로 전달한다.
+                const hasAttachmentChanges =
+                    newAttachments.length > 0 ||
+                    !areAttachmentKeysEqual(
+                        originalAttachmentKeysRef.current,
+                        currentExistingAttachmentKeys,
+                    );
+                const attachments = hasAttachmentChanges
+                    ? [
+                        ...currentExistingAttachments.map((attachment) => ({
+                            fileKey: attachment.fileKey,
+                            width: attachment.width,
+                            height: attachment.height,
+                            fileSize: attachment.fileSize,
+                        })),
+                        ...uploadedAttachments.map((attachment) => ({
+                            fileKey: attachment.fileKey,
+                            width: attachment.width,
+                            height: attachment.height,
+                            fileSize: attachment.fileSize,
+                        })),
+                    ]
+                    : null;
+
                 await updateCommunityPost({
                     postId,
                     params: { userId: numericUserId },
@@ -345,10 +380,11 @@ export const WritePage = () => {
                         content: content.trim(),
                         anonymous: false,
                         tagIds,
-                        attachments: mergedAttachments,
+                        attachments,
                     },
                 });
-                navigate(`/community/post/${postId}`);
+                // 저장 후 뒤로가기로 수정 페이지에 다시 돌아오지 않도록 히스토리를 교체한다.
+                navigate(`/community/post/${postId}`, { replace: true });
                 return;
             }
 
@@ -363,7 +399,8 @@ export const WritePage = () => {
                 },
             });
             const nextPostId = response.data.postId;
-            navigate(`/community/post/${nextPostId}`);
+            // 작성 후 뒤로가기로 글쓰기 페이지에 다시 돌아오지 않도록 히스토리를 교체한다.
+            navigate(`/community/post/${nextPostId}`, { replace: true });
         } catch (error) {
             if (error instanceof Error && error.name === 'UploadLimitError') {
                 setErrorPopUp({

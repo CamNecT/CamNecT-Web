@@ -1,6 +1,7 @@
 import Badge from '../../components/Badge';
 import Icon from '../../components/Icon';
 import { useNavigate } from 'react-router-dom';
+import type { CSSProperties } from 'react';
 
 export const Logo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="138" height="27" viewBox="0 0 138 27" fill="none" className="h-[27px] w-[138px]">
@@ -25,22 +26,38 @@ export const Logo = () => (
 type HomeHeaderProps = {
   showBadge?: boolean;
   variant?: 'default' | 'onPrimary';
+  className?: string;
+  style?: CSSProperties;
+  sticky?: boolean;
+  useSafeArea?: boolean;
 };
 
-export const HomeHeader = ({ showBadge, variant = 'default' }: HomeHeaderProps) => {
+export const HomeHeader = ({
+  showBadge,
+  variant = 'default',
+  className = '',
+  style,
+  sticky = true,
+  useSafeArea = true,
+}: HomeHeaderProps) => {
   const navigate = useNavigate();
   const isOnPrimary = variant === 'onPrimary';
 
   return (
     <header
-      className={`sticky left-0 right-0 top-0 z-50 mx-auto flex w-full max-w-[430px] items-center justify-between px-[25px] py-[15px] ${
+      className={`${sticky ? 'sticky left-0 right-0 top-0 z-50' : 'relative'} mx-auto flex w-full max-w-[430px] items-center justify-between px-[25px] py-[15px] ${
         isOnPrimary
           ? 'bg-primary text-white [&_path]:fill-white [&_path]:stroke-white'
           : 'bg-white'
-      }`}
+      } ${className}`}
       style={{
-        paddingTop: 'calc(15px + env(safe-area-inset-top, 0px))',
-        top: 'env(safe-area-inset-top, 0px)',
+        ...(useSafeArea
+          ? {
+              paddingTop: 'calc(15px + env(safe-area-inset-top, 0px))',
+              top: 'env(safe-area-inset-top, 0px)',
+            }
+          : null),
+        ...style,
       }}
       role='banner'
       aria-label='홈 헤더'

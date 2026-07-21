@@ -129,10 +129,9 @@ export const BottomChat = ({
         <div className='flex shrink-0 items-center gap-[clamp(8px,3vw,13px)] pb-[12px] self-end'>
           <div
             className='flex items-center justify-center gap-[clamp(4px,1.5vw,5px)]'
-            style={{ paddingLeft: isLiked ? '2px' : '0px' }}
           >
             <LikeToggle width={24} height={24} isActive={isLiked} onToggle={onLikeChange} />
-            <span className='text-[16px] text-[var(--ColorGray2,#A1A1A1)]'>
+            <span className='min-w-[1.5ch] text-left text-[16px] tabular-nums text-[var(--ColorGray2,#A1A1A1)]'>
               {likeCount}
             </span>
           </div>

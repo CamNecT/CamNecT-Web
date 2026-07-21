@@ -30,6 +30,8 @@ const ActivityPostPage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
+  const userRole = authUser?.role;
+  const isAdmin = userRole === 'ADMIN';
   const userId = authUser?.id ? parseInt(authUser.id) : null;
   const activityId = postId ? parseInt(postId) : null;
 
@@ -82,6 +84,7 @@ const ActivityPostPage = () => {
       key={selectedPost.id} 
       selectedPost={selectedPost}
       isMine={detailResponse.data.isMine}
+      isAdmin={isAdmin}
       activityId={activityId!}
       userId={userId!}
       initialIsBookmarked={detailResponse.data.isBookmarked}
@@ -93,6 +96,7 @@ const ActivityPostPage = () => {
 type ActivityPostContentProps = {
   selectedPost: ReturnType<typeof mapDetailToActivityPost>;
   isMine: boolean;
+  isAdmin: boolean;
   activityId: number;
   userId: number;
   initialIsBookmarked: boolean;
@@ -102,6 +106,7 @@ type ActivityPostContentProps = {
 const ActivityPostContent = ({ 
   selectedPost,
   isMine,
+  isAdmin,
   activityId,
   userId,
   initialIsBookmarked,
@@ -152,15 +157,19 @@ const ActivityPostContent = ({
     },
   });
 
-  const optionItems: OptionItem[] = isMine
-    ? [
-        { id: 'edit-post', icon: 'edit', label: '게시글 수정' },
-        { id: 'delete-post', icon: 'delete', label: '게시글 삭제' },
-      ]
-    : [
-        { id: 'copy-url', icon: 'url', label: 'URL 복사' },
-        { id: 'report-post', icon: 'report', label: '게시글 신고' },
-      ];
+  const optionItems: OptionItem[] = isAdmin
+  ? [
+      { id: 'delete-post', icon: 'delete', label: '게시글 삭제' },
+    ]
+    : isMine
+      ? [
+          { id: 'edit-post', icon: 'edit', label: '게시글 수정' },
+          { id: 'delete-post', icon: 'delete', label: '게시글 삭제' },
+        ]
+      : [
+          { id: 'copy-url', icon: 'url', label: 'URL 복사' },
+          { id: 'report-post', icon: 'report', label: '게시글 신고' },
+        ];
 
   const handleOptionClick = async (item: OptionItem) => {
     if (item.id === 'copy-url') {

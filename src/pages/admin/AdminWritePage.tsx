@@ -6,18 +6,24 @@ import ExternalTab from '../activity/tabs/ExternalTab';
 import JobTab from '../activity/tabs/JobTab';
 import type { ActivityPostTab } from '../../types/activityPage/activityPageTypes';
 import { AdminFullLayout } from '../../layouts/AdminFullLayout';
+import ClubTab from '../activity/tabs/ClubTab';
+import StudyTab from '../activity/tabs/StudyTab';
 
 const tabItems: TabItem[] = [
+  { id: 'club', label: '동아리' },
+  { id: 'study', label: '스터디' },
   { id: 'external', label: '대외활동' },
   { id: 'job', label: '취업정보' },
 ];
 
 export const AdminWritePage = () => {
-  const [activeTab, setActiveTab] = useState<ActivityPostTab>('external')
+  const [activeTab, setActiveTab] = useState<ActivityPostTab>('club')
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const renderTab = () => {
+    if (activeTab === 'club') return <ClubTab searchQuery={searchQuery} />;
+    if (activeTab === 'study') return <StudyTab searchQuery={searchQuery} />;
     if (activeTab === 'external') return <ExternalTab searchQuery={searchQuery} isAdmin={true}/>;
     return <JobTab searchQuery={searchQuery} isAdmin={true}/>;
   };
