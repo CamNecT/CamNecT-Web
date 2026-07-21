@@ -81,20 +81,21 @@ export const FollowerPage = () => {
     return (
         <HeaderLayout
             headerSlot={
-                <MainHeader
-                    title="팔로워"
-                />
+                <div className="sticky top-0 z-50 bg-white">
+                    <MainHeader
+                        title="팔로워"
+                    />
+                    {/* 탭 */}
+                    <Tabs
+                        tabs={TABS}
+                        activeId={activeTab}
+                        onChange={(id) => setActiveTab(id as TabType)}
+                        className="px-[21px]"
+                    />
+                </div>
             }
         >
             <div className="w-full h-full bg-white flex flex-col">
-                {/* 탭 */}
-                <Tabs
-                    tabs={TABS}
-                    activeId={activeTab}
-                    onChange={(id) => setActiveTab(id as TabType)}
-                    className="px-[21px]"
-                />
-
                 {/* 검색창 */}
                 <div className="w-full px-[25px] pt-[20px] pb-[10px]">
                     <div className="relative">

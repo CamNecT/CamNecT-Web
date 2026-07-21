@@ -77,24 +77,27 @@ export const ChatRequestListPage = () => {
   return (
     <HeaderLayout
       headerSlot={
-        <MainHeader
-          title="요청" />
+        <div className="sticky top-0 z-50 bg-white">
+          <MainHeader
+            title="요청" />
+          <Tabs
+            tabs={tabs}
+            activeId={activeId}
+            onChange={(id) => setActiveId(id as ChatRoomListItemType)}
+          />
+        </div>
       }
     >
-      <Tabs
-        tabs={tabs}
-        activeId={activeId}
-        onChange={(id) => setActiveId(id as ChatRoomListItemType)}
-      >
+      <div className="flex-1 overflow-y-auto min-h-0">
         <ul>
           {
-            activeId === 'TEAM_RECRUIT' ? 
+            activeId === 'TEAM_RECRUIT' ?
               // Object.entries : Object -> Array ([index0, index1])
               Object.entries(filteredChatRoomListByPost).map(([key, chatRoomList]) => {
-                
+
                 const isOpen = openPostTitle === key;
                 const requestCount = chatRoomList.length;
-                
+
                 return (
                   <li key={key} className="flex flex-col">
                     <ChatPostAccordian
@@ -106,10 +109,10 @@ export const ChatRequestListPage = () => {
                     {isOpen && (
                       <ul>
                         {chatRoomList.map((chatRoom) => (
-                          <ChatList 
-                            key={chatRoom.roomId} 
-                            chatRoom={chatRoom} 
-                            isFirstPaddingDisabled={false} 
+                          <ChatList
+                            key={chatRoom.roomId}
+                            chatRoom={chatRoom}
+                            isFirstPaddingDisabled={false}
                             onClick={() => handleChatRoomClick(chatRoom.roomId)}
                           />
                         ))}
@@ -118,25 +121,24 @@ export const ChatRequestListPage = () => {
                   </li>
                 )
               })
-            : 
+            :
               filteredChatRoomList.map((chatRoom) => (
-                <ChatList 
-                  key={chatRoom.roomId} 
-                  chatRoom={chatRoom} 
-                  isFirstPaddingDisabled={false} 
+                <ChatList
+                  key={chatRoom.roomId}
+                  chatRoom={chatRoom}
+                  isFirstPaddingDisabled={false}
                   onClick={() => handleChatRoomClick(chatRoom.roomId)}
                 />
               ))
           }
         </ul>
 
-
         <AllRequestDeleteButton
           requestCount={currentDeleteCount}
           onClick={handleDeleteAll}
         />
-        <PopUp isOpen={isLoading} type="loading" />
-      </Tabs>
+      </div>
+      <PopUp isOpen={isLoading} type="loading" />
     </HeaderLayout>
   );
 };
