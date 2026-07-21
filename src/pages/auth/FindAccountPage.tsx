@@ -28,7 +28,6 @@ export const FindAccountPage = () => {
             headerSlot={
                 <MainHeader
                     title={headerTitle}
-                    headerPaddingTop={68}
                     leftAction={isPasswordResetStep
                         ? { onClick: () => setIsPasswordResetStep(false) }
                         : undefined

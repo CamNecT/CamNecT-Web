@@ -5,6 +5,7 @@ import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
 import { logout } from '../../api/profileApi';
 import { useAuthStore } from '../../store/useAuthStore';
+import { isStandalone } from '../../hooks/useIsStandalone';
 
 type HeaderAction = {
   icon: IconName;
@@ -44,11 +45,13 @@ export const MainHeader = ({
   showBadge,
   isAdmin,
   className,
-  headerPaddingTop = 10,
+  headerPaddingTop,
 }: MainHeaderProps) => {
   const navigate = useNavigate();
   const setLogout = useAuthStore((s) => s.setLogout);
   const authUserId = useAuthStore((s) => s.user?.id);
+  // PWA(홈 화면 설치)는 원래 값(10)이 이미 잘 맞아서 유지, 브라우저 탭은 Figma 스펙(15) 적용
+  const effectiveHeaderPaddingTop = headerPaddingTop ?? (isStandalone() ? 10 : 15);
 
   const handleLogout = async () => {
     try {
@@ -75,8 +78,9 @@ export const MainHeader = ({
     <header
       className={twMerge('sticky left-0 right-0 top-0 z-50 inline-flex min-h-[48px] w-full items-center bg-white px-[25px] py-[10px] [container-type:inline-size] relative', className)}
       style={{
-        paddingTop: `calc(${headerPaddingTop}px + env(safe-area-inset-top, 0px))`,
-        top: 'env(safe-area-inset-top, 0px)',
+        // top은 0을 유지해 배경이 노치까지 이어지게 하고, safe-area는 paddingTop에서만 더함
+        // (top에도 safe area 더하면 이중 계산되어 콘텐츠가 필요 이상으로 밀려남)
+        paddingTop: `calc(${effectiveHeaderPaddingTop}px + env(safe-area-inset-top, 0px))`,
       }}
       role='banner'
     >
