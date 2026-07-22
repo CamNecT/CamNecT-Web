@@ -226,7 +226,7 @@ export const HomePage = () => {
 
                 {/* 홈 2번 영역: 추천 동문 리스트 */}
                 <section
-                    className="flex w-full flex-col gap-[14px] bg-[var(--color-gray-100)] px-[25px] pt-[30px] pb-[60px]"
+                    className="flex w-full flex-col gap-[14px] bg-[var(--color-gray-100)] px-[25px] pt-[30px] pb-[35px]"
                 >
                     <button
                         type="button"
@@ -282,8 +282,9 @@ export const HomePage = () => {
                 <section className="flex w-full flex-col gap-[10px] bg-white px-[25px] pt-[25px] pb-[60px]">
                     <ContestBox
                         contests={homeViewModel.contests}
-                        onTitleClick={() => navigate('/activity')}
+                        onTitleClick={() => navigate('/activity?tab=external')}
                         onItemClick={(contest) => navigate(`/activity/external/${contest.id}`)}
+                        onMoreClick={() => navigate('/activity?tab=external')}
                     />
                 </section>
             </div>
