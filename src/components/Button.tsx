@@ -5,6 +5,7 @@ import { BUTTON_FONT, type ButtonFont } from '../constants/buttonFont';
 type ButtonProps = {
   label: string;
   font?: ButtonFont;
+  loading?: boolean
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
 // 사용법
@@ -15,13 +16,16 @@ type ButtonProps = {
 //
 // ⚠️ 폰트(BUTTON_FONT)는 twMerge '밖'에서 붙인다. text-sb-18 같은 커스텀 토큰을
 //    twMerge가 색(text-color)으로 오인해서 base의 text-white를 지워버리기 때문.
-const Button = ({ label, font = 'sb-18', className = '', disabled, ...props }: ButtonProps) => {
+const Button = ({ label, font = 'sb-18', className = '', disabled, loading = false, ...props }: ButtonProps) => {
+
+  const isDisabled = disabled || loading;
+
   return (
     <button
-      disabled={disabled}
+      disabled={isDisabled}
       className={`${twMerge(
         `max-w-[325px] w-full h-[50px] rounded-[25px] flex items-center justify-center rotate-0 transition
-        ${disabled
+        ${isDisabled
           ? 'bg-gray-150 text-gray-750 cursor-not-allowed'
           : 'bg-primary text-white cursor-pointer'
         }`,
