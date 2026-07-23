@@ -5,11 +5,11 @@ import { BUTTON_FONT, type ButtonFont } from '../constants/buttonFont';
 type ButtonProps = {
   label: string;
   font?: ButtonFont;
-  loading?: boolean
+  loading?: boolean; // 중복 API 요청 방지 (호출부에서 xxxMutation.isPending 전달)
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
 // 사용법
-// - 글씨 : font prop으로 주입한다 (기본 'sb-18' = 기존 로그인 버튼 글씨). 종류는 buttonFont.ts 참고
+// - 글씨 : font prop으로 주입한다 (기본 'sb-18'). 종류는 buttonFont.ts 참고
 // - 크기/모양 : className으로 덮어쓴다 (twMerge가 충돌 부분만 override)
 //              기본 폭(max-w-[325px])보다 넓게 쓰려면 className에 max-w-none
 // - twMerge(A,B) : B가 A를 덮어쓴다 (A와 충돌하는 부분만)
