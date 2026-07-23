@@ -497,6 +497,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                         type = "submit"
                         className="max-w-none rounded-[10px]"
                         disabled = {!isValidPw}
+                        loading={resetPasswordMutation.isPending}
                     />
                 </form>
             ) : (
@@ -555,7 +556,6 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                             label="비밀번호 재설정"
                             className="max-w-none rounded-[10px]"
                             disabled={!isCodeVerified} 
-                            loading={resetPasswordMutation.isPending}
                             onClick={handleGoToResetPw} 
                         />
                     ) : (

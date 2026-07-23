@@ -119,8 +119,8 @@ const TeamApplyModal = ({ isOpen, onClose, activityName, isPending = false, onSu
                     loading={isPending}
                     className={`max-w-none rounded-full ${
                         isSubmitDisabled
-                        ? 'bg-primary text-white cursor-pointer active:scale-95 active:brightness-95'
-                        : 'bg-gray-150 text-gray-650 cursor-not-allowed'
+                        ? 'bg-gray-150 text-gray-650 cursor-not-allowed'
+                        : 'bg-primary text-white cursor-pointer'
                     }`}
                 />
             </div>
