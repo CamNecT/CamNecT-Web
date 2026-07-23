@@ -236,6 +236,7 @@ export const SchoolVerificationStep = ({ onNext }: SchoolVerificationStepProps) 
                     rightButtonText="제출"
                     onLeftClick={handlePopUpClose}
                     onRightClick={handleVerificationSubmit}
+                    isActionPending={isSubmitting}
                 />
             )}
 
