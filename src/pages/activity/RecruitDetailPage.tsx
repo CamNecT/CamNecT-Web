@@ -414,6 +414,7 @@ export const RecruitDetailPage = () => {
             isOpen={isApplyModalOpen}
             onClose={() => setIsApplyModalOpen(false)}
             activityName={activityName}
+            isPending={applyMutation.isPending} // 팀원 모집 중복 API 신청 방지
             onSubmit={async (payload) => {
                 try {
                     await applyMutation.mutateAsync(payload.message);

@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import BottomSheetModal from '../../../components/BottomSheetModal/BottomSheetModal';
+import Button from '../../../components/Button';
 import Card from '../../../components/Card';
 
 type TeamApplyModalProps = {
   isOpen: boolean;
   onClose: () => void;
   activityName: string;
+  isPending?: boolean; // API 요청중인지 여부 (중복 API 요청 방지)
   onSubmit?: (payload: { message: string }) => Promise<boolean | void> | boolean | void;
 };
 
 // 팀원 신청을 작성하는 바텀시트 모달
-const TeamApplyModal = ({ isOpen, onClose, activityName, onSubmit }: TeamApplyModalProps) => {
+const TeamApplyModal = ({ isOpen, onClose, activityName, isPending = false, onSubmit }: TeamApplyModalProps) => {
   const [message, setMessage] = useState('');
   const [keyboardInset, setKeyboardInset] = useState(0);
   const maxLength = 100;
@@ -38,6 +40,8 @@ const TeamApplyModal = ({ isOpen, onClose, activityName, onSubmit }: TeamApplyMo
 
   // 최소 조건 충족 여부 및 글자수 표시
   const isSubmitEnabled = message.trim().length > 0;
+  const isSubmitDisabled = !isSubmitEnabled || isPending;
+
   const countText = useMemo(() => `${message.length}/${maxLength}`, [message.length]);
 
   // 입력 길이 제한 적용
@@ -48,7 +52,7 @@ const TeamApplyModal = ({ isOpen, onClose, activityName, onSubmit }: TeamApplyMo
 
   // 제출 시 부모로 선택 정보 전달
   const handleSubmit = async () => {
-    if (!isSubmitEnabled) return;
+    if (isSubmitDisabled) return;
     try {
       await onSubmit?.({ message });
     } finally {
@@ -106,18 +110,19 @@ const TeamApplyModal = ({ isOpen, onClose, activityName, onSubmit }: TeamApplyMo
                 </div>
 
                 {/* 팀원 신청하기 버튼 */}
-                <button
-                type='button'
-                onClick={handleSubmit}
-                disabled={!isSubmitEnabled}
-                className={`h-[50px] w-full rounded-full text-sb-18 transition ${
-                    isSubmitEnabled
-                    ? 'bg-primary text-white cursor-pointer active:scale-95 active:brightness-95'
-                    : 'bg-gray-150 text-gray-650 cursor-not-allowed'
-                }`}
-                >
-                팀원 신청하기
-                </button>
+                <Button
+                    type='button'
+                    label='팀원 신청하기'
+                    font='sb-18-flat'
+                    onClick={handleSubmit}
+                    disabled={!isSubmitEnabled}
+                    loading={isPending}
+                    className={`max-w-none rounded-full ${
+                        isSubmitDisabled
+                        ? 'bg-primary text-white cursor-pointer active:scale-95 active:brightness-95'
+                        : 'bg-gray-150 text-gray-650 cursor-not-allowed'
+                    }`}
+                />
             </div>
         </BottomSheetModal>
     );
