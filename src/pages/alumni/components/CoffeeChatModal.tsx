@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import BottomSheetModal from '../../../components/BottomSheetModal/BottomSheetModal';
+import Button from '../../../components/Button';
 import Card from '../../../components/Card';
 import Category from '../../../components/Category';
 
@@ -142,18 +143,18 @@ const CoffeeChatModal = ({ isOpen, onClose, categories, onSubmit }: CoffeeChatMo
         </div>
 
         {/* 커피챗 요청 버튼 */}
-        <button
+        <Button
           type='button'
+          label='커피챗 요청하기'
+          font='sb-18-flat'
           onClick={handleSubmit}
           disabled={!isSubmitEnabled}
-          className={`h-[50px] w-full rounded-[27px] text-sb-18 ${
+          className={`max-w-none rounded-[27px] transition-none cursor-default ${
             isSubmitEnabled
               ? 'bg-[var(--ColorMain,#00C56C)] text-[color:var(--ColorWhite,#FFF)]'
               : 'bg-[var(--ColorGray1,#ECECEC)] text-[color:var(--ColorGray2,#A1A1A1)]'
           }`}
-        >
-          커피챗 요청하기
-        </button>
+        />
       </div>
     </BottomSheetModal>
   );
