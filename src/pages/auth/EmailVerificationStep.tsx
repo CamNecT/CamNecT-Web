@@ -185,6 +185,7 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
                                 font="m-16"
                                 className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                 type="button"
+                                loading={emailRequestMutation.isPending}
                                 disabled={!emailValue || !!errors.email} // 이메일 값 || 에러 있으면 버튼 비활성화
                                 onClick={handleEmailRequest}
                             />
@@ -201,6 +202,7 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
                                 onClick={handleEmailVerify}
                                 label="인증하기"
                                 font="m-16"
+                                loading={emailVerifyMutation.isPending}
                                 className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                 type="button"
                                 disabled={!emailSent || codeValue.length !== 6}

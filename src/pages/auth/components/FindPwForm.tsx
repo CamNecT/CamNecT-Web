@@ -540,6 +540,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                                             font="m-16"
                                             className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                             type="button"
+                                            loading={sendCodeMutation.isPending}
                                             disabled={isCodeVerified}
                                             onClick={handleResendCode}
                                         />
@@ -559,6 +560,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                     ) : (
                         <Button
                             label="인증번호 받기"
+                            loading={sendCodeMutation.isPending}
                             className="max-w-none rounded-[10px]"
                             disabled={!isEmailSendValid} 
                             onClick={handleResendCode}
