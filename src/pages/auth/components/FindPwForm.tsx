@@ -22,7 +22,6 @@ import {
     PASSWORD_RESET_VERIFY_POPUP_MESSAGES,
 } from "../../../constants/serverErrors/authErrors";
 import { getServerErrorCode } from "../../../utils/getServerErrorCode";
-import SmallButton from "./SmallButton";
 
 interface FindPwFormProps {
     isPasswordResetStep: boolean;
@@ -536,8 +535,10 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                                     })}
                                     error={verificationCodeErrorMessage}
                                     action={
-                                        <SmallButton
+                                        <Button
                                             label="재발송"
+                                            font="m-16"
+                                            className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                             type="button"
                                             disabled={isCodeVerified}
                                             onClick={handleResendCode}

@@ -1,3 +1,4 @@
+import Button from '../../../components/Button';
 import Card from '../../../components/Card';
 
 type LockedQuestionCardProps = {
@@ -42,13 +43,13 @@ const LockedQuestionCard = ({
           <span>이미지 {imageCount}장</span>
         </div>
       </div>
-      <button
+      <Button
         type='button'
-        className='flex w-full items-center justify-center rounded-[6px] bg-[var(--ColorMain,#00C56C)] py-[12px] text-r-14 text-[var(--ColorWhite,#FFF)]'
+        label={`${requiredPoints} P · 구매하기`}
+        font="r-14"
+        className="w-full h-auto max-w-none py-[12px] rounded-[6px] bg-[var(--ColorMain,#00C56C)]"
         onClick={onPurchaseClick}
-      >
-        {requiredPoints} P · 구매하기
-      </button>
+      />
     </div>
   </Card>
 );

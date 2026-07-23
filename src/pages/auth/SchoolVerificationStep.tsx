@@ -189,19 +189,21 @@ export const SchoolVerificationStep = ({ onNext }: SchoolVerificationStepProps) 
                                 {(verificationFile.size / 1024).toFixed(1)} KB
                             </p>
                         </div>
-                        <button
-                            onClick={handlePreviewClick}
-                            className="w-[72px] flex-none px-[12px] py-[6px] bg-primary text-white text-r-12 rounded-[5px]"
-                        >
-                            미리보기
-                        </button>
-                        <button
-                            onClick={handleRemoveFile}
-                            disabled={isVerificationSubmitted}
-                            className="w-[48px] flex-none px-[12px] py-[6px] bg-gray-200 text-gray-700 text-r-12 rounded-[5px] "
-                        >
-                            삭제
-                        </button>
+                        <div className="flex items-center gap-[6px] flex-none">
+                            <Button
+                                label="미리보기"
+                                font="r-12"
+                                className="w-[72px] flex-none h-auto px-[12px] py-[6px] rounded-[5px]"
+                                onClick={handlePreviewClick}
+                            />
+                            <button
+                                onClick={handleRemoveFile}
+                                disabled={isVerificationSubmitted}
+                                className="w-[48px] flex-none px-[12px] py-[6px] bg-gray-200 text-gray-700 text-r-12 rounded-[5px] "
+                            >
+                                삭제
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

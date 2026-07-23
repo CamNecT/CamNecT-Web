@@ -16,7 +16,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import type { AlumniProfile } from '../../types/alumni/alumniTypes';
 import { mapAlumniProfileDetailToProfile } from '../../utils/alumniMapper';
 import { mapTagNamesToIds } from '../../utils/tagMapper';
-import CoffeeChatButton from './components/CoffeeChatButton';
+import Button from '../../components/Button';
 import CoffeeChatModal from './components/CoffeeChatModal';
 import FollowButton from './components/FollowButton';
 import replaceImg from "../../assets/image/replaceImg.png"
@@ -336,7 +336,11 @@ const AlumniProfileContent = ({
         {/* 커피챗 요청 버튼 영역 */}
         {canRequestCoffeeChat && (
           <section className='flex [padding:0_clamp(18px,7cqw,25px)_clamp(24px,8cqw,30px)]'>
-            <CoffeeChatButton
+            <Button
+              label="커피챗 요청하기"
+              font="sb-14"
+              type="button"
+              className="w-full h-auto max-w-none py-[10px] rounded-[clamp(8px,2.8cqw,10px)] bg-[var(--ColorMain,#00C56C)]"
               onClick={() => {
                 if (!enableCoffeeChatModal) return;
                 setIsCoffeeChatOpen(true);
