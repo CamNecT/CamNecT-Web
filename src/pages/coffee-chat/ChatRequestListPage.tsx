@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PopUp from "../../components/Pop-up";
 import { Tabs } from "../../components/Tabs";
@@ -12,7 +12,7 @@ import { ChatPostAccordian } from "./components/ChatPostAccordian";
 
 export const ChatRequestListPage = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const tabs = [
     { id: 'COFFEE_CHAT', label: '커피챗' },
@@ -20,12 +20,21 @@ export const ChatRequestListPage = () => {
   ];
 
   const initialType = searchParams.get('type');
+  const hasInitialTypeQuery = initialType === 'TEAM_RECRUIT' || initialType === 'COFFEE_CHAT';
   const initialActiveId: ChatRoomListItemType =
-    initialType === 'TEAM_RECRUIT' || initialType === 'COFFEE_CHAT'
+    hasInitialTypeQuery
       ? initialType
       : 'COFFEE_CHAT';
   const [activeId, setActiveId] = useState<ChatRoomListItemType>(initialActiveId);
   const [openPostTitle, setOpenPostTitle] = useState<string | null>(null); // 1개만 열릴 수 있음
+
+  useEffect(() => {
+    // 홈 요청 요약 카드에서 ?type=...으로 진입할 때만 초기 탭을 맞추고,
+    // 탭 상태가 URL에 계속 남지 않도록 진입 직후 쿼리를 제거했습니다.
+    if (hasInitialTypeQuery) {
+      navigate('/chat/requests', { replace: true });
+    }
+  }, [hasInitialTypeQuery, navigate]);
 
   const { data: chatRequestRooms = [], isLoading } = useChatRequests(activeId);
   const { mutate: deleteAllTeamRecruitRequest} = useDeleteAllTeamRecruitRequest();
@@ -84,7 +93,6 @@ export const ChatRequestListPage = () => {
     const nextActiveId = id as ChatRoomListItemType;
     setActiveId(nextActiveId);
     setOpenPostTitle(null);
-    setSearchParams({ type: nextActiveId });
   };
 
   return (
