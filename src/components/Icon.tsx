@@ -606,6 +606,8 @@ const iconPaths: Record<IconName, IconDefinition> = {
   }
 };
 
+export const ICON_NAMES = Object.keys(iconPaths) as IconName[];
+
 const Icon = ({ name, className = '', style, onClick }: IconProps) => {
   const icon = iconPaths[name];
 
