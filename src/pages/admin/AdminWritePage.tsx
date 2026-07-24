@@ -31,8 +31,8 @@ export const AdminWritePage = () => {
   return (
     <AdminFullLayout
       headerSlot={
-        isSearchOpen ? (
-          <div className='bg-white top-0 z-50 sticky'>
+        <div className='sticky top-0 z-50 bg-white'>
+          {isSearchOpen ? (
             <div className='px-[25px]'>
               <div className='mx-auto flex w-full max-w-[720px] items-center gap-[15px] py-[10px]'>
                 <button
@@ -55,24 +55,22 @@ export const AdminWritePage = () => {
                 />
               </div>
             </div>
-          </div>
-        ) : (
-          <MainHeader
-            title='대외활동 등록'
-            rightActions={[
-              {
-                icon: 'search',
-                onClick: () => setIsSearchOpen(true),
-                ariaLabel: '검색 열기',
-              },
-            ]}
-          />
-        )
+          ) : (
+            <MainHeader
+              title='대외활동 등록'
+              rightActions={[
+                {
+                  icon: 'search',
+                  onClick: () => setIsSearchOpen(true),
+                  ariaLabel: '검색 열기',
+                },
+              ]}
+            />
+          )}
+          <Tabs tabs={tabItems} activeId={activeTab} onChange={(id) => setActiveTab(id as ActivityPostTab)} />
+        </div>
       }
     >
-      <div className='bg-white'>
-        <Tabs tabs={tabItems} activeId={activeTab} onChange={(id) => setActiveTab(id as ActivityPostTab)} />
-      </div>
       <div>{renderTab()}</div>
     </AdminFullLayout>
   );
