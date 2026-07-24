@@ -30,6 +30,7 @@ const CoffeeChatBox = ({
     onSelectCoffeeChat,
     onSelectTeamRecruit,
 }: CoffeeChatBoxProps) => {
+    // 홈 API의 pendingCount를 기준으로 요약 행을 만들고, 0건일 때는 항목별 빈 상태 문구를 노출합니다.
     const notificationItems: RequestSummaryItem[] = [
         {
             id: 'coffee-chat',
@@ -66,6 +67,7 @@ const CoffeeChatBox = ({
                 <ul className="flex flex-col gap-[25px]">
                     {notificationItems.map((item) => (
                         <li key={item.id} className="px-[6px]">
+                            {/* 항목 클릭은 요청 페이지 탭 진입용이며, 실제 쿼리 제거는 요청 페이지에서 처리합니다. */}
                             <button
                                 type="button"
                                 onClick={item.onClick}

@@ -27,6 +27,7 @@ export interface HomeData {
     };
 }
 
+// 커피챗/팀원 모집 요청 요약은 같은 pendingCount/latest2 응답 구조를 공유합니다.
 export interface HomeRequestGroup<TLatestItem> {
     pendingCount: number;
     latest2: TLatestItem[];

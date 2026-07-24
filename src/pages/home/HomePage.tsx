@@ -72,6 +72,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
 export const HomePage = () => {
     const navigate = useNavigate();
     const [isErrorDismissed, setIsErrorDismissed] = useState(false);
+    const [isRecommendExpanded, setIsRecommendExpanded] = useState(false);
     const hasUnreadNotificationsFromStore = useNotificationStore((state) =>
         state.items.some((notice) => !notice.isRead),
     );
@@ -161,7 +162,14 @@ export const HomePage = () => {
         }
     }, [homeResponse?.data?.point?.balance, setPoint]);
 
-    const visibleRecommands = homeViewModel.recommendList.slice(0, 2);
+    // 추천 동문은 홈에서 2명만 먼저 보여주고, 더보기 시 API가 내려준 최대 5명까지 펼칩니다.
+    const recommendCount = homeViewModel.recommendList.length;
+    const hasHiddenRecommands = recommendCount > 2;
+    const visibleRecommands = homeViewModel.recommendList.slice(
+        0,
+        isRecommendExpanded ? 5 : 2,
+    );
+    const recommendButtonText = hasHiddenRecommands && !isRecommendExpanded ? '더보기' : '전체 보기';
     const userName = homeViewModel.userName;
     const unreadCount = unreadCountResponse?.data?.unreadCount;
     const hasUnreadNotifications =
@@ -172,6 +180,16 @@ export const HomePage = () => {
         const status = getErrorStatus(homeError) ?? getErrorStatus(unreadCountError);
         return getErrorPopUpConfig(status);
     }, [homeError, unreadCountError, isErrorDismissed]);
+
+    // 숨겨진 추천 동문이 있으면 먼저 펼치고, 모두 보이는 상태에서는 동문찾기 페이지로 이동합니다.
+    const handleRecommendMoreClick = () => {
+        if (hasHiddenRecommands && !isRecommendExpanded) {
+            setIsRecommendExpanded(true);
+            return;
+        }
+
+        navigate('/alumni');
+    };
 
     return (
         // 홈 1번 영역: 인사말, 커피챗 요청, 포인트/커뮤니티 카드 틀 구성
@@ -213,6 +231,7 @@ export const HomePage = () => {
                         coffeeChatCount={homeViewModel.coffeeChatTotalCount}
                         teamRecruitCount={homeViewModel.recruitmentTotalCount}
                         onViewAll={() => navigate('/chat')}
+                        // 각 요청 요약 항목은 요청 페이지의 해당 탭을 초기 선택한 뒤 URL 쿼리를 제거합니다.
                         onSelectCoffeeChat={() => navigate('/chat/requests?type=COFFEE_CHAT')}
                         onSelectTeamRecruit={() => navigate('/chat/requests?type=TEAM_RECRUIT')}
                     />
@@ -267,13 +286,13 @@ export const HomePage = () => {
                                 width="100%"
                                 height="50px"
                                 className="flex items-center justify-center cursor-pointer"
-                                onClick={() => navigate('/alumni')}
+                                onClick={handleRecommendMoreClick}
                             >
-                                <span className="flex items-center justify-center gap-[5px] text-sb-14 text-gray-900 tracking-[-0.04em]">
-                                    더보기
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M3 3.5L8 8.5L13 3.5M3 7.5L8 12.5L13 7.5" stroke="#202023" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
+                                <span className="flex items-center justify-center gap-[5px] text-m-14 text-gray-900 tracking-[-0.04em]">
+                                    {recommendButtonText}
+                                    {recommendButtonText === '더보기' ? (
+                                        <Icon name="more" />
+                                    ) : null}
                                 </span>
                             </Card>
                         </div>

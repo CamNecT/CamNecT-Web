@@ -108,6 +108,7 @@ export const mapHomeResponseToViewModel = (
             typeof data.coffeeChat?.pendingCount === "number"
                 ? data.coffeeChat.pendingCount
                 : coffeeChatRequests.length,
+        // 팀원 모집 요청 수는 홈 API의 recruitment.pendingCount를 우선 사용합니다.
         recruitmentTotalCount:
             typeof data.recruitment?.pendingCount === "number"
                 ? data.recruitment.pendingCount
