@@ -212,7 +212,9 @@ export const HomePage = () => {
                     <CoffeeChatBox
                         coffeeChatCount={homeViewModel.coffeeChatTotalCount}
                         teamRecruitCount={homeViewModel.recruitmentTotalCount}
-                        onViewAll={() => navigate('/chat/requests')}
+                        onViewAll={() => navigate('/chat')}
+                        onSelectCoffeeChat={() => navigate('/chat/requests?type=COFFEE_CHAT')}
+                        onSelectTeamRecruit={() => navigate('/chat/requests?type=TEAM_RECRUIT')}
                     />
                     {/* 1-2: 일정 박스 + 포인트/커뮤니티 박스 */}
                     <div className="flex w-full flex-col gap-[15px]">
