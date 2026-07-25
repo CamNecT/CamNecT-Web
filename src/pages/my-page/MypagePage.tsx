@@ -117,7 +117,7 @@ export const MypagePage = () => {
         headerSlot={
           <MainHeader
             title="마이페이지"
-            leftAction={{ icon: 'mypageOption', onClick: () => setIsSideBarOpen(true) }}
+            leftAction={{ icon: 'menu', onClick: () => setIsSideBarOpen(true) }}
           />
         }
       >

@@ -121,7 +121,7 @@ export const BottomChat = ({
                 className='flex h-[36px] w-[36px] items-center justify-center rounded-full active:bg-[var(--ColorGray1,#ECECEC)] disabled:cursor-not-allowed'
                 aria-label='댓글 작성'
               >
-                <Icon name='transmit' className='h-5 w-5' />
+                <Icon name='send' className='h-5 w-5' />
               </button>
             ) : null}
           </form>

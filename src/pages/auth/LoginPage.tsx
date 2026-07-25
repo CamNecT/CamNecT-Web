@@ -143,7 +143,7 @@ export const LoginPage = () => {
               className="absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center justify-center"
             >
               <Icon
-                name={showPassword ? "eyeOpen" : "eyeClosed"}
+                name={showPassword ? "visible" : "visible_off"}
                 className={showPassword ? "w-[24px] h-[24px]" : "w-[22px] h-[20px]"}
               />
           </button>

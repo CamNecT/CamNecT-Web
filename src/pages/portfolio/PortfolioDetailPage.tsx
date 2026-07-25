@@ -190,7 +190,7 @@ export const PortfolioDetailPage = ({
                         title={portfolio.title}
                         rightActions={
                             isMine
-                                ? [{icon: "menu", onClick: () => setIsMenuOpen(true), style: { width: 18, height: 18 },}]
+                                ? [{icon: "more_menu", onClick: () => setIsMenuOpen(true), style: { width: 18, height: 18 },}]
                                 : []
                         }
                     />
@@ -292,7 +292,7 @@ export const PortfolioDetailPage = ({
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-[10px] p-[15px] bg-gray-100 rounded-[10px] text-r-14-hn text-gray-750"
                                     >
-                                        <ModalIcon name='file' className='w-[20px] h-[20px]' />
+                                        <ModalIcon name='folder' className='w-[20px] h-[20px]' />
                                         <span className="flex-1 text-r-14-hn text-gray-750 truncate">
                                             {getFileName(asset.fileUrl) || '첨부파일'}
                                         </span>
@@ -344,7 +344,7 @@ export const PortfolioDetailPage = ({
                                 onClick={() => {setIsMenuOpen(false); setIsModalOpen(true);}}
                                 className="w-full flex items-center gap-[15px] pl-[10px] py-[15px] border-b border-gray-200"
                             >
-                                <ModalIcon name='edit'/>
+                                <ModalIcon name='writing'/>
                                 <span className="text-m-16-hn text-gray-750">프로젝트 수정</span>
                             </button>
 
@@ -353,7 +353,7 @@ export const PortfolioDetailPage = ({
                                 onClick={handleTogglePublic}
                                 className="w-full flex items-center gap-[15px] pl-[10px] py-[15px] border-b border-gray-150"
                                 >
-                                    <ModalIcon name={portfolio.isPublic ? "private" : "public"} />
+                                    <ModalIcon name={portfolio.isPublic ? "visible_off" : "visible"} />
                                     <span className="text-m-16-hn text-gray-750">
                                         {portfolio.isPublic ? "프로젝트 비공개" : "프로젝트 공개"}
                                     </span>
@@ -365,7 +365,7 @@ export const PortfolioDetailPage = ({
                                 onClick={handleToggleFavorite}
                                 className="w-full flex items-center gap-[15px] pl-[10px] py-[15px] border-b border-gray-150"
                             >
-                                <ModalIcon name='favorite'/>
+                                <ModalIcon name='favorites_stroke'/>
                                 <span className="text-m-16-hn text-gray-750">{portfolio.isFavorite ? "주요 프로젝트 지정 해제" : "주요 프로젝트로 지정"}</span>
                             </button>
 
@@ -374,7 +374,7 @@ export const PortfolioDetailPage = ({
                                 onClick={() => {setIsMenuOpen(false); setShowDeleteWarning(true);}}
                                 className="w-full flex items-center gap-[17px] pl-[12px] py-[15px]"
                             >
-                                <ModalIcon name='delete' className='w-[20px] h-[20px]'/>
+                                <ModalIcon name='trash' className='w-[20px] h-[20px]'/>
                                 <span className="text-m-16-hn text-red">삭제</span>
                             </button>
                         </div>

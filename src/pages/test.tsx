@@ -64,18 +64,18 @@ function TestPage() {
 
       <div className='flex items-center gap-4'>
         <div className='relative inline-block'>
-          <Icon name='alarm' />
+          <Icon name='bell_notification' />
           <Badge />
         </div>
         <Icon name='search' />
-        <Icon name='chat' />
+        <Icon name='Navigation_coffee_chat_stroke' />
         <Icon name='back' />
-        <Icon name='more' />
-        <Icon name='save' />
-        <Icon name='setting' />
-        <Icon name='option' />
-        <Icon name='transmit' />
-        <Icon name='edit' />
+        <Icon name='arrow_right' />
+        <Icon name='bookmark_stroke' />
+        <Icon name='settings' />
+        <Icon name='more_menu' />
+        <Icon name='send' />
+        <Icon name='writing' />
         <Icon name='cancel' />
       </div>
 

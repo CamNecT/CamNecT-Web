@@ -185,7 +185,7 @@ export const RecruitWritePage = () => {
                                     >
                                         <span className='text-r-16-hn text-gray-750'>{year}년</span>
                                         <Icon 
-                                            name='toggleDown' 
+                                            name='arrow_down' 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`}
                                         />
                                     </button>
@@ -221,7 +221,7 @@ export const RecruitWritePage = () => {
                                     >
                                         <span className='text-r-16-hn text-gray-750'>{month}월</span>
                                         <Icon 
-                                            name='toggleDown' 
+                                            name='arrow_down' 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showMonthDropdown ? 'rotate-180' : ''}`}
                                         />
                                     </button>
@@ -257,7 +257,7 @@ export const RecruitWritePage = () => {
                                     >
                                         <span className='text-r-16-hn text-gray-750'>{day}일</span>
                                         <Icon 
-                                            name='toggleDown' 
+                                            name='arrow_down' 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showDayDropdown ? 'rotate-180' : ''}`}
                                         />
                                     </button>

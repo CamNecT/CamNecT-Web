@@ -678,7 +678,7 @@ export default function PortfolioEditModal({
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{startYear}년</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showStartYearDropdown && (
@@ -709,7 +709,7 @@ export default function PortfolioEditModal({
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{startMonth}월</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartMonthDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showStartMonthDropdown && (
@@ -750,7 +750,7 @@ export default function PortfolioEditModal({
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{endYear}년</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showEndYearDropdown && (
@@ -781,7 +781,7 @@ export default function PortfolioEditModal({
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{endMonth}월</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndMonthDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showEndMonthDropdown && (
@@ -881,7 +881,7 @@ export default function PortfolioEditModal({
                                         onClick={() => thumbnailInputRef.current?.click()}
                                         className="w-full aspect-[4/3] flex flex-col items-center justify-center gap-[8px] border border-gray-300 rounded-[10px] bg-gray-50 hover:bg-gray-100"
                                         >
-                                        <ModalIcon name="photo" className="w-[24px] h-[24px] text-gray-650" />
+                                        <ModalIcon name="image" className="w-[24px] h-[24px] text-gray-650" />
                                         <span className="text-r-12-hn text-gray-500">
                                             대표 이미지를 추가해 주세요<br/>(png, webp, jpg, jpeg)
                                         </span>
@@ -929,7 +929,7 @@ export default function PortfolioEditModal({
                                                 const fileName = pdf.file?.name || getFileName(pdf.url) || '첨부파일';
                                                 return (
                                                     <div key={pdf.id} className="flex items-center gap-[10px] px-[15px] py-[12px] bg-gray-100 rounded-[10px]">
-                                                        <ModalIcon name="file" className="w-[20px] h-[20px] text-gray-750" />
+                                                        <ModalIcon name="folder" className="w-[20px] h-[20px] text-gray-750" />
                                                         <span className="flex-1 text-r-14-hn text-gray-750 truncate">{fileName}</span>
                                                         <button
                                                             onClick={() => removeFile(pdf.id)}
@@ -1021,7 +1021,7 @@ export default function PortfolioEditModal({
                                 }}
                                 className="w-full flex items-center gap-[15px] p-[15px] border-b border-gray-150"
                             >
-                                <ModalIcon name="photo" className="w-[24px] h-[24px]" />
+                                <ModalIcon name="image" className="w-[24px] h-[24px]" />
                                 <span className="text-m-16-hn text-gray-750">사진</span>
                             </button>
 
@@ -1033,7 +1033,7 @@ export default function PortfolioEditModal({
                                 }}
                                 className="w-full flex items-center gap-[15px] p-[15px]"
                             >
-                                <ModalIcon name="file" className="w-[24px] h-[24px]" />
+                                <ModalIcon name="folder" className="w-[24px] h-[24px]" />
                                 <span className="text-m-16-hn text-gray-750">PDF</span>
                             </button>
                         </div>

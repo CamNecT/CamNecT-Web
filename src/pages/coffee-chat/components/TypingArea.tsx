@@ -27,7 +27,7 @@ export const TypingArea = ({ onSend }: TypingAreaProps) => {
                         onClick={() => setIsModalOpen(true)}
                         className="shrink-0 w-[36px] h-[36px] rounded-full bg-gray-150 flex items-center justify-center active:bg-gray-200 transition-colors"
                     >
-                        <Icon name="plus" />
+                        <Icon name="add" />
                     </button> */}
                     
                     {/* 입력창 영역 */}
@@ -62,7 +62,7 @@ export const TypingArea = ({ onSend }: TypingAreaProps) => {
                         className="flex items-center gap-[15px] py-[20px] w-full border-b border-gray-150 active:opacity-50 transition-opacity" 
                         onClick={() => setIsModalOpen(false)}
                     >
-                        <Icon name="album" style={{ width: '32px', height: '32px' }} />
+                        <Icon name="image" style={{ width: '32px', height: '32px' }} />
                         <span className="text-m-16 text-gray-750">사진</span>
                     </button>
                     <button 

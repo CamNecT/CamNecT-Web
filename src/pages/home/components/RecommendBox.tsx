@@ -86,7 +86,7 @@ function RecommendBox({
                         }}
                         aria-label={`${name} 프로필 더보기`}
                     >
-                        <Icon name="more" className="h-6 w-6" />
+                        <Icon name="arrow_right" className="h-6 w-6" />
                     </button>
                 </div>
             </section>

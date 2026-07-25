@@ -32,7 +32,7 @@ const WriteButton = ({ onClick, hasBottomNav = true }: WriteButtonProps) => {
       }}
     >
       <span className='inline-flex items-center' style={{ gap: '7px' }}>
-        <Icon name='edit' style={{ color: 'var(--ColorWhite, #FFF)' }} />
+        <Icon name='writing' style={{ color: 'var(--ColorWhite, #FFF)' }} />
         <span className='text-b-16-hn' style={{ color: 'var(--ColorWhite, #FFF)' }}>
           글쓰기
         </span>

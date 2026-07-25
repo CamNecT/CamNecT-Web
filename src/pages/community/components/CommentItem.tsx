@@ -132,7 +132,7 @@ const CommentItem = ({
                   onClick={() => onOpenCommentOptions(comment)}
                   aria-label='댓글 옵션 열기'
                 >
-                  <Icon name='option' className='h-6 w-6' />
+                  <Icon name='more_menu' className='h-6 w-6' />
                 </button>
               ) : null}
             </div>

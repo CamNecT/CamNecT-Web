@@ -70,7 +70,7 @@ export const HomeHeader = ({
         className='relative inline-flex'
         onClick={() => navigate('/home/notices')}
       >
-        <Icon name='alarm' />
+        <Icon name='bell_notification' />
         {showBadge ? <Badge /> : null}
       </button>
     </header>

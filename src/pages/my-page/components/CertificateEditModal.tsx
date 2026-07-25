@@ -392,7 +392,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.acquiredYear}년</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                                 className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showYearDropdown && (
@@ -422,7 +422,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.acquiredMonth}월</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                                 className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showMonthDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showMonthDropdown && (
