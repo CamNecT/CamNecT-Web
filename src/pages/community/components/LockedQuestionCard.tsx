@@ -6,6 +6,7 @@ type LockedQuestionCardProps = {
   textCount: number;
   imageCount: number;
   onPurchaseClick: () => void;
+  isPurchasing?: boolean;
 };
 
 // 잠금된 질문 구매 안내 카드
@@ -14,6 +15,7 @@ const LockedQuestionCard = ({
   textCount,
   imageCount,
   onPurchaseClick,
+  isPurchasing = false,
 }: LockedQuestionCardProps) => (
   <Card width='100%' height='auto' className='p-[20px]'>
     <div className='flex flex-col gap-[20px]'>
@@ -43,12 +45,16 @@ const LockedQuestionCard = ({
           <span>이미지 {imageCount}장</span>
         </div>
       </div>
+      {/* 구매 mutation pending 상태를 버튼 비활성화에 반영해 중복 클릭을 막습니다. */}
       <Button
         type='button'
         label={`${requiredPoints} P · 구매하기`}
         font="r-14"
-        className="w-full h-auto max-w-none py-[12px] rounded-[6px] bg-[var(--ColorMain,#00C56C)]"
+        className={`w-full h-auto max-w-none py-[12px] rounded-[6px] ${
+          isPurchasing ? '' : 'bg-[var(--ColorMain,#00C56C)]'
+        }`}
         onClick={onPurchaseClick}
+        loading={isPurchasing}
       />
     </div>
   </Card>

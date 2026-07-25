@@ -9,10 +9,17 @@ type CoffeeChatModalProps = {
   onClose: () => void;
   categories: string[];
   onSubmit?: (payload: { categories: string[]; message: string }) => Promise<boolean | void> | boolean | void;
+  isSubmitting?: boolean;
 };
 
 // 커피챗 요청을 작성하는 바텀시트 모달.
-const CoffeeChatModal = ({ isOpen, onClose, categories, onSubmit }: CoffeeChatModalProps) => {
+const CoffeeChatModal = ({
+  isOpen,
+  onClose,
+  categories,
+  onSubmit,
+  isSubmitting = false,
+}: CoffeeChatModalProps) => {
   // 선택된 카테고리와 메시지는 로컬 상태로 관리합니다.
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [message, setMessage] = useState('');
@@ -60,7 +67,8 @@ const CoffeeChatModal = ({ isOpen, onClose, categories, onSubmit }: CoffeeChatMo
 
   // 제출 시 부모로 선택 정보 전달.
   const handleSubmit = async () => {
-    if (!isSubmitEnabled) return;
+    // 요청 처리 중 커피챗 재요청 방지로직
+    if (!isSubmitEnabled || isSubmitting) return;
     try {
       const result = await onSubmit?.({ categories: selectedCategories, message });
       if (result === false) return;
@@ -143,14 +151,16 @@ const CoffeeChatModal = ({ isOpen, onClose, categories, onSubmit }: CoffeeChatMo
         </div>
 
         {/* 커피챗 요청 버튼 */}
+        {/* 부모 mutation의 pending 상태를 버튼 loading/disabled로 연결합니다. */}
         <Button
           type='button'
           label='커피챗 요청하기'
           font='sb-18-flat'
           onClick={handleSubmit}
           disabled={!isSubmitEnabled}
+          loading={isSubmitting}
           className={`max-w-none rounded-[27px] transition-none cursor-default ${
-            isSubmitEnabled
+            isSubmitEnabled && !isSubmitting
               ? 'bg-[var(--ColorMain,#00C56C)] text-[color:var(--ColorWhite,#FFF)]'
               : 'bg-[var(--ColorGray1,#ECECEC)] text-[color:var(--ColorGray2,#A1A1A1)]'
           }`}

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -135,6 +135,23 @@ const AlumniProfileContent = ({
   const canRequestCoffeeChat = profile.privacy.openToCoffeeChat;
   const [isCoffeeChatOpen, setIsCoffeeChatOpen] = useState(false);
   const hasOpenedCoffeeChatRef = useRef(false);
+  // mutation 상태가 반영되기 전 같은 tick에서 발생하는 연속 제출 차단
+  const coffeeChatRequestPendingRef = useRef(false);
+  // 커피챗 요청 전송 API pending 상태를 버튼 비활성화에 사용
+  const coffeeChatRequestMutation = useMutation({
+    mutationFn: (payload: { categories: string[]; message: string }) => {
+      const parsedLoginUserId = loginUserId ? Number(loginUserId) : NaN;
+      const loginUserIdValue = Number.isFinite(parsedLoginUserId) ? parsedLoginUserId : 0;
+      const receiverId = Number(profile.userId);
+
+      return sendCoffeeChatRequest({
+        userId: loginUserIdValue,
+        receiverId,
+        tagIds: mapTagNamesToIds(payload.categories),
+        content: payload.message,
+      });
+    },
+  });
 
   // 다른 프로필로 이동 시 로컬 상태를 초기화합니다.
   useEffect(() => {
@@ -192,17 +209,12 @@ const AlumniProfileContent = ({
 
   // 커피챗 요청 모달 제출 처리 (실패 사유에 따라 팝업 메시지 분기).
   const handleCoffeeChatSubmit = async (payload: { categories: string[]; message: string }) => {
-    const parsedLoginUserId = loginUserId ? Number(loginUserId) : NaN;
-    const loginUserIdValue = Number.isFinite(parsedLoginUserId) ? parsedLoginUserId : 0;
-    const receiverId = Number(profile.userId);
+    // 버튼 연타나 중복 이벤트로 동일 요청이 여러 번 전송되는 것을 방지합니다.
+    if (coffeeChatRequestPendingRef.current || coffeeChatRequestMutation.isPending) return false;
 
     try {
-      await sendCoffeeChatRequest({
-        userId: loginUserIdValue,
-        receiverId,
-        tagIds: mapTagNamesToIds(payload.categories),
-        content: payload.message,
-      });
+      coffeeChatRequestPendingRef.current = true;
+      await coffeeChatRequestMutation.mutateAsync(payload);
       setPopUpConfig({
         title: '요청 성공',
         content: '커피챗 요청이 전송되었습니다.',
@@ -231,6 +243,8 @@ const AlumniProfileContent = ({
       }
       console.error('Failed to send coffee chat request:', error);
       return false;
+    } finally {
+      coffeeChatRequestPendingRef.current = false;
     }
   };
 
@@ -487,6 +501,7 @@ const AlumniProfileContent = ({
           onClose={() => setIsCoffeeChatOpen(false)}
           categories={profile.categories}
           onSubmit={handleCoffeeChatSubmit}
+          isSubmitting={coffeeChatRequestMutation.isPending}
         />
       )}
 
