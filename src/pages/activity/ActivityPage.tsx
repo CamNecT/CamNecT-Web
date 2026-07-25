@@ -96,7 +96,7 @@ export const ActivityPage = () => {
               ]}
             />
           )}
-          <Tabs tabs={tabItems} activeId={activeTab} onChange={(id) => setActiveTab(id as ActivityPostTab)} />
+          <Tabs tabs={tabItems} activeId={activeTab} onChange={handleTabChange} />
         </div>
       }
     >

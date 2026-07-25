@@ -104,7 +104,7 @@ export const ChatRequestListPage = () => {
           <Tabs
             tabs={tabs}
             activeId={activeId}
-            onChange={(id) => setActiveId(id as ChatRoomListItemType)}
+            onChange={handleTabChange}
           />
         </div>
       }
