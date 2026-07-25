@@ -17,7 +17,7 @@ export const ShopDetailPage = () => {
 
   const { user } = useAuthStore();
   const { data: gifticonProduct } = useGifticonProductQuery(productId);
-  const { mutate: purchaseProduct } = useGifticonPurchaseMutation();
+  const { mutate: purchaseProduct, isPending: isPurchasePending } = useGifticonPurchaseMutation();
   const product = gifticonProduct;
 
   // 전역 포인트 및 핸드폰 번호 (ShopPage 진입 시 gifticonList API에서 동기화됨)
@@ -189,6 +189,7 @@ export const ShopDetailPage = () => {
           rightButtonText={confirmPopUpConfig.rightButtonText}
           onLeftClick={() => setConfirmPopUpConfig(null)}
           onRightClick={handleConfirmPurchase}
+          isActionPending={isPurchasePending}
         />
       )}
       {popUpConfig && (

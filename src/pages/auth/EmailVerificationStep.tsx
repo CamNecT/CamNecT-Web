@@ -11,7 +11,6 @@ import SingleInput from '../../components/common/SingleInput';
 import PopUp from '../../components/Pop-up';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSignupStore } from '../../store/useSignupStore';
-import SmallButton from './components/SmallButton';
 
 interface EmailVerificationStepProps {
     onNext: () => void;
@@ -181,9 +180,12 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
                         error={errors.email?.message} // zod 검증 실패 시 에러 문자열, 통과 시 undefined
                         successMessage={emailSent ? "메일이 전송되었습니다. 메일함을 확인해 주세요!" : ""}
                         action={
-                            <SmallButton
+                            <Button
                                 label="인증요청"
+                                font="m-16"
+                                className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                 type="button"
+                                loading={emailRequestMutation.isPending}
                                 disabled={!emailValue || !!errors.email} // 이메일 값 || 에러 있으면 버튼 비활성화
                                 onClick={handleEmailRequest}
                             />
@@ -196,9 +198,12 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
                         {...register("verificationCode")}
                         error={errors.verificationCode?.message}
                         action={
-                            <SmallButton
+                            <Button
                                 onClick={handleEmailVerify}
                                 label="인증하기"
+                                font="m-16"
+                                loading={emailVerifyMutation.isPending}
+                                className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                 type="button"
                                 disabled={!emailSent || codeValue.length !== 6}
                             />
