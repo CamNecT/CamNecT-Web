@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon';
 import { Tabs, type TabItem } from '../../components/Tabs';
@@ -22,23 +22,13 @@ const isActivityPostTab = (tab: string | null): tab is ActivityPostTab =>
 
 export const ActivityPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<ActivityPostTab>(
-    isActivityPostTab(initialTab) ? initialTab : 'club',
-  );
+  const tab = searchParams.get('tab');
+  const activeTab: ActivityPostTab = isActivityPostTab(tab) ? tab : 'club';
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (isActivityPostTab(tab) && tab !== activeTab) {
-      setActiveTab(tab);
-    }
-  }, [activeTab, searchParams]);
-
   const handleTabChange = (id: string) => {
     if (!isActivityPostTab(id)) return;
-    setActiveTab(id);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('tab', id);
