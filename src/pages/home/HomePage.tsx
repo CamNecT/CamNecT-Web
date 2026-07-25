@@ -291,7 +291,7 @@ export const HomePage = () => {
                                 <span className="flex items-center justify-center gap-[5px] text-m-14 text-gray-900 tracking-[-0.04em]">
                                     {recommendButtonText}
                                     {recommendButtonText === '더보기' ? (
-                                        <Icon name="more" />
+                                        <Icon name="toggleDown" />
                                     ) : null}
                                 </span>
                             </Card>
