@@ -8,6 +8,7 @@ import { RecruitWritePage } from "../pages/activity/RecruitWritePage";
 import { ActivityWritePage } from "../pages/activity/WritePage";
 import { AdminVerificationDetail } from "../pages/admin/AdminVerificationDetail";
 import { AdminVerificationList } from "../pages/admin/AdminVerificationList";
+import { AdminReportDetail } from "../pages/admin/AdminReportDetail";
 import { AdminReportList } from "../pages/admin/AdminReportList";
 import { AdminWritePage } from "../pages/admin/AdminWritePage";
 import { ExternalWritePage } from "../pages/admin/ExternalPostWritePage";
@@ -84,8 +85,17 @@ export const router = createBrowserRouter([
                                 element: <AdminVerificationDetail />,
                             },
                             {
-                                path: "report",
-                                element: <AdminReportList />,
+                                path: "reports",
+                                children: [
+                                    {
+                                        index: true,
+                                        element: <AdminReportList />,
+                                    },
+                                    {
+                                        path: ":reportId",
+                                        element: <AdminReportDetail />,
+                                    }
+                                ]
                             },
                             {
                                 path:"post",

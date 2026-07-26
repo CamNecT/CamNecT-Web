@@ -22,7 +22,7 @@ const navList: AdminBottomNavProps[] = [
         icon: "adminReport",
         activeIcon: "adminReportActive",
         label: "신고된 글",
-        path: "/admin/report"
+        path: "/admin/reports"
     },
     {
         icon: "adminActivityRegistration",
