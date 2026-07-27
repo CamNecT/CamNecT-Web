@@ -1,4 +1,6 @@
 import Card from '../../../components/Card';
+import Icon from '../../../components/Icon';
+import PressableMotion from '../../../components/PressableMotion';
 
 
 type Contest = {
@@ -18,9 +20,10 @@ type ContestBoxProps = {
     contests: Contest[];
     onTitleClick?: () => void;
     onItemClick?: (contest: Contest) => void;
+    onMoreClick?: () => void;
 };
 
-const ContestBox = ({ contests, onTitleClick, onItemClick }: ContestBoxProps) => {
+const ContestBox = ({ contests, onTitleClick, onItemClick, onMoreClick }: ContestBoxProps) => {
     return (
         <div className="flex flex-col gap-[10px]">
             <div
@@ -48,38 +51,53 @@ const ContestBox = ({ contests, onTitleClick, onItemClick }: ContestBoxProps) =>
             <div className="flex overflow-x-auto gap-[10px] pb-[4px]">
                 {/*TODO: 공모전 카드 클릭 시 공모전 상세페이지 라우터 연결*/}
                 {contests.map((contest) => (
-                    <Card
+                    <PressableMotion
+                        as="button"
+                        type="button"
                         key={`${contest.title}-${contest.organizer}`}
-                        width="158px"
-                        height="200px"
-                        className="flex-shrink-0 overflow-hidden rounded-[10px] border-[#ECECEC] bg-[#FCFCFC]"
+                        className="flex-shrink-0 text-left"
                         onClick={() => onItemClick?.(contest)}
                     >
-                        <div className="relative w-full flex justify-center">
-                            {contest.posterImgUrl ? (
-                                <img
-                                    src={contest.posterImgUrl}
-                                    alt={`${contest.title} 포스터`}
-                                    className="h-[128px] w-full object-cover"
-                                />
-                            ) : (
-                                <div
-                                    className="h-[128px] w-full shrink-0 bg-gray-300"
-                                    aria-hidden
-                                />
-                            )}
-                        </div>
+                        <Card
+                            width="158px"
+                            height="200px"
+                            className="overflow-hidden rounded-[10px] border-[#ECECEC] bg-[#FCFCFC]"
+                        >
+                            <div className="relative w-full flex justify-center">
+                                {contest.posterImgUrl ? (
+                                    <img
+                                        src={contest.posterImgUrl}
+                                        alt={`${contest.title} 포스터`}
+                                        className="h-[128px] w-full object-cover"
+                                    />
+                                ) : (
+                                    <div
+                                        className="h-[128px] w-full shrink-0 bg-gray-300"
+                                        aria-hidden
+                                    />
+                                )}
+                            </div>
 
-                        <div className="flex flex-col gap-[3px] p-[15px]">
-                            <p className="truncate text-m-16 text-black">
-                                {contest.title}
-                            </p>
-                            <p className="truncate text-r-12 text-gray-650">
-                                {contest.organizer}
-                            </p>
-                        </div>
-                    </Card>
+                            <div className="flex flex-col gap-[3px] p-[15px]">
+                                <p className="truncate text-m-16 text-black">
+                                    {contest.title}
+                                </p>
+                                <p className="truncate text-r-12 text-gray-650">
+                                    {contest.organizer}
+                                </p>
+                            </div>
+                        </Card>
+                    </PressableMotion>
                 ))}
+                <PressableMotion
+                    as="button"
+                    type="button"
+                    className="flex h-[200px] w-[40px] flex-shrink-0 items-center justify-center rounded-[10px] border border-[#ECECEC] bg-[#F5F5F5]"
+                    onClick={onMoreClick}
+                    aria-label="공모전 더보기"
+                >
+                    <Icon name="more" className="h-[24px] w-[24px]" />
+                </PressableMotion>
             </div>
         </div>
     );

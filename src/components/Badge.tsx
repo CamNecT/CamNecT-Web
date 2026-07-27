@@ -1,11 +1,14 @@
 import type { HTMLAttributes } from 'react';
 
-type BadgeProps = HTMLAttributes<HTMLSpanElement>;
+type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
+  color?: string;
+};
 
-const Badge = ({ className = '', ...props }: BadgeProps) => {
+const Badge = ({ color, className = '', style, ...props }: BadgeProps) => {
   return (
     <span
-      className={`absolute -top-[2px] -right-[2px] w-[5.55px] h-[5.55px] rounded-full bg-primary opacity-100 ${className}`}
+      className={`absolute -top-[2px] -right-[2px] w-[5.55px] h-[5.55px] rounded-full opacity-100 ${color ? '' : 'bg-primary'} ${className}`}
+      style={{ backgroundColor: color, ...style }}
       {...props}
     />
   );
