@@ -343,8 +343,8 @@ export const CommunityPage = () => {
   return (
     <HeaderLayout
       headerSlot={
-        isSearchOpen && activeTab !== 'all' ? (
-          <div className='bg-white'>
+        <div className='sticky top-0 z-50 bg-white'>
+          {isSearchOpen && activeTab !== 'all' ? (
             <div className='px-[25px]'>
               <div className='mx-auto flex w-full max-w-[720px] items-center gap-[15px] py-[10px]'>
                 <button
@@ -366,32 +366,30 @@ export const CommunityPage = () => {
                 />
               </div>
             </div>
-          </div>
-        ) : (
-          <MainHeader
-            title='커뮤니티'
-            leftAction={{
-              onClick: () => navigate('/home', { replace: true }),
-              ariaLabel: '홈으로 이동',
-            }}
-            rightActions={
-              activeTab === 'all'
-                ? []
-                : [
-                  {
-                    icon: 'search',
-                    onClick: () => setIsSearchOpen(true),
-                    ariaLabel: '검색 열기',
-                  },
-                ]
-            }
-          />
-        )
+          ) : (
+            <MainHeader
+              title='커뮤니티'
+              leftAction={{
+                onClick: () => navigate('/home', { replace: true }),
+                ariaLabel: '홈으로 이동',
+              }}
+              rightActions={
+                activeTab === 'all'
+                  ? []
+                  : [
+                    {
+                      icon: 'search',
+                      onClick: () => setIsSearchOpen(true),
+                      ariaLabel: '검색 열기',
+                    },
+                  ]
+              }
+            />
+          )}
+          <Tabs tabs={tabItems} activeId={activeTab} onChange={setActiveTab} />
+        </div>
       }
     >
-      <div className='bg-white'>
-        <Tabs tabs={tabItems} activeId={activeTab} onChange={setActiveTab} />
-      </div>
       <div>{renderTab()}</div>
     </HeaderLayout>
   );

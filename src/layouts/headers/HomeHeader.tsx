@@ -54,7 +54,6 @@ export const HomeHeader = ({
         ...(useSafeArea
           ? {
               paddingTop: 'calc(15px + env(safe-area-inset-top, 0px))',
-              top: 'env(safe-area-inset-top, 0px)',
             }
           : null),
         ...style,

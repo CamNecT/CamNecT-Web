@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PopUp from "../../components/Pop-up";
 import { Tabs } from "../../components/Tabs";
 import { useChatRequests, useDeleteAllChatRequest, useDeleteAllTeamRecruitRequest } from "../../hooks/useChatQuery";
@@ -12,14 +12,29 @@ import { ChatPostAccordian } from "./components/ChatPostAccordian";
 
 export const ChatRequestListPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const tabs = [
     { id: 'COFFEE_CHAT', label: '커피챗' },
     { id: 'TEAM_RECRUIT', label: '팀원모집' },
   ];
 
-  const [activeId, setActiveId] = useState<ChatRoomListItemType>('COFFEE_CHAT');
+  const initialType = searchParams.get('type');
+  const hasInitialTypeQuery = initialType === 'TEAM_RECRUIT' || initialType === 'COFFEE_CHAT';
+  const initialActiveId: ChatRoomListItemType =
+    hasInitialTypeQuery
+      ? initialType
+      : 'COFFEE_CHAT';
+  const [activeId, setActiveId] = useState<ChatRoomListItemType>(initialActiveId);
   const [openPostTitle, setOpenPostTitle] = useState<string | null>(null); // 1개만 열릴 수 있음
+
+  useEffect(() => {
+    // 홈 요청 요약 카드에서 ?type=...으로 진입할 때만 초기 탭을 맞추고,
+    // 탭 상태가 URL에 계속 남지 않도록 진입 직후 쿼리를 제거했습니다.
+    if (hasInitialTypeQuery) {
+      navigate('/chat/requests', { replace: true });
+    }
+  }, [hasInitialTypeQuery, navigate]);
 
   const { data: chatRequestRooms = [], isLoading } = useChatRequests(activeId);
   const { mutate: deleteAllTeamRecruitRequest} = useDeleteAllTeamRecruitRequest();
@@ -74,29 +89,38 @@ export const ChatRequestListPage = () => {
     navigate(`/chat/requests/${roomId}`);
   };
 
+  const handleTabChange = (id: string) => {
+    const nextActiveId = id as ChatRoomListItemType;
+    setActiveId(nextActiveId);
+    setOpenPostTitle(null);
+  };
+
   return (
     <HeaderLayout
       headerSlot={
-        <MainHeader
-          title="요청" />
+        <div className="sticky top-0 z-50 bg-white">
+          <MainHeader
+            title="요청" />
+          <Tabs
+            tabs={tabs}
+            activeId={activeId}
+            onChange={handleTabChange}
+          />
+        </div>
       }
     >
-      <Tabs
-        tabs={tabs}
-        activeId={activeId}
-        onChange={(id) => setActiveId(id as ChatRoomListItemType)}
-      >
-        <ol>
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <ul>
           {
-            activeId === 'TEAM_RECRUIT' ? 
+            activeId === 'TEAM_RECRUIT' ?
               // Object.entries : Object -> Array ([index0, index1])
               Object.entries(filteredChatRoomListByPost).map(([key, chatRoomList]) => {
-                
+
                 const isOpen = openPostTitle === key;
                 const requestCount = chatRoomList.length;
-                
+
                 return (
-                  <div key={key} className="flex flex-col">
+                  <li key={key} className="flex flex-col">
                     <ChatPostAccordian
                       title={key}
                       isOpen={isOpen}
@@ -104,39 +128,38 @@ export const ChatRequestListPage = () => {
                       onClick={() => togglePostTitle(key)}
                     />
                     {isOpen && (
-                      <ol>
+                      <ul>
                         {chatRoomList.map((chatRoom) => (
-                          <ChatList 
-                            key={chatRoom.roomId} 
-                            chatRoom={chatRoom} 
-                            isFirstPaddingDisabled={false} 
+                          <ChatList
+                            key={chatRoom.roomId}
+                            chatRoom={chatRoom}
+                            isFirstPaddingDisabled={false}
                             onClick={() => handleChatRoomClick(chatRoom.roomId)}
                           />
                         ))}
-                      </ol>
+                      </ul>
                     )}
-                  </div>
+                  </li>
                 )
               })
-            : 
+            :
               filteredChatRoomList.map((chatRoom) => (
-                <ChatList 
-                  key={chatRoom.roomId} 
-                  chatRoom={chatRoom} 
-                  isFirstPaddingDisabled={false} 
+                <ChatList
+                  key={chatRoom.roomId}
+                  chatRoom={chatRoom}
+                  isFirstPaddingDisabled={false}
                   onClick={() => handleChatRoomClick(chatRoom.roomId)}
                 />
               ))
           }
-        </ol>
-
+        </ul>
 
         <AllRequestDeleteButton
           requestCount={currentDeleteCount}
           onClick={handleDeleteAll}
         />
-        <PopUp isOpen={isLoading} type="loading" />
-      </Tabs>
+      </div>
+      <PopUp isOpen={isLoading} type="loading" />
     </HeaderLayout>
   );
 };

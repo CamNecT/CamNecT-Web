@@ -11,11 +11,28 @@ import SingleInput from '../../components/common/SingleInput';
 import PopUp from '../../components/Pop-up';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSignupStore } from '../../store/useSignupStore';
-import SmallButton from './components/SmallButton';
 
 interface EmailVerificationStepProps {
     onNext: () => void;
 }
+
+// 이메일 인증 폼 검증 (zod)
+// z.object : 폼 필드별 유효성 규칙 정의. 검증 실패 시 두 번째 인자 문자열이 errors에 담김
+const emailSchema = z.object({
+    // 1. 이메일 값
+    email: z
+    .string()
+    .min(1, "이메일을 입력해 주세요")
+    .regex(
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        "이메일 형식이 올바르지 않습니다"
+    ),
+    // 2. 이메일 인증번호
+    verificationCode: z.string().length(6, "인증번호 6자리를 입력해 주세요"),
+});
+
+// zod schema에서 type 자동으로 추론 (직접 type 선언 불필요)
+type EmailFormData = z.infer<typeof emailSchema>;
 
 // 이메일 인증 단계
 export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) => {
@@ -35,23 +52,10 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
 
     const setLogin = useAuthStore((state) => state.setLogin);
 
-    // 이메일 인증 폼 검증 (zod)
-    const emailSchema = z.object({
-        // 1. 이메일 값
-        email: z
-        .string()
-        .min(1, "이메일을 입력해 주세요")
-        .regex(
-            /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-            "이메일 형식이 올바르지 않습니다"
-        ),
-        // 2. 이메일 인증번호
-        verificationCode: z.string().length(6, "인증번호 6자리를 입력해 주세요"),
-    });
-
-    type EmailFormData = z.infer<typeof emailSchema>;
-
     // RHF로 폼 제어
+    // resolver : zodResolver로 zod 규칙을 RHF에 연결 (다리 역할)
+    // mode "onChange" : 입력할 때마다 실시간 검증 (default : submit 시에만 검증)
+    // defaultValues : 각 필드 초기값 (없으면 uncontrolled input 경고 발생)
     const { register, handleSubmit, control, formState : { errors } } = useForm<EmailFormData>({
         resolver: zodResolver(emailSchema),
         mode: "onChange",
@@ -62,6 +66,8 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
     });
 
     // SingleInput에 입력되는 값들 실시간 감지
+    // register만으로는 컴포넌트 내부에서 현재 값을 변수로 꺼낼 수 없어 useWatch 사용
+    // control : useWatch가 RHF 내부 상태에 접근할 수 있도록 연결해주는 객체
     const emailValue = useWatch({ control, name: "email" });
     const codeValue = useWatch({ control, name: "verificationCode" });
 
@@ -142,18 +148,21 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
         if (!emailSent) {
             setPopUpConfig({ title: "인증 오류", content: "먼저 인증 요청을 클릭하여 이메일을 전송해 주세요." });
             return;
-        }
+        }   
 
         emailVerifyMutation.mutate({ ...getEmailVerificationData(), code: codeValue });
     }
 
     // '다음'버튼 클릭 시
+    // handleSubmit이 zod 검증을 먼저 실행 → 통과 시에만 onSubmit 호출
+    // data : zod 검증을 통과한 폼 전체 필드값 객체 { email, verificationCode }
     const onSubmit = (data : EmailFormData) => {
         setEmail(data.email);
         onNext();
     };
-    
+
     return (
+        // handleSubmit(onSubmit) : 문지기(검증) + 통과 후 실행 로직을 하나로 연결
         <form onSubmit={handleSubmit(onSubmit)}>
             
             <div className="absolute inset-0 bg-white px-[25px] flex flex-col overflow-hidden">
@@ -163,40 +172,43 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
                 </h1>
 
                 <div className="flex-1 overflow-y-auto space-y-[20px] pt-[40px] scrollbar-hide">
-                    <div className='flex items-start gap-[10px]'>
-                        <SingleInput
-                            className="flex-1"
-                            label='이메일 인증'
-                            placeholder='이메일을 입력해 주세요'
-                            {...register("email")}
-                            error={errors.email?.message}
-                            successMessage={emailSent ? "메일이 전송되었습니다. 메일함을 확인해 주세요!" : ""}
-                        /> 
-                        
-                        <SmallButton 
-                            label="인증요청" 
-                            type="button"
-                            className="mt-[36px]"
-                            disabled={!emailValue || !!errors.email}
-                            onClick={handleEmailRequest}
-                        />
-                    </div>
-                    
-                    <div className='flex items-start gap-[10px]'>
-                        <SingleInput 
-                            className = "flex-1" 
-                            placeholder="인증 번호 6자리를 입력해 주세요" 
-                            {...register("verificationCode")}
-                            error={errors.verificationCode?.message}
-                        />
-                        <SmallButton 
-                            onClick={handleEmailVerify}
-                            label="인증하기" 
-                            type="button"
-                            className="mt-[6px]"
-                            disabled={!emailSent || codeValue.length !== 6}  // 이메일 전송 후 && 6자리 입력 시 활성화
-                        />
-                    </div>
+                    {/* 이메일 인증 : 인증요청 버튼은 action 슬롯에 넣어 인풋과 자동 정렬 */}
+                    <SingleInput
+                        label='이메일 인증'
+                        placeholder='이메일을 입력해 주세요'
+                        {...register("email")} // name, onChange, onBlur, ref를 한 번에 input에 연결
+                        error={errors.email?.message} // zod 검증 실패 시 에러 문자열, 통과 시 undefined
+                        successMessage={emailSent ? "메일이 전송되었습니다. 메일함을 확인해 주세요!" : ""}
+                        action={
+                            <Button
+                                label="인증요청"
+                                font="m-16"
+                                className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
+                                type="button"
+                                loading={emailRequestMutation.isPending}
+                                disabled={!emailValue || !!errors.email} // 이메일 값 || 에러 있으면 버튼 비활성화
+                                onClick={handleEmailRequest}
+                            />
+                        }
+                    />
+
+                    {/* 인증번호 : 인증하기 버튼도 동일하게 action 슬롯으로 정렬 */}
+                    <SingleInput
+                        placeholder="인증 번호 6자리를 입력해 주세요"
+                        {...register("verificationCode")}
+                        error={errors.verificationCode?.message}
+                        action={
+                            <Button
+                                onClick={handleEmailVerify}
+                                label="인증하기"
+                                font="m-16"
+                                loading={emailVerifyMutation.isPending}
+                                className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
+                                type="button"
+                                disabled={!emailSent || codeValue.length !== 6}
+                            />
+                        }
+                    />
                 </div>
 
                 <div className="h-[40px] flex-none" />
