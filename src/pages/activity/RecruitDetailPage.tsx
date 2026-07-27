@@ -14,6 +14,7 @@ import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatOnlyDate, formatTimeAgo } from '../../utils/formatDate';
 import TeamApplyModal from './components/TeamApplyModal';
+import ReportModal from '../../components/report/ReportModal';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -36,7 +37,7 @@ export const RecruitDetailPage = () => {
 
     const [isOptionOpen, setIsOptionOpen] = useState(false);
     const [isStopRecruitPopupOpen, setIsStopRecruitPopupOpen] = useState(false);
-    const [isReportPopupOpen, setIsReportPopupOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isDuplicateApplyPopup, setIsDuplicateApplyPopup] = useState(false);
     const [isApplyFailPopupOpen, setIsApplyFailPopupOpen] = useState(false);
@@ -156,7 +157,7 @@ export const RecruitDetailPage = () => {
                 document.body.removeChild(textarea);
             }
         }
-        if (item.id === 'report-post') setIsReportPopupOpen(true);
+        if (item.id === 'report-post') setIsReportModalOpen(true);
         if (item.id === 'edit-post') {
             navigate(`/activity/${recruitment.activityId}/recruit-write/${recruitmentId}`);
         }
@@ -346,7 +347,7 @@ export const RecruitDetailPage = () => {
         </div>
 
         <BottomSheetModal isOpen={isOptionOpen} onClose={() => setIsOptionOpen(false)} height='auto'>
-            <div className='flex min-h-[150px] flex-col px-[clamp(16px,6vw,25px)] pt-[30px]'>
+            <div className='flex min-h-[150px] flex-col px-[clamp(16px,6vw,25px)] pt-[30px] pb-[30px]'>
                 <div className='flex flex-col divide-y divide-gray-150'>
                     {optionItems.map((item) => (
                         <button
@@ -377,12 +378,13 @@ export const RecruitDetailPage = () => {
             }}
         />
 
-        <PopUp
-            isOpen={isReportPopupOpen}
-            type='confirm'
-            title='현재 제작 중이에요!'
-            content='유저분들이 더 즐겁게 소통할 수 있도록\n꼼꼼히 준비해서 돌아올게요.'
-            onClick={() => setIsReportPopupOpen(false)}
+        <ReportModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            reportedUserId={recruitment.userId}
+            reportedUserName={recruitDetail.author.name}
+            reportedPostId={recruitmentId}
+            postType="ACTIVITY_RECRUITMENT"
         />
 
         <PopUp
