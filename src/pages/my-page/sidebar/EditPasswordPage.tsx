@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { MainHeader } from "../../../layouts/headers/MainHeader";
+import Button from "../../../components/Button";
 import PopUp from "../../../components/Pop-up";
 import { useAuthStore } from "../../../store/useAuthStore";
 import { changePassword } from "../../../api/profileApi";
@@ -303,13 +304,13 @@ export const EditPasswordPage = () => {
                         </div>
                     </div>
 
-                    <button
+                    <Button
+                        label={isSubmitting ? "변경 중..." : "비밀번호 변경하기"}
+                        font="sb-16-hn"
+                        className="w-full h-auto max-w-none py-[12px] rounded-full transition-colors"
                         onClick={handleSubmit}
                         disabled={!isValid || isSubmitting}
-                        className="w-full py-[12px] rounded-full bg-primary disabled:bg-gray-300 flex items-center justify-center transition-colors"
-                    >
-                        <span className="text-sb-16-hn text-white">{isSubmitting ? "변경 중..." : "비밀번호 변경하기"}</span>
-                    </button>
+                    />
                 </div>
             </HeaderLayout>
             <PopUp

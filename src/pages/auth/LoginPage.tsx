@@ -150,7 +150,7 @@ export const LoginPage = () => {
         </div>
       </div>
 
-      <Button label="로그인" className="w-full mb-[60px] flex-none" onClick={handleLogin} />
+      <Button label="로그인" className="w-full mb-[60px] flex-none" onClick={handleLogin} loading={loginMutation.isPending} />
       
       <div className="max-w-[201px] w-full h-[17px] flex justify-between items-center flex-none">
         <button className="text-gray-650 text-r-12 tracking-[-0.24px]" onClick={() => navigate("/find-account/id")}>아이디 찾기</button>
