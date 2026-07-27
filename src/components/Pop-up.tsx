@@ -1,18 +1,22 @@
 import type { ReactNode } from 'react';
+import Button from './Button';
 
 // 팝업 유형: 안내/경고/확인/로딩
-type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
+export type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
 
 // 공통 팝업 props (유형별로 필요한 값만 사용)
 type PopUpProps = {
   isOpen: boolean;
   type: PopUpType;
-  title?: string;
-  titleSecondary?: string;
-  content?: string;
+  // ReactNode type : React가 렌더링하는 거의 모든 타입 (tsx를 받기 위해) 
+  // 목적 : title ~ content의 텍스트 부분 스타일링
+  title?: ReactNode; 
+  titleSecondary?: ReactNode;
+  content?: ReactNode;
   leftButtonText?: string;
   rightButtonText?: string;
   buttonText?: string;
+  isActionPending?: boolean;
   onLeftClick?: () => void;
   onRightClick?: () => void;
   onClick?: () => void;
@@ -27,6 +31,7 @@ const PopUp = ({
   leftButtonText,
   rightButtonText,
   buttonText,
+  isActionPending,
   onLeftClick,
   onRightClick,
   onClick,
@@ -37,25 +42,36 @@ const PopUp = ({
   const contentAlign =
     type === 'warning' || type === 'confirm' || type === 'info' ? 'text-center' : 'text-left';
 
+  // string 값에 들어온 "\n" 문자를 실제 줄바꿈으로 변환
+  const normalizeEscapedNewlines = (value?: ReactNode): ReactNode => {
+    if (typeof value === 'string') {
+      return value.replace(/\\n/g, '\n'); // (개행 <-> 실제 \n) 변환 
+    }
+
+    return value;
+  };
+
+  // ReactNode 중 실제 화면에 표시할 값인지 확인
+  // 목적 : 비어있는 요소 렌더링 X (빈 태그 생성 방지)
+  const isRenderableNode = (value?: ReactNode) =>
+    value !== undefined && value !== null && value !== false && value !== true && value !== '';
+
   const renderContent = (): ReactNode => {
     // 문자열 기반 줄바꿈(\n) 처리
-    const processedTitle = title ? title.replace(/\\n/g, '\n') : undefined;
-    const processedContent = content?.replace(/\\n/g, '\n');
-    const processedSecondaryTitle = titleSecondary
-      ? titleSecondary.replace(/\\n/g, '\n')
-      : undefined;
+    const normalizedTitle = normalizeEscapedNewlines(title);
+    const normalizedContent = normalizeEscapedNewlines(content);
+    const normalizedSecondaryTitle = normalizeEscapedNewlines(titleSecondary);
 
-    const formattedContent =
-      type === 'warning'
-        ? processedContent
-          ? `* ${processedContent}`
-          : undefined
-        : processedContent;
-
-  
+    // 경고 타입일때 내용 앞에 '* ' 추가
+    const contentWithWarningPrefix =
+      (type === 'warning') && isRenderableNode(normalizedContent)
+        ? <>* {normalizedContent}</>
+        : normalizedContent;
 
     // 로딩 타입 전용 콘텐츠
     if (type === 'loading') {
+      const loadingTitle = normalizeEscapedNewlines(title);
+
       return (
         <div className='flex flex-col items-center justify-center gap-[20px] pt-[10px]'>
           <svg
@@ -72,7 +88,7 @@ const PopUp = ({
             />
           </svg>
           <div className='text-b-18 mt-auto pt-[20px] whitespace-pre-wrap text-center text-[var(--ColorBlack,#202023)]'>
-            {title || '잠시만 기다려 주세요...'}
+            {isRenderableNode(loadingTitle) ? loadingTitle : '잠시만 기다려 주세요...'}
           </div>
         </div>
       );
@@ -82,20 +98,24 @@ const PopUp = ({
       <div className={`flex flex-col justify-center h-[clamp(85px,10vw,100px)] gap-[15px] px-[15px] pt-[10px] ${contentAlign}`}>
         {type === 'error' ? (
           <div className='flex flex-col gap-[10px]'>
-            <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>
-              {processedTitle}
-            </div>
-            {processedSecondaryTitle && (
+            {isRenderableNode(normalizedTitle) && (
               <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>
-                {processedSecondaryTitle}
+                {normalizedTitle}
+              </div>
+            )}
+            {isRenderableNode(normalizedSecondaryTitle) && (
+              <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>
+                {normalizedSecondaryTitle}
               </div>
             )}
           </div>
         ) : (
-          <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>{processedTitle}</div>
+          isRenderableNode(normalizedTitle) && (
+            <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>{normalizedTitle}</div>
+          )
         )}
-        {formattedContent && (
-          <div className='text-r-14 whitespace-pre-wrap text-[var(--ColorGray3,#646464)]'>{formattedContent}</div>
+        {isRenderableNode(contentWithWarningPrefix) && (
+          <div className='text-r-14 whitespace-pre-wrap text-[var(--ColorGray3,#646464)]'>{contentWithWarningPrefix}</div>
         )}
       </div>
     );
@@ -109,13 +129,13 @@ const PopUp = ({
     // 확인 팝업: 단일 버튼
     if (type === 'confirm' || type === 'error') {
       return (
-        <button
+        <Button
           type='button'
+          label={buttonText ?? '확인'}
+          font='b-14-hn'
           onClick={onClick}
-          className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorMain,#00C56C)] text-b-14-hn text-[var(--ColorWhite,#FFF)]'
-        >
-          <span className='whitespace-pre-wrap'>{buttonText ?? '확인'}</span>
-        </button>
+          className='h-[45px] max-w-none rounded-[10px] whitespace-pre-wrap'
+        />
       );
     }
 
@@ -151,13 +171,14 @@ const PopUp = ({
         >
           <span className='whitespace-pre-wrap'>{leftButtonText ?? '아니오'}</span>
         </button>
-        <button
+        <Button
           type='button'
+          label={rightButtonText ?? '네, 확인했습니다'}
+          font='b-14-hn'
           onClick={onRightClick}
-          className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorMain,#00C56C)] text-b-14-hn text-[var(--ColorWhite,#FFF)]'
-        >
-          <span className='whitespace-pre-wrap'>{rightButtonText ?? '네, 확인했습니다'}</span>
-        </button>
+          loading={isActionPending}
+          className='h-[45px] max-w-none rounded-[10px] whitespace-pre-wrap'
+        />
       </div>
     );
   };

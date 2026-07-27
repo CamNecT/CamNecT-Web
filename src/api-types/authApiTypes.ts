@@ -242,6 +242,45 @@ export interface VerificationCompleteResponse {
   majorName: string;
 }
 
+// 아이디 찾기 DTO (/api/auth/username/find)
+export interface FindIdRequest {
+  name: string;
+  email: string;
+}
+
+export interface FindIdResponse {
+  username: string;
+}
+
+// 비밀번호 찾기 이메일 인증요청 DTO (/api/auth/password/reset/email/send)
+export interface FindPasswordEmailRequest {
+  username: string;
+  email: string;
+}
+
+export interface FindPasswordEmailResponse {
+  email: string;
+  expiresMinutes: number;
+}
+
+// 비밀번호 찾기 이메일 인증 확인 DTO (/api/auth/password/reset/email/verify)
+export interface FindPasswordEmailVerifyRequest {
+  email: string;
+  code: string;
+}
+
+export interface FindPasswordEmailVerifyResponse {
+  resetToken: string;
+  expiresMinutes: number;
+}
+
+
+// 비밀번호 재설정 DTO (/api/auth/password/reset)
+export interface FindPasswordResetRequest {
+  resetToken: string;
+  newPassword: string;
+}
+
 // 회원 탈퇴 DTO (/api/auth/me)
 export interface DeleteAccountRequest {
   userId: number;

@@ -9,6 +9,7 @@ import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
 import SaveToggle from '../../layouts/BottomChat/components/SaveToggle';
+import Button from '../../components/Button';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -322,13 +323,13 @@ export const RecruitDetailPage = () => {
                             모집 완료하기
                         </button>
                     ) : (
-                        <button
+                        <Button
                             type="button"
+                            label="팀원 신청하기"
+                            font="sb-16-hn"
+                            className="flex-1 w-auto h-auto max-w-none py-[15px] rounded-[10px]"
                             onClick={() => setIsApplyModalOpen(true)}
-                            className="flex-1 py-[15px] rounded-[10px] bg-primary text-white text-sb-16-hn active:scale-95 active:brightness-95 transition"
-                        >
-                            팀원 신청하기
-                        </button>
+                        />
                     )
                 ) : (
                     <button
@@ -415,6 +416,7 @@ export const RecruitDetailPage = () => {
             isOpen={isApplyModalOpen}
             onClose={() => setIsApplyModalOpen(false)}
             activityName={activityName}
+            isPending={applyMutation.isPending} // 팀원 모집 중복 API 신청 방지
             onSubmit={async (payload) => {
                 try {
                     await applyMutation.mutateAsync(payload.message);

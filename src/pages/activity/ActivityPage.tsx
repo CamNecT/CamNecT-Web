@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon';
 import { Tabs, type TabItem } from '../../components/Tabs';
 import { FullLayout } from '../../layouts/FullLayout';
@@ -16,10 +17,24 @@ const tabItems: TabItem[] = [
   { id: 'job', label: '취업정보' },
 ];
 
+const isActivityPostTab = (tab: string | null): tab is ActivityPostTab =>
+  tabItems.some((item) => item.id === tab);
+
 export const ActivityPage = () => {
-  const [activeTab, setActiveTab] = useState<ActivityPostTab>('club');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab');
+  const activeTab: ActivityPostTab = isActivityPostTab(tab) ? tab : 'club';
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleTabChange = (id: string) => {
+    if (!isActivityPostTab(id)) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', id);
+      return next;
+    });
+  };
 
   const renderTab = () => {
     if (activeTab === 'club')
@@ -34,8 +49,8 @@ export const ActivityPage = () => {
   return (
     <FullLayout
       headerSlot={
-        isSearchOpen ? (
-          <div className='bg-white top-0 z-50 sticky'>
+        <div className='sticky top-0 z-50 bg-white'>
+          {isSearchOpen ? (
             <div className='px-[25px]'>
               <div className='mx-auto flex w-full max-w-[720px] items-center gap-[15px] py-[10px]'>
                 <button
@@ -58,25 +73,23 @@ export const ActivityPage = () => {
                 />
               </div>
             </div>
-          </div>
-        ) : (
-          <MainHeader
-            title='대외활동'
-            leftIcon='empty'
-            rightActions={[
-              {
-                icon: 'search',
-                onClick: () => setIsSearchOpen(true),
-                ariaLabel: '검색 열기',
-              },
-            ]}
-          />
-        )
+          ) : (
+            <MainHeader
+              title='대외활동'
+              leftIcon='empty'
+              rightActions={[
+                {
+                  icon: 'search',
+                  onClick: () => setIsSearchOpen(true),
+                  ariaLabel: '검색 열기',
+                },
+              ]}
+            />
+          )}
+          <Tabs tabs={tabItems} activeId={activeTab} onChange={handleTabChange} />
+        </div>
       }
     >
-      <div className='bg-white'>
-        <Tabs tabs={tabItems} activeId={activeTab} onChange={(id) => setActiveTab(id as ActivityPostTab)} />
-      </div>
       <div>{renderTab()}</div>
     </FullLayout>
   );

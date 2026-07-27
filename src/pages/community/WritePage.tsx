@@ -77,13 +77,14 @@ export const WritePage = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     // sortOrder 기준으로 정렬된 기존 첨부파일 키 목록을 만든다.
+    const getSortedAttachments = (
+        attachments: NonNullable<CommunityPostDetail['attachments']>,
+    ) => attachments.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+
     const getSortedAttachmentKeys = (
         attachments: NonNullable<CommunityPostDetail['attachments']>,
     ) =>
-        attachments
-            .slice()
-            .sort((a, b) => a.sortOrder - b.sortOrder)
-            .map((attachment) => attachment.fileKey);
+        getSortedAttachments(attachments).map((attachment) => attachment.fileKey);
 
     // 첨부파일 순서/구성이 수정 전과 같은지 확인한다.
     const areAttachmentKeysEqual = (left: string[], right: string[]) =>
@@ -343,8 +344,11 @@ export const WritePage = () => {
                 numericUserId,
             );
             if (isEditMode && postId) {
-                const currentExistingAttachmentKeys = getSortedAttachmentKeys(existingAttachments);
-                // 변경 없음은 null, 전체 삭제는 빈 배열, 유지/추가는 finalKey/tempKey로 전달한다.
+                const currentExistingAttachments = getSortedAttachments(existingAttachments);
+                const currentExistingAttachmentKeys = currentExistingAttachments.map(
+                    (attachment) => attachment.fileKey,
+                );
+                // 변경 없음은 null, 전체 삭제는 빈 배열, 유지/추가는 모두 fileKey로 전달한다.
                 const hasAttachmentChanges =
                     newAttachments.length > 0 ||
                     !areAttachmentKeysEqual(
@@ -353,9 +357,17 @@ export const WritePage = () => {
                     );
                 const attachments = hasAttachmentChanges
                     ? [
-                        ...currentExistingAttachmentKeys.map((finalKey) => ({ finalKey })),
+                        ...currentExistingAttachments.map((attachment) => ({
+                            fileKey: attachment.fileKey,
+                            width: attachment.width,
+                            height: attachment.height,
+                            fileSize: attachment.fileSize,
+                        })),
                         ...uploadedAttachments.map((attachment) => ({
-                            tempKey: attachment.fileKey,
+                            fileKey: attachment.fileKey,
+                            width: attachment.width,
+                            height: attachment.height,
+                            fileSize: attachment.fileSize,
                         })),
                     ]
                     : null;

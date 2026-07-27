@@ -652,6 +652,7 @@ export const ActivityWritePage = () => {
         content={confirmContent}
         onLeftClick={() => setIsConfirmOpen(false)}
         onRightClick={handleConfirm}
+        isActionPending={submitMutation.isPending}
       />
 
       <PopUp

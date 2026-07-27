@@ -286,19 +286,21 @@ export const MyBookmarksPage = () => {
     return (
         <HeaderLayout
             headerSlot={
-                <MainHeader
-                    title="북마크"
-                    leftAction={{onClick: () => navigate(-1)}}
-                />
+                <div className="sticky top-0 z-50 bg-white">
+                    <MainHeader
+                        title="북마크"
+                        leftAction={{onClick: () => navigate(-1)}}
+                    />
+                    {/* Tabs */}
+                    <Tabs
+                        tabs={TAB_ITEMS}
+                        activeId={activeTab}
+                        onChange={(id) => setActiveTab(id as TabType)}
+                    />
+                </div>
             }
         >
             <div className="w-full bg-white h-full flex flex-col min-h-0">
-                {/* Tabs */}
-                <Tabs
-                    tabs={TAB_ITEMS}
-                    activeId={activeTab}
-                    onChange={(id) => setActiveTab(id as TabType)}
-                />
                 <div ref={listRef} className="flex-1 overflow-y-auto min-h-0">
                     {/* Sort Selector */}
                     <div className="flex justify-end px-[25px] pt-[20px]">

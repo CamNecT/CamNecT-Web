@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getInstitution, getMajor } from "../../api/institutionApi";
 import { getMyProfile } from "../../api/profileApi";
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png";
+import Button from "../../components/Button";
 import PopUp from "../../components/Pop-up";
 import { FullLayout } from "../../layouts/FullLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
@@ -178,12 +179,12 @@ export const MypagePage = () => {
                 </p>
               </div>
             </div>
-            <button
-              className="h-[40px] w-full rounded-[6px] flex justify-center items-center bg-primary active:scale-95 active:brightness-95 transition"
+            <Button
+              label="프로필 수정하기"
+              font="SB-14-hn"
+              className="h-[40px] max-w-none rounded-[6px] bg-primary"
               onClick={() => navigate("/me/edit")}
-            >
-              <span className="text-SB-14-hn text-white">프로필 수정하기</span>
-            </button>
+            />
           </section>
 
           {/*divider*/}
