@@ -811,6 +811,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
             content={confirmContent}
             onLeftClick={() => setIsConfirmOpen(false)}
             onRightClick={handleConfirm}
+            isActionPending={submitMutation.isPending}
         />
         <PopUp
             isOpen={isCancelWarningOpen}

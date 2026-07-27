@@ -8,7 +8,6 @@ import { checkIdDuplicate } from '../../api/auth';
 import Button from '../../components/Button';
 import SingleInput from '../../components/common/SingleInput';
 import { useSignupStore } from "../../store/useSignupStore";
-import SmallButton from './components/SmallButton';
 
 interface UserInfoStepProps {
     onNext: () => void;
@@ -155,8 +154,10 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
                         error={errors.username?.message}
                         successMessage={isUserNameChecked ? "사용 가능한 아이디입니다" : ""}
                         action={
-                            <SmallButton
+                            <Button
                                 label="중복확인"
+                                font="m-16"
+                                className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                 type="button"
                                 disabled={!userNameValue || !!errors.username}
                                 onClick={handleCheckUserName}

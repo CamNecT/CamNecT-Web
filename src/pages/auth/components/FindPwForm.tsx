@@ -22,7 +22,6 @@ import {
     PASSWORD_RESET_VERIFY_POPUP_MESSAGES,
 } from "../../../constants/serverErrors/authErrors";
 import { getServerErrorCode } from "../../../utils/getServerErrorCode";
-import SmallButton from "./SmallButton";
 
 interface FindPwFormProps {
     isPasswordResetStep: boolean;
@@ -498,6 +497,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                         type = "submit"
                         className="max-w-none rounded-[10px]"
                         disabled = {!isValidPw}
+                        loading={resetPasswordMutation.isPending}
                     />
                 </form>
             ) : (
@@ -536,9 +536,12 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                                     })}
                                     error={verificationCodeErrorMessage}
                                     action={
-                                        <SmallButton
+                                        <Button
                                             label="재발송"
+                                            font="m-16"
+                                            className="w-[74px] h-[48px] rounded-[5px] disabled:text-white"
                                             type="button"
+                                            loading={sendCodeMutation.isPending}
                                             disabled={isCodeVerified}
                                             onClick={handleResendCode}
                                         />
@@ -558,6 +561,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                     ) : (
                         <Button
                             label="인증번호 받기"
+                            loading={sendCodeMutation.isPending}
                             className="max-w-none rounded-[10px]"
                             disabled={!isEmailSendValid} 
                             onClick={handleResendCode}
