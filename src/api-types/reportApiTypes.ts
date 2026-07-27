@@ -92,3 +92,48 @@ export interface ReportCountResponse {
   message: string;
   data: number; //해당 사용자에 대해 RESOLVED 처리된 신고 개수
 }
+
+
+//증거 이미지 업로드 URL 발급
+export interface ReportEvidencePresignRequest {
+  originalFilename: string;
+  contentType: string;
+  size: number;
+}
+ 
+export interface ReportEvidencePresignData {
+  fileKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+  requiredHeaders: Record<string, string>;
+}
+ 
+export interface ReportEvidencePresignResponse {
+  code: string;
+  message: string;
+  data: ReportEvidencePresignData;
+}
+ 
+
+//신고 제출
+export interface ReportCreateRequest {
+  reportedUserId: number;
+  reportedPostId: number | null;
+  postType: TargetType;
+  reportCategory: ReportCategory;
+  title: string;
+  context: string;
+  evidenceImageUrls: string[] | null;
+}
+ 
+export interface ReportCreateData {
+  reportId: number;
+  message: string;
+  penaltyType: PenaltyType | null;
+}
+ 
+export interface ReportCreateResponse {
+  code: string;
+  message: string;
+  data: ReportCreateData;
+}

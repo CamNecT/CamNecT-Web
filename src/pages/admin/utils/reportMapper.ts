@@ -40,6 +40,19 @@ export const REPORT_STATUS_VARIANT: Record<ReportStatus, StatusBadgeVariant> = {
   REJECTED: 'gray',
 };
 
+// 신고 유형 선택 화면에 표시할 순서
+export const REPORT_CATEGORY_ORDER: ReportCategory[] = [
+  'INSULT_DEFAMATION',
+  'SEXUAL_HARASSMENT',
+  'BUSINESS_PROMOTION',
+  'FRAUD',
+  'FALSE_INFORMATION',
+  'HARASSMENT_THREAT',
+  'INAPPROPRIATE_PROFILE',
+  'NO_SHOW_ABANDONMENT',
+  'OTHER',
+];
+
 //매핑에 없는 값이 오더라도 화면이 깨지지 않도록 원문을 그대로 fallback으로 반환
 export const getReportCategoryLabel = (category: ReportCategory): string =>
   REPORT_CATEGORY_LABEL[category] ?? category;
