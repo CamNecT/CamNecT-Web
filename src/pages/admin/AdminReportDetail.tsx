@@ -9,13 +9,11 @@ import {
 import type { ReportStatusUpdateRequest } from "../../api-types/reportApiTypes";
 import ImagePopUp from "../../components/ImagePopUp";
 import PopUp from "../../components/Pop-up";
-import StatusBadge from "./components/StatusBadge";
 import { MainHeader } from "../../layouts/headers/MainHeader";
 import { formatDotDate } from "../../utils/formatDate";
 import {
     getReportCategoryLabel,
     getReportStatusBadgeLabel,
-    getReportStatusVariant,
 } from "./utils/reportMapper";
 
 // 관리자 신고 상세 화면
