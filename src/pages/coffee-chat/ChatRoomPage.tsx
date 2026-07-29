@@ -19,6 +19,8 @@ import { formatFullDateWithDay, formatTime } from "../../utils/formatDate";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
 import { TypingArea } from "./components/TypingArea";
 
+// todo pending에 따른 말풍선 디자인
+
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
     

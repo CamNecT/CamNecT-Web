@@ -1,32 +1,46 @@
 import type { StompSubscription } from "@stomp/stompjs";
 import { useCallback, useEffect, useState } from "react";
-import type { StompChatResponse, StompMessageRequest, StompMessageResponse } from "../api-types/stompApiTypes";
+import type { StompChatResponse, StompMessageRequest, StompMessageResponse, StompPendingChatMessage } from "../api-types/stompApiTypes";
 import { isReadReceipt } from "../api-types/stompApiTypes";
 import { stompClient } from "../api/stompClient";
+import { useChatStore } from "../store/useChatStore";
 
 // 개별 채팅방 구독 및 메시지 송수신을 위한 훅
 export const useStompChat = (roomId: number) => {
     // 실시간으로 수신된 메시지들 저장 
     const [messages, setMessages] = useState<StompMessageResponse[]>([]);
 
+    const addPendingMessage = useChatStore(
+        (state) => state.addPendingMessage
+    );
+
     // 1. 메시지 발행 함수 (발신) - useCallback으로 메모이제이션 
     const sendMessage = useCallback((content: string) => {
-        // (임시) 논리 메시지 ID 생성 (서버 ACK 받기 전 UI 렌더용)
-        const clientMessageId = crypto.randomUUID();
-        const message: StompMessageRequest = { clientMessageId, roomId, content };
+        // stomp 연결 여부 검사
+        if(!stompClient.connected) return; // todo 팝업 필요?
 
-        // pending 말풍선 추가
-        // ACK오면 sent로 변경
-        // chat-errors 수신 시 failed로 변경
+        // 논리 메시지 ID 생성 (서버 ACK 받기 전 UI 렌더용)
+        const clientMessageId = crypto.randomUUID();
+
+        const requestMessage: StompMessageRequest = { clientMessageId, roomId, content };
+        const pendingMessage: StompPendingChatMessage = {
+            roomId,
+            content,
+            clientMessageId,
+            state: 'pending',
+            retryCount: 0,
+        };
+
+        addPendingMessage(pendingMessage); // pending 전역상태 말풍선에 추가 (publish 이전)
+
 
         // STOMP 연결여부 검사 후 발송 
-        if (stompClient.connected) {
-            stompClient.publish({
-                destination: `/pub/chat/message`,
-                body: JSON.stringify(message) // STOMP는 String형태로만 전송가능
-            });
-        }
-    }, [roomId]);
+        stompClient.publish({
+            destination: `/pub/chat/message`,
+            body: JSON.stringify(requestMessage) // STOMP는 String형태로만 전송가능
+        });
+        
+    }, [roomId, addPendingMessage]);
 
     // 2. 채팅방 나가기 함수 - useCallback으로 메모이제이션 (없었을때의 안읽은 채팅뱃지 개수 문제)
     const leaveChatRoom = useCallback(() => {

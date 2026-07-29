@@ -1,9 +1,10 @@
 import type { StompSubscription } from "@stomp/stompjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import type { StompMessageAck, StompSocketError } from "../api-types/stompApiTypes";
+import type { StompChatRoomListResponse, StompMessageAck, StompSocketError } from "../api-types/stompApiTypes";
 import { isStompEnabled, stompClient } from "../api/stompClient";
 import { useAuthStore } from "../store/useAuthStore";
+import { useChatStore } from "../store/useChatStore";
 
 // 로그인 / 로그아웃 시 소켓 연결/해제 (커피챗 실시간 수신을 위해)
 export const useSocketInitializer = () => {
@@ -25,6 +26,8 @@ export const useSocketInitializer = () => {
 
         // 로그아웃 체크 또는 가입 완료 전(HOME이 아닌 경우) 연결 방지
         if (!isAuthenticated || !user?.id || user?.nextStep !== 'HOME') {
+            useChatStore.getState().clearPendingMessages(); // 다른 사용자 세션으로 pending message 이전 방지
+
             if (stompClient.active) {
                 stompClient.deactivate();
             }
@@ -42,16 +45,21 @@ export const useSocketInitializer = () => {
 
             ackSubscription = stompClient.subscribe(`/user/queue/chat-acks`, (frame) => {
                 const ack = JSON.parse(frame.body) as StompMessageAck;
+                useChatStore.getState().markPendingMessageSent(ack);
                 // todo 배포 전 console.log 삭제
                 console.log("메시지 저장 성공 ACK:", ack);
             });
 
             errorSubscription = stompClient.subscribe(`/user/queue/chat-errors`, (frame) => {
                 const error = JSON.parse(frame.body) as StompSocketError;
+                useChatStore.getState().markPendingMessageFailed(error);
+
                 console.log("메시지 저장 실패 ERROR:", error);
             });
 
-            roomsSubscription = stompClient.subscribe(`/sub/user/${user?.id}/rooms`, () => {
+            roomsSubscription = stompClient.subscribe(`/sub/user/${user?.id}/rooms`, (frame) => {
+                const roomsUpdate = JSON.parse(frame.body) as StompChatRoomListResponse ;
+                
                 // 채팅방 목록 API 갱신
                 queryClient.invalidateQueries({ 
                     queryKey: ['chatRooms'], 
@@ -60,9 +68,10 @@ export const useSocketInitializer = () => {
                 });
 
                 // 안읽은 메시지 개수 API 갱신
-                queryClient.invalidateQueries({
-                    queryKey: ['chatUnreadCount']
-                });
+                queryClient.setQueryData(
+                    ['chatUnreadCount'],
+                    roomsUpdate.totalUnreadCount
+                );
             });
         }
 
