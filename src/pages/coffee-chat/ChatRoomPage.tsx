@@ -174,8 +174,16 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             senderId: String(msg.senderId),
             content: msg.message,
             createdAt: msg.sendDate,
+            readAt: msg.readAt,
+            
+            // 서버에서 수신된 메시지는 저장이 완료된 상태
+            clientMessageId: msg.clientMessageId,
+            deliveryState: 'sent',
+            // todo 재전송 기능 구현 전까지 서버 메시지의 재시도 횟수는 관리하지 않음
+            retryCount: null,
+            
+            // 읽음 여부 판단용
             isRead: msg.read,
-            readAt: msg.readAt
         }));
 
         return [...remoteMessages, ...mappedSocketMessages];

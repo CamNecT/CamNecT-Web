@@ -11,8 +11,15 @@ export const useStompChat = (roomId: number) => {
 
     // 1. 메시지 발행 함수 (발신) - useCallback으로 메모이제이션 
     const sendMessage = useCallback((content: string) => {
-        const message: StompMessageRequest = { roomId, content };
+        // (임시) 논리 메시지 ID 생성 (서버 ACK 받기 전 UI 렌더용)
+        const clientMessageId = crypto.randomUUID();
+        const message: StompMessageRequest = { clientMessageId, roomId, content };
 
+        // pending 말풍선 추가
+        // ACK오면 sent로 변경
+        // chat-errors 수신 시 failed로 변경
+
+        // STOMP 연결여부 검사 후 발송 
         if (stompClient.connected) {
             stompClient.publish({
                 destination: `/pub/chat/message`,
