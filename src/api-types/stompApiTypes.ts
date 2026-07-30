@@ -74,6 +74,7 @@ export type StompPendingState = 'pending' | 'sent' | 'failed';
 export interface StompPendingChatMessage {
     roomId: number; // 채팅방 ID
     content: string; // 최초 전송 내용
+    createdAt: string; // pending 메시지 생성 시간
     clientMessageId: string; // 최초 생성한 UUID
     serverMessageId?: number; // ACK로 확인한 서버 메시지 ID
     state: StompPendingState; // 현재 전송 상태

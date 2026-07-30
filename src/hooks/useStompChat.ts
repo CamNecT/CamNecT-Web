@@ -7,7 +7,7 @@ import { useChatStore } from "../store/useChatStore";
 
 // 개별 채팅방 구독 및 메시지 송수신을 위한 훅
 export const useStompChat = (roomId: number) => {
-    // 실시간으로 수신된 메시지들 저장 
+    // 모든 실시간 메시지들 (수신 / 발신)
     const [messages, setMessages] = useState<StompMessageResponse[]>([]);
 
     const addPendingMessage = useChatStore(
@@ -30,6 +30,7 @@ export const useStompChat = (roomId: number) => {
         const pendingMessage: StompPendingChatMessage = {
             roomId,
             content,
+            createdAt: new Date().toISOString(), // pending 메시지 생성 시간
             clientMessageId,
             state: 'pending',
             retryCount: 0,
