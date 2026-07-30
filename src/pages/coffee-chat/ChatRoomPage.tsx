@@ -18,6 +18,7 @@ import type { ChatMessage } from "../../types/coffee-chat/coffeeChatTypes";
 import { formatFullDateWithDay, formatTime } from "../../utils/formatDate";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
 import { TypingArea } from "./components/TypingArea";
+import { useChatStore } from "../../store/useChatStore";
 
 // todo pending에 따른 말풍선 디자인
 
@@ -32,6 +33,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const queryClient = useQueryClient();
 
     const { user } = useAuthStore();
+    // STOMP 연결 여부 전역 상태 
+    const isStompConnected = useChatStore(
+        (state) => state.isStompConnected
+    );
 
     const { data: chatRoomData, isLoading: isRoomLoading } = useChatRoom(roomId);
     const { mutate: endChat } = useChatRoomClose();
@@ -156,6 +161,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const isLoading = isRoomLoading;
     const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited;
+
+    // STOMP 연결 상태와 채팅방 사용 불가능 여부를 조합해 입력창 비활성화 상태 계산 
+    // todo hasFailedMessage 추가해야됨
+    const isSendDisabled = !isStompConnected || isChatUnavailable;
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const roomInfo = chatRoomData?.partner;
@@ -257,7 +266,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 메시지 전송 함수 
     const handleSendMessage = (text: string): boolean => {
         if (isChatUnavailable) return false;
-        
+
         return sendMessage(text);
     }
 
@@ -560,7 +569,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             </div>
 
             {/* 고정된 입력창 */}
-            {!isChatUnavailable && <TypingArea onSend={handleSendMessage} />}
+            {!isChatUnavailable && <TypingArea onSend={handleSendMessage} disabled = {isSendDisabled} />}
             
             <PopUp isOpen={isLoading} type="loading" />
             

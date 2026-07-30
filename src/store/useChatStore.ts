@@ -6,10 +6,12 @@ import type {
 interface ChatState {
     // 전역상태
     totalUnreadCount: number;
+    isStompConnected: boolean; // stomp 연결여부
     pendingMessages: StompPendingChatMessage[]; // 유저가 전송한 메시지 (서버 응답대기)
 
     // 전역상태 변경 함수
     setTotalUnreadCount: (count: number) => void;
+    setIsStompConnected: (isConnected: boolean) => void;
 
     addPendingMessage: (message: StompPendingChatMessage) => void;
     markPendingMessageSent: (ack: StompMessageAck) => void; // sent 처리 
@@ -20,10 +22,12 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set) => ({
     totalUnreadCount: 0,
+    isStompConnected: false,
     pendingMessages: [],
 
     // 전역상태 변경 함수
     setTotalUnreadCount: (count) => set({ totalUnreadCount: count }),
+    setIsStompConnected: (isConnected) => set({ isStompConnected: isConnected }),
 
     // 메시지 전송 직전에 pending 목록에 추가 
     addPendingMessage: (message) => {

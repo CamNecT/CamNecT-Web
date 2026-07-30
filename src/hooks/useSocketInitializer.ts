@@ -16,8 +16,22 @@ export const useSocketInitializer = () => {
         let ackSubscription: StompSubscription | null = null;
         let errorSubscription: StompSubscription | null = null;
         let roomsSubscription: StompSubscription | null = null;
+
+        // 네트워크 단절·서버 종료·deactivate로 WebSocket이 닫히면 호출
+        stompClient.onWebSocketClose = (event) => {
+            useChatStore.getState().setIsStompConnected(false);
+            
+            // todo 배포전 제거 
+            console.log(
+                'STOMP WebSocket 종료:',
+                event.code,
+                event.reason
+            );
+        };
         
         if (!isStompEnabled) {
+            useChatStore.getState().setIsStompConnected(false);
+            
             if (stompClient.active) {
                 stompClient.deactivate();
             }
@@ -26,6 +40,7 @@ export const useSocketInitializer = () => {
 
         // 로그아웃 체크 또는 가입 완료 전(HOME이 아닌 경우) 연결 방지
         if (!isAuthenticated || !user?.id || user?.nextStep !== 'HOME') {
+            useChatStore.getState().setIsStompConnected(false); // 소켓 연결 해제 상태로 업데이트
             useChatStore.getState().clearPendingMessages(); // 다른 사용자 세션으로 pending message 이전 방지
 
             if (stompClient.active) {
@@ -78,6 +93,7 @@ export const useSocketInitializer = () => {
         // socket 연결 성공 후 실행될 단 하나의 마스터 핸들러
         stompClient.onConnect = (frame) => {
             console.log("STOMP 연결 성공! 전역 구독 및 이벤트 발송");
+            useChatStore.getState().setIsStompConnected(true);
             setUpGlobalSubscriptions();
             
             // 다른 컴포넌트들에게 연결 완료 event 알림 (전역상태 사용 X -> 불필요한 리렌더링 방지) 
@@ -92,6 +108,7 @@ export const useSocketInitializer = () => {
 
         // 이미 socket이 켜져있을때 새로운 구독 실행
         if (stompClient.connected) {
+            useChatStore.getState().setIsStompConnected(true); 
             setUpGlobalSubscriptions();
         }
 
@@ -113,6 +130,9 @@ export const useSocketInitializer = () => {
         return () => {
             // 이전 effect에서 등록한 탭 활성화 감지 이벤트 제거
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            
+            // 소켓 연결 상태 해제 (전역상태)
+            useChatStore.getState().setIsStompConnected(false); 
 
             // 연결 중일 때만 UNSUBSCRIBE frame을 보내 전역 구독의 중복 등록 방지
             if (stompClient.connected) {

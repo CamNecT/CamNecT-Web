@@ -4,16 +4,17 @@ import Icon from "../../../components/Icon";
 
 interface TypingAreaProps {
     onSend: (text: string) => boolean;
+    disabled?: boolean;
 }
 
-export const TypingArea = ({ onSend }: TypingAreaProps) => {
+export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
     const [inputValue, setInputValue] = useState("");
     // const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleSend = () => {
         const content = inputValue.trim();
 
-        if (!content) return;
+        if (!content || disabled) return; // disabled -> 엔터키 전송 차단
 
         const publishStarted = onSend(content);
 
@@ -54,7 +55,12 @@ export const TypingArea = ({ onSend }: TypingAreaProps) => {
                         <button 
                             type="button" 
                             onClick={handleSend}
-                            className="absolute right-[4px] top-1/2 -translate-y-1/2 w-[36px] h-[36px] rounded-full bg-primary flex items-center justify-center active:scale-95 active:brightness-95 transition"
+                            disabled={disabled}
+                            className={`absolute right-[4px] top-1/2 -translate-y-1/2 w-[36px] h-[36px] rounded-full flex items-center justify-center transition ${
+                                disabled 
+                                    ? 'bg-gray-300 cursor-not-allowed' 
+                                    : 'bg-primary active:scale-95 active:brightness-95'
+                            }`}
                         >
                             <Icon name="send" />
                         </button>
