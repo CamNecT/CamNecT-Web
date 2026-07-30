@@ -407,7 +407,7 @@ export const ActivityWritePage = () => {
             onClick={handleCancelClick}
             className='flex items-center'
           >
-            <Icon name='cancel' />
+            <Icon name='x' />
           </button>
 
           <div className='flex items-center' style={{ gap: '13px' }}>

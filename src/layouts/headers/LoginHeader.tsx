@@ -24,7 +24,7 @@ export const LoginHeader = ({ onBack }: LoginHeaderProps) => {
           onClick={onBack}
           aria-label='뒤로 가기'
         >
-          <Icon name='back' style={{ width: 'clamp(24px, 7.467cqw, 28px)', height: 'clamp(24px, 7.467cqw, 28px)' }} />
+          <Icon name='arrow_left' style={{ width: 'clamp(24px, 7.467cqw, 28px)', height: 'clamp(24px, 7.467cqw, 28px)' }} />
         </button>
       </div>
     </header>

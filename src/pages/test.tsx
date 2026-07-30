@@ -69,14 +69,14 @@ function TestPage() {
         </div>
         <Icon name='search' />
         <Icon name='Navigation_coffee_chat_stroke' />
-        <Icon name='back' />
+        <Icon name='arrow_left' />
         <Icon name='arrow_right' />
         <Icon name='bookmark_stroke' />
         <Icon name='settings' />
         <Icon name='more_menu' />
         <Icon name='send' />
         <Icon name='writing' />
-        <Icon name='cancel' />
+        <Icon name='x' />
       </div>
 
       <div className='flex items-center gap-3'>

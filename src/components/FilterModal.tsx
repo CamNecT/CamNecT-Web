@@ -43,7 +43,7 @@ const FilterModal = ({
           onClick={onCancel}
           className='absolute right-[25px] top-[25px]'
         >
-          <Icon name='cancel' />
+          <Icon name='x' />
         </button>
 
         {/* 적용 아이콘: 드래프트가 있을 때만 노출 */}

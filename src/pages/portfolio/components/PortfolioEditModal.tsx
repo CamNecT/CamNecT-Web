@@ -935,7 +935,7 @@ export default function PortfolioEditModal({
                                                             onClick={() => removeFile(pdf.id)}
                                                             className="p-[4px]"
                                                         >
-                                                            <Icon name='cancel' className='w-[16px] h-[16px]'/>
+                                                            <Icon name='x' className='w-[16px] h-[16px]'/>
                                                         </button>
                                                     </div>
                                                 );
