@@ -93,6 +93,7 @@ export const MainHeader = ({
               style={{
                 width: 'clamp(24px, 7.467cqw, 28px)',
                 height: 'clamp(24px, 7.467cqw, 28px)',
+                color: leftIconName === 'arrow_left' ? 'var(--ColorBlack,#202023)' : undefined,
                 // 개별 아이콘 스타일을 덮어쓰고 싶을 때 leftAction.style로 전달
                 ...leftAction?.style,
               }}
@@ -127,6 +128,7 @@ export const MainHeader = ({
                     style={{
                       width: 'clamp(24px, 7.467cqw, 28px)',
                       height: 'clamp(24px, 7.467cqw, 28px)',
+                      color: action.icon === 'search' ? 'var(--ColorBlack,#202023)' : undefined,
                       // 개별 아이콘별 스타일 커스터마이징
                       ...action.style,
                     }}

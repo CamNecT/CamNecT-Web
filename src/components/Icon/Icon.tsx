@@ -15,6 +15,8 @@ type IconProps = {
   onClick?: () => void;
 };
 
+// 새 아이콘은 src/components/Icon/svg/{name}.svg로 추가한 뒤 iconMap.ts의 figmaIconNames에 등록해서
+// <Icon name="{name}" size={24} /> 형태로 사용합니다. stroke/fill 쌍은 activeIconMap에 연결하면 active prop으로 전환됩니다.
 const toCssSize = (value?: IconSize) =>
   value === undefined ? undefined : typeof value === "number" ? `${value}px` : value;
 
@@ -33,6 +35,10 @@ const resolveIconName = (name: IconName, active?: boolean) => {
 const getDefaultColor = (name: IconName, active?: boolean) => {
   if (name === "logOut") {
     return "";
+  }
+
+  if (name === "arrow_left" || name === "search") {
+    return "text-black";
   }
 
   if (active || name.endsWith("_fill")) {

@@ -6,6 +6,8 @@ const figmaSvgs = import.meta.glob("./svg/*.svg", {
 
 const getFigmaSvg = (name: string) => figmaSvgs[`./svg/${name}.svg`];
 
+// Figma export에 아직 없는 기존 아이콘은 legacyIconMap에 임시 유지합니다.
+// Figma SVG가 추가되면 ./svg에 파일을 넣고 figmaIconNames에 이름을 등록해서 사용합니다.
 const legacyIconMap = {
   back: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.5 19.5L3 12M3 12L10.5 4.5M3 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   cancel: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -87,7 +89,7 @@ export const iconMap: Record<IconName, string> = {
 } as Record<IconName, string>;
 
 export const ICON_NAMES = Object.keys(iconMap) as IconName[];
-
+//활성/비활성 아이콘 쌍이 있으면, activeIconMap에 연결합니다.
 export const activeIconMap: Partial<Record<IconName, IconName>> = {
   Navigation_home_stroke: "Navigation_home_fill",
   Navigation_Alumni_search_stroke: "Navigation_Alumni_search_fill",

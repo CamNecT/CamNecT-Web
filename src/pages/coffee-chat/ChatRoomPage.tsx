@@ -383,7 +383,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     >
                         <div className="flex items-center justify-center gap-[15px] w-full">
                             <div className="flex items-center w-[282px] h-[40px] px-[15px] py-[8px] bg-gray-150 rounded-[10px]">
-                                <Icon name="search" style={{ width: '20px', height: '20px' }} />
+                                <Icon name="search" style={{ width: '20px', height: '20px', color: 'var(--ColorBlack,#202023)' }} />
                                 <input 
                                     autoFocus
                                     type="text"
