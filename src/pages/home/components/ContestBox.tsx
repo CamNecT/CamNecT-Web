@@ -96,7 +96,7 @@ const ContestBox = ({ contests, onTitleClick, onItemClick, onMoreClick }: Contes
                     onClick={onMoreClick}
                     aria-label="공모전 더보기"
                 >
-                    <Icon name="more" className="h-[24px] w-[24px]" />
+                    <Icon name="arrow_down" className="h-[24px] w-[24px]" />
                 </PressableMotion>
             </div>
         </div>

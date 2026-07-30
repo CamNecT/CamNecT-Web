@@ -83,7 +83,7 @@ const CoffeeChatBox = ({
                                         {item.description}
                                     </span>
                                 </span>
-                                <Icon name="more" className="h-6 w-6 shrink-0" />
+                                <Icon name="arrow_down" className="h-6 w-6 shrink-0" />
                             </button>
                         </li>
                     ))}

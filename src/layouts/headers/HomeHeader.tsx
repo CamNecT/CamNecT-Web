@@ -47,7 +47,7 @@ export const HomeHeader = ({
     <header
       className={`${sticky ? 'sticky left-0 right-0 top-0 z-50' : 'relative'} mx-auto flex w-full max-w-[430px] items-center justify-between px-[25px] py-[15px] ${
         isOnPrimary
-          ? 'bg-primary text-white [&_path]:fill-white [&_path]:stroke-white'
+          ? 'bg-primary text-white'
           : 'bg-white'
       } ${className}`}
       style={{
@@ -61,7 +61,11 @@ export const HomeHeader = ({
       role='banner'
       aria-label='홈 헤더'
     >
-      <span role='img' aria-label='캠넥트 로고' className={isOnPrimary ? 'text-white' : 'text-primary'}>
+      <span
+        role='img'
+        aria-label='캠넥트 로고'
+        className={isOnPrimary ? 'text-white [&_path]:fill-white [&_path]:stroke-white' : 'text-primary'}
+      >
         <Logo />
       </span>
       <button
@@ -70,7 +74,7 @@ export const HomeHeader = ({
         className='relative inline-flex'
         onClick={() => navigate('/home/notices')}
       >
-        <Icon name='bell_notification' />
+        <Icon name='bell_notification' style={{ color: 'var(--ColorWhite,#FFF)' }} />
         {showBadge ? <Badge /> : null}
       </button>
     </header>

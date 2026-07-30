@@ -207,10 +207,10 @@ export const HomePage = () => {
                         <button
                             type="button"
                             aria-label="알림"
-                            className="relative inline-flex h-6 w-6 items-center justify-center text-white [&_path]:stroke-white"
+                            className="relative inline-flex h-6 w-6 items-center justify-center"
                             onClick={() => navigate('/home/notices')}
                         >
-                            <Icon name="alarm" />
+                            <Icon name="bell_notification" style={{ color: 'var(--ColorWhite,#FFF)' }} />
                             {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
                         </button>
                     </div>
@@ -291,7 +291,7 @@ export const HomePage = () => {
                                 <span className="flex items-center justify-center gap-[5px] text-m-14 text-gray-900 tracking-[-0.04em]">
                                     {recommendButtonText}
                                     {recommendButtonText === '더보기' ? (
-                                        <Icon name="toggleDown" />
+                                        <Icon name="arrow_down" />
                                     ) : null}
                                 </span>
                             </Card>
