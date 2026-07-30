@@ -354,6 +354,7 @@ export const CommunityPage = () => {
                     setIsSearchOpen(false);
                   }}
                   aria-label='검색 닫기'
+                  className='flex h-[28px] w-[28px] shrink-0 items-center justify-center'
                 >
                   <Icon name='search' className='h-[28px] w-[28px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
                 </button>
