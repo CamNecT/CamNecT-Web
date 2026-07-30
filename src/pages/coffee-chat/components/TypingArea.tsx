@@ -3,7 +3,7 @@ import { useState } from "react";
 import Icon from "../../../components/Icon";
 
 interface TypingAreaProps {
-    onSend: (text: string) => void;
+    onSend: (text: string) => boolean;
 }
 
 export const TypingArea = ({ onSend }: TypingAreaProps) => {
@@ -11,8 +11,14 @@ export const TypingArea = ({ onSend }: TypingAreaProps) => {
     // const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleSend = () => {
-        if (inputValue.trim()) {
-            onSend(inputValue.trim());
+        const content = inputValue.trim();
+
+        if (!content) return;
+
+        const publishStarted = onSend(content);
+
+        // 발송 성공 시 입력창 초기화
+        if (publishStarted) {
             setInputValue("");
         }
     };

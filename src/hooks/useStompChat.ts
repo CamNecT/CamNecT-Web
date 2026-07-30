@@ -15,9 +15,13 @@ export const useStompChat = (roomId: number) => {
     );
 
     // 1. 메시지 발행 함수 (발신) - useCallback으로 메모이제이션 
-    const sendMessage = useCallback((content: string) => {
+    const sendMessage = useCallback((content: string): boolean => {
         // stomp 연결 여부 검사
-        if(!stompClient.connected) return; // todo 팝업 필요?
+        if (!stompClient.connected) {
+            
+            console.log("소켓 연결 안됨 (발신함수)");
+            return false; 
+        }
 
         // 논리 메시지 ID 생성 (서버 ACK 받기 전 UI 렌더용)
         const clientMessageId = crypto.randomUUID();
@@ -33,13 +37,13 @@ export const useStompChat = (roomId: number) => {
 
         addPendingMessage(pendingMessage); // pending 전역상태 말풍선에 추가 (publish 이전)
 
-
         // STOMP 연결여부 검사 후 발송 
         stompClient.publish({
             destination: `/pub/chat/message`,
             body: JSON.stringify(requestMessage) // STOMP는 String형태로만 전송가능
         });
         
+        return true; // pending 등록 및 publish 요청 실행 완료
     }, [roomId, addPendingMessage]);
 
     // 2. 채팅방 나가기 함수 - useCallback으로 메모이제이션 (없었을때의 안읽은 채팅뱃지 개수 문제)

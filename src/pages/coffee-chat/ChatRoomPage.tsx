@@ -255,9 +255,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     }
 
     // 메시지 전송 함수 
-    const handleSendMessage = (text: string) => {
-        if (isChatUnavailable) return;
-        sendMessage(text);
+    const handleSendMessage = (text: string): boolean => {
+        if (isChatUnavailable) return false;
+        
+        return sendMessage(text);
     }
 
     // 채팅 종료 함수 
