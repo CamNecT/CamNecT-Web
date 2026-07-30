@@ -8,6 +8,7 @@ export type HomeViewModel = {
     userName: string;
     coffeeChatRequests: CoffeeChatRequest[];
     coffeeChatTotalCount: number;
+    recruitmentTotalCount: number;
     pointBalance: number;
     recommendList: RecommendBoxProps[];
     contests: Contest[];
@@ -107,6 +108,11 @@ export const mapHomeResponseToViewModel = (
             typeof data.coffeeChat?.pendingCount === "number"
                 ? data.coffeeChat.pendingCount
                 : coffeeChatRequests.length,
+        // 팀원 모집 요청 수는 홈 API의 recruitment.pendingCount를 우선 사용합니다.
+        recruitmentTotalCount:
+            typeof data.recruitment?.pendingCount === "number"
+                ? data.recruitment.pendingCount
+                : data.recruitment?.latest2?.length ?? fallback.recruitmentTotalCount,
         pointBalance:
             typeof data.point?.balance === "number" ? data.point.balance : fallback.pointBalance,
         recommendList,

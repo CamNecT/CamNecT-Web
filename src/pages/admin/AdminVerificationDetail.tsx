@@ -36,18 +36,18 @@ export const AdminVerificationDetail = () => {
         majorId: ""
     });
 
-    // 학번 유효성 검사 (9자리 숫자, 첫 4자리가 현재 년도 이하)
-    const isStudentIdValid = (id: string) => {
-        if (!/^\d{9}$/.test(id)) return false;
-        const entryYear = parseInt(id.substring(0, 4), 10);
+    // 입학년도 유효성 검사 (4자리 숫자, 현재 년도 이하) -> 학번으로 사용 
+    const isEntryYearValid = (year: string) => {
+        if (!/^\d{4}$/.test(year)) return false;
+        const entryYear = parseInt(year, 10);
         const currentYear = new Date().getFullYear();
-        return entryYear <= currentYear;
+        return entryYear <= currentYear && entryYear >= 2000;
     };
 
     // 전체 승인 폼 유효성 검사
     const isApproveFormValid = 
         approveForm.studentName.trim() !== "" && 
-        isStudentIdValid(approveForm.studentNo) && 
+        isEntryYearValid(approveForm.studentNo) && 
         approveForm.majorId !== "";
     
     // 인증서 파일 다운로드 URL 호출
@@ -202,11 +202,11 @@ export const AdminVerificationDetail = () => {
                             className="w-full [&_input]:!text-gray-900" 
                         />
                         <SingleInput 
-                            label="학번 (9자리)" 
+                            label="입학년도" 
                             name="studentNo"
                             value={approveForm.studentNo} 
                             onChange={handleApproveFormChange} 
-                            placeholder="학번 9자리 입력"
+                            placeholder="입학년도 입력"
                             className="w-full" 
                         />
                         <SingleInput 

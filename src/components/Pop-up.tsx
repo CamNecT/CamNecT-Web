@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Button from './Button';
 
 // 팝업 유형: 안내/경고/확인/로딩
 export type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
@@ -15,6 +16,7 @@ type PopUpProps = {
   leftButtonText?: string;
   rightButtonText?: string;
   buttonText?: string;
+  isActionPending?: boolean;
   onLeftClick?: () => void;
   onRightClick?: () => void;
   onClick?: () => void;
@@ -29,6 +31,7 @@ const PopUp = ({
   leftButtonText,
   rightButtonText,
   buttonText,
+  isActionPending,
   onLeftClick,
   onRightClick,
   onClick,
@@ -126,13 +129,13 @@ const PopUp = ({
     // 확인 팝업: 단일 버튼
     if (type === 'confirm' || type === 'error') {
       return (
-        <button
+        <Button
           type='button'
+          label={buttonText ?? '확인'}
+          font='b-14-hn'
           onClick={onClick}
-          className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorMain,#00C56C)] text-b-14-hn text-[var(--ColorWhite,#FFF)]'
-        >
-          <span className='whitespace-pre-wrap'>{buttonText ?? '확인'}</span>
-        </button>
+          className='h-[45px] max-w-none rounded-[10px] whitespace-pre-wrap'
+        />
       );
     }
 
@@ -168,13 +171,14 @@ const PopUp = ({
         >
           <span className='whitespace-pre-wrap'>{leftButtonText ?? '아니오'}</span>
         </button>
-        <button
+        <Button
           type='button'
+          label={rightButtonText ?? '네, 확인했습니다'}
+          font='b-14-hn'
           onClick={onRightClick}
-          className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorMain,#00C56C)] text-b-14-hn text-[var(--ColorWhite,#FFF)]'
-        >
-          <span className='whitespace-pre-wrap'>{rightButtonText ?? '네, 확인했습니다'}</span>
-        </button>
+          loading={isActionPending}
+          className='h-[45px] max-w-none rounded-[10px] whitespace-pre-wrap'
+        />
       </div>
     );
   };

@@ -352,11 +352,12 @@ export const RecruitWritePage = () => {
                 type='info' 
                 title={isEditMode ? '모집글을 수정하시겠습니까?' : '모집글을 등록하시겠습니까?'} 
                 content={isEditMode ? '수정된 내용으로 저장됩니다.' : '모집글은 등록 후 삭제할 수 없습니다.'}
-                onLeftClick={() => setIsConfirmOpen(false)} 
+                onLeftClick={() => setIsConfirmOpen(false)}
                 onRightClick={() => {
                     setIsConfirmOpen(false);
                     submitMutation.mutate();
-                }} />
+                }}
+                isActionPending={submitMutation.isPending} />
         </>
     );
 };

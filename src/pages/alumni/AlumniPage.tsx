@@ -10,7 +10,7 @@ import { useTagList } from '../../hooks/useTagList';
 import { FullLayout } from '../../layouts/FullLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { mapAlumniApiListToProfiles } from '../../utils/alumniMapper';
-import CoffeeChatButton from './components/CoffeeChatButton';
+import Button from '../../components/Button';
 import defaultImg from "../../assets/image/defaultProfileImg.png"
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -212,7 +212,11 @@ export const AlumniSearchPage = () => {
 
               {/* 3그룹: 커피챗 요청 버튼 */}
               {alumni.privacy.openToCoffeeChat && (
-                <CoffeeChatButton
+                <Button
+                  label="커피챗 요청하기"
+                  font="sb-14"
+                  type="button"
+                  className="w-full h-auto max-w-none py-[10px] rounded-[clamp(8px,2.8cqw,10px)] bg-[var(--ColorMain,#00C56C)]"
                   onClick={(event) => {
                     event.preventDefault();
                     navigate(`/alumni/profile/${alumni.id}?coffeeChat=1`);

@@ -1,4 +1,5 @@
 import type { AxiosError } from 'axios';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { acceptCommunityComment, createCommunityComment, deleteCommunityComment, deleteCommunityPost, getCommunityPostComments, postCommunityBookmark, postCommunityLike, purchaseCommunityPostAccess, updateCommunityComment } from '../../api/community';
@@ -75,6 +76,8 @@ const CommunityPostPage = () => {
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
   const [commentListFromApi, setCommentListFromApi] = useState<CommentItem[]>([]);
   const isFetchingCommentsRef = useRef(false);
+  // mutation pending 반영 전 같은 tick에서 들어오는 구매 확인 연타를 즉시 차단합니다.
+  const purchasePostAccessPendingRef = useRef(false);
   const closePopUp = () => setPopUpConfig(null);
   // 토스트 표시 제어
   const { isOpen: isToastOpen, isFading: isToastFading, openToast } = useToast();
@@ -101,6 +104,25 @@ const CommunityPostPage = () => {
   const isLockedQuestion =
     isQuestionPost && !isPostMine && accessStatus !== 'GRANTED';
   const userId = useAuthStore((state) => state.user?.id);
+  // 잠긴 질문글 포인트 구매 API를 mutation으로 관리해 요청 상태와 후처리를 한곳에 둡니다.
+  const purchasePostAccessMutation = useMutation({
+    mutationFn: (params: { postId: number | string; userId: number }) =>
+      purchaseCommunityPostAccess({
+        postId: params.postId,
+        params: { userId: params.userId },
+      }),
+    onSuccess: (response) => {
+      setMyPoints(response.data.remainingPoints);
+      setAccessStatusOverride(response.data.accessStatus);
+      refetchPost();
+      closePopUp();
+      setToastMessage('구매 성공! 이제 질문글을 열람할 수 있어요');
+      openToast();
+    },
+    onError: () => {
+      closePopUp();
+    },
+  });
 
   // 구매/접근 상태 변동 후 포인트 및 접근 상태를 초기화
   useEffect(() => {
@@ -329,6 +351,8 @@ const CommunityPostPage = () => {
 
   // 구매 확인 및 포인트 검증 플로우
   const handleOpenPurchasePopup = () => {
+    // 구매 처리 중에는 구매 팝업을 다시 열거나 동일 요청을 시작하지 않습니다.
+    if (purchasePostAccessPendingRef.current || purchasePostAccessMutation.isPending) return;
     setMyPoints(selectedPost.myPoints ?? 0);
     setPopUpConfig({
       type: 'info',
@@ -336,6 +360,8 @@ const CommunityPostPage = () => {
       content: '구매 시 포인트가 즉시 차감되며, \n결제 후에는 취소나 환불이 불가능합니다.',
       onLeftClick: closePopUp,
       onRightClick: async () => {
+        // 팝업 확인 버튼 연타로 동일 구매 요청이 중복 전송되는 것을 방지합니다.
+        if (purchasePostAccessPendingRef.current || purchasePostAccessMutation.isPending) return;
         if (!userId || !postId) return;
         const numericUserId = Number(userId);
         if (!Number.isFinite(numericUserId)) return;
@@ -359,18 +385,12 @@ const CommunityPostPage = () => {
           return;
         }
         try {
-          const response = await purchaseCommunityPostAccess({
-            postId,
-            params: { userId: numericUserId },
-          });
-          setMyPoints(response.data.remainingPoints);
-          setAccessStatusOverride(response.data.accessStatus);
-          refetchPost();
-          closePopUp();
-          setToastMessage('구매 성공! 이제 질문글을 열람할 수 있어요');
-          openToast();
+          purchasePostAccessPendingRef.current = true;
+          await purchasePostAccessMutation.mutateAsync({ postId, userId: numericUserId });
         } catch {
-          closePopUp();
+          // onError에서 팝업 상태를 정리합니다.
+        } finally {
+          purchasePostAccessPendingRef.current = false;
         }
       },
     });
@@ -751,6 +771,7 @@ const CommunityPostPage = () => {
                   textCount={textCount}
                   imageCount={imageCount}
                   onPurchaseClick={handleOpenPurchasePopup}
+                  isPurchasing={purchasePostAccessMutation.isPending}
                 />
               ) : (
                 <>
@@ -869,6 +890,7 @@ const CommunityPostPage = () => {
           onLeftClick={activePopUpConfig.onLeftClick}
           onRightClick={activePopUpConfig.onRightClick}
           onClick={activePopUpConfig.onClick ?? closePopUp}
+          isActionPending={purchasePostAccessMutation.isPending}
         />
       )}
       <Toast
