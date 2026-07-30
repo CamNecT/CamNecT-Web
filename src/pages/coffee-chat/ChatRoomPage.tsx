@@ -19,12 +19,11 @@ import { formatFullDateWithDay, formatTime } from "../../utils/formatDate";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
 import { TypingArea } from "./components/TypingArea";
 import { useChatStore } from "../../store/useChatStore";
-
-// todo pending에 따른 말풍선 디자인
+import { useShallow } from "zustand/react/shallow";
 
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
-    
+
     return <ChatRoomContent key={id} roomId={id || ""} />;
 };
 
@@ -33,9 +32,13 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const queryClient = useQueryClient();
 
     const { user } = useAuthStore();
-    // STOMP 연결 여부 전역 상태 
-    const isStompConnected = useChatStore(
-        (state) => state.isStompConnected
+
+    // STOMP 연결 여부 전역 상태 및 전송 대기 메시지 리스트
+    const {isStompConnected, pendingMessages} = useChatStore(
+        useShallow((state) => ({
+            isStompConnected: state.isStompConnected,
+            pendingMessages: state.pendingMessages,
+        }))
     );
 
     const { data: chatRoomData, isLoading: isRoomLoading } = useChatRoom(roomId);
@@ -43,14 +46,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const { mutate: exitChat } = useChatRoomExit();
 
     const {messages: socketMessages, sendMessage, leaveChatRoom} = useStompChat(Number(roomId));
-    
+
     // 검색 관련 상태
     const [isSearching, setIsSearching] = useState(false);
     const [roomSearchQuery, setRoomSearchQuery] = useState("");
 
     // 소켓 연결 상태를 추적할 로컬 상태 (지연 초기화로 최신 상태 반영)
     const [isSocketReady, setIsSocketReady] = useState(() => stompClient.connected);
-    
+
     // 메뉴 관련 상태
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isRecruitExpanded, setIsRecruitExpanded] = useState(false);
@@ -61,7 +64,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         onConfirm: () => void;
     } | null>(null);
     const [localIsTerminated, setLocalIsTerminated] = useState(false);
-    
+
     // 종료 여부 (서버 데이터 우선, 없을 시 로컬 상태 사용)
     const isTerminated = chatRoomData?.closed || localIsTerminated;
     const opponentExited = chatRoomData?.opponentExited;
@@ -73,7 +76,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         const handleOutsideAction = (event: MouseEvent | TouchEvent) => {
             const target = event.target as Node;
             const isOptionButton = (target as HTMLElement).closest('[aria-label="option"]');
-            
+
             if (menuRef.current && !menuRef.current.contains(target) && !isOptionButton) {
                 setIsMenuOpen(false);
             }
@@ -106,9 +109,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                         if (!oldData) return oldData;
                         return {
                             ...oldData, // 다른 property들은 유지
-                            messages: oldData.messages.map((msg: ChatMessage) => 
-                                Number(msg.id) <= data.lastReadMessageId 
-                                    ? { ...msg, isRead: true, readAt: data.readAt } 
+                            messages: oldData.messages.map((msg: ChatMessage) =>
+                                Number(msg.id) <= data.lastReadMessageId
+                                    ? { ...msg, isRead: true, readAt: data.readAt }
                                     : msg
                             )
                         };
@@ -150,7 +153,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
         // beforeunload : 브라우저 수준의 종료/새로고침시의 대응
         window.addEventListener('beforeunload', handleBeforeUnload);
-        
+
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         }
@@ -162,7 +165,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const isLoading = isRoomLoading;
     const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited;
 
-    // STOMP 연결 상태와 채팅방 사용 불가능 여부를 조합해 입력창 비활성화 상태 계산 
+    // STOMP 연결 상태와 채팅방 사용 불가능 여부를 조합해 입력창 비활성화 상태 계산
     // todo hasFailedMessage 추가해야됨
     const isSendDisabled = !isStompConnected || isChatUnavailable;
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -173,12 +176,12 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const myId = String(user?.id);
 
-    // 기존 채팅 내역 + 실시간 채팅 내역 병합
+    // 기존 채팅 내역 + 실시간 채팅 내역 병합 (pending 메시지)
     const allMessages = useMemo(() => {
-        // API로 받은 기존 채팅 내역 데이터들
+        // 1. API로 받은 기존 채팅 내역 데이터들
         const remoteMessages = chatRoomData?.messages || [];
 
-        // 실시간 메시지를 도메인 타입으로 변환
+        // 2. 실시간 메시지를 도메인 타입으로 변환
         const mappedSocketMessages = socketMessages.map((msg): ChatMessage => ({
             id: String(msg.messageId),
             roomId: String(msg.roomId),
@@ -186,24 +189,89 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             content: msg.message,
             createdAt: msg.sendDate,
             readAt: msg.readAt,
-            
+
             // 서버에서 수신된 메시지는 저장이 완료된 상태
             clientMessageId: msg.clientMessageId,
             deliveryState: 'sent',
             // todo 재전송 기능 구현 전까지 서버 메시지의 재시도 횟수는 관리하지 않음
             retryCount: null,
-            
+
             // 읽음 여부 판단용
             isRead: msg.read,
         }));
 
-        return [...remoteMessages, ...mappedSocketMessages];
-    }, [chatRoomData?.messages, socketMessages]);
+        const serverMessagesById = new Map<string, ChatMessage>();
+
+        remoteMessages.forEach((message) => {
+            serverMessagesById.set(message.id, message)
+        });
+
+        mappedSocketMessages.forEach((message) => {
+            serverMessagesById.set(message.id, message)
+        })
+
+        // messageId 중복제거된 서버 메시지들
+        const serverMessages = Array.from(serverMessagesById.values());
+
+        // 3. 현재 roomId의 pendingMessages들 선택
+        const currentRoomPendingMessages = pendingMessages.filter(
+            (pending) => pending.roomId === Number(roomId)
+        );
+
+        // 중복 제거: 서버에서 이미 수신되어 화면에 표시되고 있는 pending 메시지는 제외
+        const visiblePendingMessages = currentRoomPendingMessages.filter((pending) => {
+            // 1) 서버 메시지가 먼저 도착 (clientMessageId로 확인)
+            const matchedByClientMessageId = serverMessages.some(
+                (serverMessage) =>
+                (serverMessage.clientMessageId !== null &&
+                    serverMessage.clientMessageId === pending.clientMessageId)
+            );
+
+            // 2) ACK가 먼저 도착 (serverMessageId로 확인)
+            const matchedByServerMessageId =
+                // null이 아니라 undefined인 이유
+                pending.serverMessageId !== undefined &&
+                serverMessagesById.has(String(pending.serverMessageId));
+
+            // 서버 메시지가 아닌 pending 메시지만 유지
+            return !matchedByClientMessageId && !matchedByServerMessageId;
+        });
+
+        // 4. 화면에 남길 임시 메시지를 ChatMessage 타입으로 변환
+        const mappedPendingMessages = visiblePendingMessages.map(
+            (pending): ChatMessage => ({
+                id: `pending:${pending.clientMessageId}`, // clientMessageId로 임시 ID 설정
+                roomId: String(pending.roomId),
+                senderId: myId, // 내 ID로 설정
+                content: pending.content,
+                createdAt: pending.createdAt,
+                clientMessageId: pending.clientMessageId,
+                deliveryState: pending.state, // pending / sent / failed
+                retryCount: pending.retryCount,
+                errorCode: pending.errorCode,
+
+                // 읽음 여부: pending 상태이므로 당연히 false
+                isRead: false,
+                readAt: null // 아직 전송 전이거나 서버에서 응답이 안 왔으므로 null
+            })
+        );
+
+        // 5. 기존 메시지 + 실시간 메시지 + pending 메시지 모두 합치기
+        const mergedMessages = [
+            ...serverMessages,
+            ...mappedPendingMessages,
+        ]
+
+        // 6 메시지 시간 순 정렬
+        return mergedMessages.sort(
+            (a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf()
+        );
+    }, [chatRoomData?.messages, socketMessages, pendingMessages, myId, roomId]);
 
     // 검색어 필터링 적용
     const localMessages = useMemo(() => {
         if (!isSearching || !roomSearchQuery.trim()) return allMessages;
-        return allMessages.filter(msg => 
+        return allMessages.filter(msg =>
             msg.content.toLowerCase().includes(roomSearchQuery.toLowerCase())
         );
     }, [allMessages, isSearching, roomSearchQuery]);
@@ -263,14 +331,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         );
     }
 
-    // 메시지 전송 함수 
+    // 메시지 전송 함수
     const handleSendMessage = (text: string): boolean => {
         if (isChatUnavailable) return false;
 
         return sendMessage(text);
     }
 
-    // 채팅 종료 함수 
+    // 채팅 종료 함수
     const handleEndChat = () => {
         setIsMenuOpen(false);
 
@@ -293,7 +361,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 채팅방 나가기 함수 (목록에서 삭제)
     const handleExitChat = () => {
         setIsMenuOpen(false);
-        
+
         setConfirmPopUpConfig({
             title: "채팅방을 나가시겠습니까?",
             content: "방을 나가면 채팅목록에서 사라지며\n다시 복구할 수 없습니다.",
@@ -327,30 +395,30 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             <>
                                 <div className="h-[10px] bg-white" />
                                 <div className="px-[25px] pb-[10px] w-full bg-white">
-                                    <div 
-                                        className={`mx-auto flex max-w-[380px] flex-col rounded-[5px] px-[15px] py-[10px] transition-all duration-300 bg-gray-100 border border-gray-150 ${isRecruitExpanded ? 'gap-[10px]' : 'h-[40px] justify-center'}`} 
+                                    <div
+                                        className={`mx-auto flex max-w-[380px] flex-col rounded-[5px] px-[15px] py-[10px] transition-all duration-300 bg-gray-100 border border-gray-150 ${isRecruitExpanded ? 'gap-[10px]' : 'h-[40px] justify-center'}`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-[10px]">
                                                 <span className="text-m-14 tracking-[-0.56px] text-gray-650 whitespace-nowrap">
                                                     모집 공고
                                                 </span>
-                                                <span 
+                                                <span
                                                     onClick={() => requestInfo.activityId && navigate(`/activity/recruit/${requestInfo.recruitmentId}`)}
                                                     className="text-m-14 tracking-[-0.56px] text-primary underline cursor-pointer"
                                                 >
                                                     {requestInfo.recruitmentTitle}
                                                 </span>
                                             </div>
-                                            <Toggle 
-                                                toggled={isRecruitExpanded} 
-                                                onToggle={setIsRecruitExpanded} 
-                                                width={20} 
-                                                height={20} 
+                                            <Toggle
+                                                toggled={isRecruitExpanded}
+                                                onToggle={setIsRecruitExpanded}
+                                                width={20}
+                                                height={20}
                                                 strokeColor="#A1A1A1"
                                             />
                                         </div>
-                                        
+
                                         {isRecruitExpanded && (
                                             <div className="flex items-start gap-[10px]">
                                                 <span className="text-m-14 tracking-[-0.56px] text-gray-650 whitespace-nowrap">
@@ -364,17 +432,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                     </div>
                                 </div>
                             </>
-                            
+
                         )}
 
                         {/* 더보기 메뉴 드롭다운 */}
                         {isMenuOpen && (
-                            <div 
+                            <div
                                 ref={menuRef}
                                 className="absolute right-[25px] top-[55px] z-[99] min-w-[160px] bg-white rounded-[10px] shadow-[0_4px_20px_0_rgba(0,0,0,0.1)] border border-gray-150 overflow-hidden flex flex-col items-start p-[15px_20px_15px_15px] gap-[10px]"
                             >
                                 {isTerminated ? (
-                                    <button 
+                                    <button
                                         onClick={handleExitChat}
                                         className="w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors"
                                     >
@@ -382,7 +450,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                         <span className="text-r-16 text-[#FF3838] tracking-[-0.64px]">채팅 나가기</span>
                                     </button>
                                 ) : (
-                                    <button 
+                                    <button
                                         onClick={handleEndChat}
                                         className="w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors"
                                     >
@@ -394,7 +462,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                         )}
                     </div>
                 ) : (
-                    <header 
+                    <header
                         className="fixed left-0 right-0 top-0 z-50 flex items-center bg-white px-[25px] py-[10px]"
                         style={{
                             paddingTop: 'calc(10px + env(safe-area-inset-top, 0px))',
@@ -404,7 +472,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                         <div className="flex items-center justify-center gap-[15px] w-full">
                             <div className="flex items-center w-[282px] h-[40px] px-[15px] py-[8px] bg-gray-150 rounded-[10px]">
                                 <Icon name="search" style={{ width: '20px', height: '20px' }} />
-                                <input 
+                                <input
                                     autoFocus
                                     type="text"
                                     value={roomSearchQuery}
@@ -414,7 +482,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                     className="flex-1 ml-[15px] bg-transparent border-none outline-none text-gray-750 text-r-16 tracking-[-0.64px] placeholder:text-gray-400"
                                 />
                             </div>
-                            <button 
+                            <button
                                 onClick={() => {
                                     setIsSearching(false);
                                     setRoomSearchQuery("");
@@ -428,7 +496,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 )
             }
         >
-            <div 
+            <div
                 className={`flex flex-col pb-[80px] ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
                 style={{
                     paddingTop: `calc(${isTeamRecruit ? (isRecruitExpanded ? '200px' : '134px') : '74px'} + env(safe-area-inset-top, 0px))`
@@ -436,17 +504,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             >
                 {/* 상단 정보 영역 */}
                 {roomInfo && requestInfo && (
-                    <ChatRoomInfo 
-                        partner={roomInfo} 
-                        requestInfo={requestInfo} 
+                    <ChatRoomInfo
+                        partner={roomInfo}
+                        requestInfo={requestInfo}
                     />
                 )}
-                
+
                 {/* 메시지 리스트 영역 */}
                 <div className="flex flex-col mt-[40px] px-[25px]">
                     {localMessages.map((msg, index) => {
                         const isMe = String(msg.senderId) === myId;
-                        
+
                         // 날짜 구분선 표시 여부 확인
                         const showDateDivider = index === 0 || !dayjs(msg.createdAt).isSame(dayjs(localMessages[index - 1].createdAt), 'day');
 
@@ -456,9 +524,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
                         const isSameAsNext = index < localMessages.length - 1 && msg.senderId === localMessages[index + 1].senderId
                             && dayjs(msg.createdAt).isSame(dayjs(localMessages[index + 1].createdAt), 'minute');
-                        
+
                         // 말풍선 곡률: 중간 메시지는 둥글게, 마지막 메시지만 꼬리 노출
-                        const bubbleRounding = isMe 
+                        const bubbleRounding = isMe
                             ? (isSameAsNext ? 'rounded-[20px]' : 'rounded-l-[20px] rounded-br-[20px] rounded-tr-none')
                             : (isSameAsNext ? 'rounded-[20px]' : 'rounded-t-[20px] rounded-br-[20px] rounded-bl-none');
 
@@ -475,23 +543,23 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                         <div className="flex-1 h-[1px] bg-gray-150"></div>
                                     </div>
                                 )}
-                                
+
                                 <div className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} ${isSameAsPrev ? 'mt-[3px]' : 'mt-[7px]'}`}>
                                     <div className={`flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-[6px] max-w-[80%]`}>
-                                        
+
                                         {/* 상대방일 때 프로필 영역: isSameAsPrev일 때도 공간은 차지해야 함 */}
                                         {!isMe && (
                                             <div className="w-[32px] mr-[4px] flex-shrink-0 self-start">
                                                 {!isSameAsPrev && (
                                                     roomInfo?.profileImg ? (
-                                                        <img 
-                                                            src={roomInfo.profileImg} 
-                                                            alt={`${roomInfo.name} 프로필`} 
-                                                            className="w-[32px] h-[32px] rounded-full object-cover shrink-0 cursor-pointer" 
+                                                        <img
+                                                            src={roomInfo.profileImg}
+                                                            alt={`${roomInfo.name} 프로필`}
+                                                            className="w-[32px] h-[32px] rounded-full object-cover shrink-0 cursor-pointer"
                                                             onClick={() => navigate(`/alumni/profile/${roomInfo?.id}`)}
                                                         />
                                                     ) : (
-                                                        <div 
+                                                        <div
                                                             className="w-[32px] h-[32px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer"
                                                             onClick={() => navigate(`/alumni/profile/${roomInfo?.id}`)}
                                                         >
@@ -526,14 +594,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             {isMe && msg.isRead && index === lastMyMessageIndex && (
                                                 <span className="text-[11px] text-gray-400 font-medium leading-none mb-[1px]">읽음</span>
                                             )}
-                                            
-                                            {/* 3. 시간 표시: 묶음의 마지막 메시지일 때만 노출 
+
+                                            {/* 3. 시간 표시: 묶음의 마지막 메시지일 때만 노출
                                                 상대가 읽었으면 읽은 시간(readAt), 안 읽었으면 보낸 시간(createdAt) 표시
                                             */}
                                             {!isSameAsNext && (
                                                 <span className="text-r-12 text-gray-750 tracking-[-0.24px] shrink-0">
-                                                    {msg.isRead && msg.readAt 
-                                                        ? formatTime(msg.readAt) 
+                                                    {msg.isRead && msg.readAt
+                                                        ? formatTime(msg.readAt)
                                                         : formatTime(msg.createdAt)
                                                     }
                                                 </span>
@@ -570,11 +638,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
             {/* 고정된 입력창 */}
             {!isChatUnavailable && <TypingArea onSend={handleSendMessage} disabled = {isSendDisabled} />}
-            
+
             <PopUp isOpen={isLoading} type="loading" />
-            
+
             {confirmPopUpConfig && (
-                <PopUp 
+                <PopUp
                     isOpen={!!confirmPopUpConfig}
                     type="warning"
                     title={confirmPopUpConfig.title}
