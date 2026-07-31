@@ -53,7 +53,7 @@ export const TypingArea = ({ onSend }: TypingAreaProps) => {
                             onClick={handleSend}
                             className="absolute right-[4px] top-1/2 -translate-y-1/2 w-[36px] h-[36px] rounded-full bg-primary flex items-center justify-center transition"
                         >
-                            <Icon name="send" />
+                            <Icon name="send" color="var(--ColorWhite,#FFF)" />
                         </PressableMotion>
                     </div>
                 </div>
