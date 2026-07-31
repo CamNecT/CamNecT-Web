@@ -26,7 +26,8 @@ type ContestBoxProps = {
 const ContestBox = ({ contests, onTitleClick, onItemClick, onMoreClick }: ContestBoxProps) => {
     return (
         <div className="flex flex-col gap-[10px]">
-            <div
+            <PressableMotion
+                intensity="soft"
                 className="flex items-center gap-[5px]"
                 onClick={onTitleClick}
                 role="button"
@@ -46,13 +47,14 @@ const ContestBox = ({ contests, onTitleClick, onItemClick, onMoreClick }: Contes
                         strokeLinejoin="round"
                     />
                 </svg>
-            </div>
+            </PressableMotion>
 
             <div className="flex overflow-x-auto gap-[10px] pb-[4px]">
                 {/*TODO: 공모전 카드 클릭 시 공모전 상세페이지 라우터 연결*/}
                 {contests.map((contest) => (
                     <PressableMotion
                         as="button"
+                        intensity="soft"
                         type="button"
                         key={`${contest.title}-${contest.organizer}`}
                         className="flex-shrink-0 text-left"
@@ -91,6 +93,7 @@ const ContestBox = ({ contests, onTitleClick, onItemClick, onMoreClick }: Contes
                 ))}
                 <PressableMotion
                     as="button"
+                    intensity="soft"
                     type="button"
                     className="flex h-[200px] w-[40px] flex-shrink-0 items-center justify-center rounded-[10px] border border-[#ECECEC] bg-[#F5F5F5]"
                     onClick={onMoreClick}

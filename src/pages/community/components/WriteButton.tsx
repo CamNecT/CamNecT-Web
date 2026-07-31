@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/Icon';
+import PressableMotion from '../../../components/PressableMotion';
 
 type WriteButtonProps = {
   onClick?: () => void;
@@ -19,7 +20,9 @@ const WriteButton = ({ onClick, hasBottomNav = false }: WriteButtonProps) => {
   };
 
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='strong'
       type='button'
       onClick={handleClick}
       className='fixed inline-flex flex-col items-start'
@@ -38,7 +41,7 @@ const WriteButton = ({ onClick, hasBottomNav = false }: WriteButtonProps) => {
           글쓰기
         </span>
       </span>
-    </button>
+    </PressableMotion>
   );
 };
 

@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react';
+import PressableMotion from './PressableMotion';
 
 type CategoryIconProps = {
   label: string;
@@ -15,7 +16,9 @@ const CategoryIcon = ({
   ...props
 }: CategoryIconProps) => {
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='soft'
       type='button'
       onClick={onClick}
       className={`flex cursor-pointer items-center justify-center ${className}`}
@@ -34,7 +37,7 @@ const CategoryIcon = ({
       {...props}
     >
       {label}
-    </button>
+    </PressableMotion>
   );
 };
 

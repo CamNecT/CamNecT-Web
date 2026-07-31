@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
+import PressableMotion from '../../components/PressableMotion';
 import { logout } from '../../api/profileApi';
 import { useAuthStore } from '../../store/useAuthStore';
 import { isStandalone } from '../../utils/isStandalone';
@@ -87,7 +88,7 @@ export const MainHeader = ({
       <div className='flex w-[28px] items-center justify-start z-10'>
         {/* leftIcon="empty"를 받으면 좌측 아이콘 영역 자체를 숨김 */}
         {leftIcon !== 'empty' ? (
-          <button type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
+          <PressableMotion as='button' intensity='soft' type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
             <Icon
               name={leftIconName}
               style={{
@@ -98,7 +99,7 @@ export const MainHeader = ({
                 ...leftAction?.style,
               }}
             />
-          </button>
+          </PressableMotion>
         ) : null}
       </div>
       {/* 제목은 헤더 항상 가운데 정렬 */}
@@ -115,7 +116,9 @@ export const MainHeader = ({
         {/* 오른쪽 액션 아이콘들: 없으면 아무 것도 렌더하지 않음 */}
         {normalizedRightActions.length > 0
           ? normalizedRightActions.map((action, index) => (
-              <button
+              <PressableMotion
+                as='button'
+                intensity='soft'
                 key={action.icon}
                 type='button'
                 className='flex items-center justify-center'
@@ -136,7 +139,7 @@ export const MainHeader = ({
                   {/* 뱃지 조건부 렌더링 */}
                   {showBadge && index === 0 ? <Badge /> : null}
                 </span>
-              </button>
+              </PressableMotion>
             ))
           : null}
       </div>

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import PressableMotion from './PressableMotion';
 
 export type TabItem = {
   id: string;
@@ -21,7 +22,9 @@ export function Tabs({ tabs, activeId, onChange, children, className = '', isVis
       {isVisible &&
         <div className='relative flex w-full justify-evenly pb-2.5'>
         {tabs.map((tab) => (
-          <button
+          <PressableMotion
+            as='button'
+            intensity='soft'
             key={tab.id}
             type='button'
             className={`relative px-3 py-2 text-[16px] leading-[140%] tracking-[-0.64px] font-semibold transition-colors duration-150 whitespace-nowrap shrink-0 bg-transparent cursor-pointer ${
@@ -37,7 +40,7 @@ export function Tabs({ tabs, activeId, onChange, children, className = '', isVis
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
               />
             )}
-          </button>
+          </PressableMotion>
         ))}
         {/* 하단 전체 가로선 */}
           <span className='absolute left-0 right-0 bottom-0 h-[1px] bg-gray-650' />

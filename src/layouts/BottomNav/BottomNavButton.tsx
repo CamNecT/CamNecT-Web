@@ -1,6 +1,7 @@
 import Icon from "../../components/Icon";
 import type { BottomNavProps } from "./BottomNav";
 import { useUnreadCountQuery } from "../../hooks/useChatQuery";
+import PressableMotion from "../../components/PressableMotion";
 
 interface BottomNavButtonProps extends BottomNavProps {
     isActive: boolean;
@@ -15,7 +16,9 @@ export const BottomNavButton = ({ icon, activeIcon, label, isActive, handleNavCl
 
     return (
         <li className="max-w-[74px] w-full h-full flex justify-center">
-            <button
+            <PressableMotion
+                as="button"
+                intensity="soft"
                 type="button"
                 className="flex w-[74px] flex-col items-center justify-center gap-1.5 relative cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 aria-label={label}
@@ -34,7 +37,7 @@ export const BottomNavButton = ({ icon, activeIcon, label, isActive, handleNavCl
                 <span className={`relative w-fit font-medium text-[10px] tracking-[-0.40px] leading-[normal] whitespace-nowrap ${isActive ? "text-primary" : "text-gray-650"}`}>
                     {label}
                 </span>
-            </button>
+            </PressableMotion>
         </li>
     );
 }

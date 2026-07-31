@@ -77,7 +77,9 @@ function RecommendBox({
                     </div>
                 </div>
                 <div className="pt-[9px]">
-                    <button
+                    <PressableMotion
+                        as="button"
+                        intensity="soft"
                         type="button"
                         className="flex items-center justify-center"
                         onClick={(event) => {
@@ -87,7 +89,7 @@ function RecommendBox({
                         aria-label={`${name} 프로필 더보기`}
                     >
                         <Icon name="arrow_right" className="h-6 w-6" />
-                    </button>
+                    </PressableMotion>
                 </div>
             </section>
 

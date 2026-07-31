@@ -1,5 +1,6 @@
 import Badge from '../../components/Badge';
 import Icon from '../../components/Icon';
+import PressableMotion from '../../components/PressableMotion';
 import { useNavigate } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 
@@ -68,7 +69,9 @@ export const HomeHeader = ({
       >
         <Logo />
       </span>
-      <button
+      <PressableMotion
+        as='button'
+        intensity='soft'
         type='button'
         aria-label='알림'
         className='relative inline-flex'
@@ -76,7 +79,7 @@ export const HomeHeader = ({
       >
         <Icon name='bell_notification' style={{ color: 'var(--ColorWhite,#FFF)' }} />
         {showBadge ? <Badge /> : null}
-      </button>
+      </PressableMotion>
     </header>
   );
 };
