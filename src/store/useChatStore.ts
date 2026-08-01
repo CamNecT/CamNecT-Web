@@ -16,7 +16,7 @@ interface ChatState {
     addPendingMessage: (message: StompPendingChatMessage) => void;
     markPendingMessageSent: (ack: StompMessageAck) => void; // sent 처리 
     markPendingMessageFailed: (error: StompSocketError) => void; // failed 처리
-    removePendingMessage: (clientMessageId: string) => void;
+    removePendingMessage: (clientMessageId: string) => void; // 메시지가 실제 채팅방에 추가된 후 제거 
     clearPendingMessages: () => void; // 로그아웃 시 초기화
 }
 

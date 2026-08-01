@@ -4,14 +4,18 @@ import type { StompChatResponse, StompMessageRequest, StompMessageResponse, Stom
 import { isReadReceipt } from "../api-types/stompApiTypes";
 import { stompClient } from "../api/stompClient";
 import { useChatStore } from "../store/useChatStore";
+import { useShallow } from "zustand/react/shallow";
 
 // 개별 채팅방 구독 및 메시지 송수신을 위한 훅
 export const useStompChat = (roomId: number) => {
     // 모든 실시간 메시지들 (수신 / 발신)
     const [messages, setMessages] = useState<StompMessageResponse[]>([]);
 
-    const addPendingMessage = useChatStore(
-        (state) => state.addPendingMessage
+    const { addPendingMessage, removePendingMessage } = useChatStore(
+        useShallow((state) => ({
+            addPendingMessage: state.addPendingMessage,
+            removePendingMessage: state.removePendingMessage,
+        }))
     );
 
     // 1. 메시지 발행 함수 (발신) - useCallback으로 메모이제이션 
@@ -80,7 +84,28 @@ export const useStompChat = (roomId: number) => {
                     return;
                 }
 
-                setMessages((prev) => [...prev, data]); // 일반 메시지일때 병합
+                // clientMessageId가 존재할 경우 pendingMessages에서 해당 메시지 제거
+                if (data.clientMessageId) {
+                    removePendingMessage(data.clientMessageId);
+                }
+
+                // upsert (수신한 데이터로 기존 데이터 업데이트, 없으면 추가)
+                setMessages((prev) => {
+                    const isExist = prev.some((msg) => msg.messageId === data.messageId);
+
+                    // update
+                    if (isExist) {
+                        // update (기존 메시지 업데이트) 
+                        return prev.map((msg) => 
+                            msg.messageId === data.messageId 
+                                ? data 
+                                : msg
+                        );
+                    }
+                    
+                    // insert (새로운 메시지)
+                    return [...prev, data];
+                });
             });
         };
 
@@ -101,7 +126,7 @@ export const useStompChat = (roomId: number) => {
             window.removeEventListener('stomp-connected', handleStompConnected);
             leaveChatRoom();
         };
-    }, [roomId, leaveChatRoom]);
+    }, [roomId, leaveChatRoom, removePendingMessage]);
 
     return { messages, sendMessage, setMessages, leaveChatRoom };
 };
