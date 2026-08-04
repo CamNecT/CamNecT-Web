@@ -246,7 +246,7 @@ export const ExternalActivityPostPage = () => {
                         top: 'env(safe-area-inset-top, 0px)',
                     }}
                 >
-                    <button type='button' onClick={() => navigate(-1)} aria-label='뒤로 가기' className='z-10'>
+                    <button type='button' onClick={() => navigate(-1)} aria-label='뒤로 가기' className='z-10 flex items-center'>
                         <Icon name='arrow_left'/>
                     </button>
                     <span className='absolute left-1/2 -translate-x-1/2 text-center text-sb-20 text-gray-900'>대외활동</span>
@@ -257,7 +257,7 @@ export const ExternalActivityPostPage = () => {
                         isActive={isBookmarkedView} 
                         onToggle={() => handleToggleBookmark()}
                         />
-                        <button type='button' onClick={() => setIsOptionOpen(true)} aria-label='게시글 옵션 열기'>
+                        <button type='button' onClick={() => setIsOptionOpen(true)} aria-label='게시글 옵션 열기' className='flex items-center'>
                             <Icon name='more_menu'/>
                         </button>
                     </div>

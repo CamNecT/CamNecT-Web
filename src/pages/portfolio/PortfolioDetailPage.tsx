@@ -372,9 +372,9 @@ export const PortfolioDetailPage = ({
                             {/* 삭제 */}
                             <button
                                 onClick={() => {setIsMenuOpen(false); setShowDeleteWarning(true);}}
-                                className="w-full flex items-center gap-[17px] pl-[12px] py-[15px]"
+                                className="w-full flex items-center gap-[15px] pl-[10px] py-[15px]"
                             >
-                                <ModalIcon name='trash' className='w-[20px] h-[20px]'/>
+                                <ModalIcon name='trash'/>
                                 <span className="text-m-16-hn text-red">삭제</span>
                             </button>
                         </div>
