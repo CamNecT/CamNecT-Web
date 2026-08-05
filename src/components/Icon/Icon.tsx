@@ -1,5 +1,11 @@
 import type { CSSProperties, MouseEvent } from "react";
-import { activeIconMap, iconMap, inactiveIconMap, type IconName } from "./iconMap";
+import {
+  activeIconMap,
+  defaultBlackIconMap,
+  iconMap,
+  inactiveIconMap,
+  type IconName,
+} from "./iconMap";
 
 type IconSize = number | string;
 
@@ -37,7 +43,7 @@ const getDefaultColor = (name: IconName, active?: boolean) => {
     return "";
   }
 
-  if (name === "arrow_left" || name === "search") {
+  if (defaultBlackIconMap[name]) {
     return "text-black";
   }
 

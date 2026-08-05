@@ -57,7 +57,7 @@ export const ChatListPage = () => {
             title="커피챗"
             leftIcon="empty"
             rightActions={[
-              { icon: 'coffechat_request_basic', onClick: () => navigate('/chat/requests') }
+              { icon: 'coffeechat_request_basic', onClick: () => navigate('/chat/requests') }
             ]}
             showBadge={requestExists}
           />

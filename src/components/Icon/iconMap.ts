@@ -57,8 +57,8 @@ const figmaIconNames = [
   "menu",
   "more_menu",
   "filter",
-  "thums_up_stroke",
-  "thums_up_fill",
+  "thumbs_up_stroke",
+  "thumbs_up_fill",
   "writing",
   "account",
   "comment_edit",
@@ -68,7 +68,7 @@ const figmaIconNames = [
   "bookmark_stroke",
   "bookmark_fill",
   "comment",
-  "coffechat_request_basic",
+  "coffeechat_request_basic",
   "visible_off",
   "written_post",
   "settings",
@@ -78,15 +78,23 @@ const figmaIconNames = [
 
 type FigmaIconName = (typeof figmaIconNames)[number];
 type LegacyIconName = keyof typeof legacyIconMap;
-
 export type IconName = FigmaIconName | LegacyIconName;
 
+const figmaIconMap = Object.fromEntries(
+  figmaIconNames.map((name) => [name, getFigmaSvg(name)])
+) as Record<FigmaIconName, string>;
+
 export const iconMap: Record<IconName, string> = {
-  ...Object.fromEntries(figmaIconNames.map((name) => [name, getFigmaSvg(name)])),
   ...legacyIconMap,
+  ...figmaIconMap,
 } as Record<IconName, string>;
 
 export const ICON_NAMES = Object.keys(iconMap) as IconName[];
+export const defaultBlackIconMap: Partial<Record<IconName, true>> = {
+  arrow_left: true,
+  search: true,
+};
+
 //활성/비활성 아이콘 쌍이 있으면, activeIconMap에 연결합니다.
 export const activeIconMap: Partial<Record<IconName, IconName>> = {
   Navigation_home_stroke: "Navigation_home_fill",
@@ -99,7 +107,7 @@ export const activeIconMap: Partial<Record<IconName, IconName>> = {
   Navigation_report_stroke: "Navigation_report_fill",
   Navigation_activities_write_stroke: "Navigation_activities_write_fill",
   Navigation_community_stroke: "Navigation_community_fill",
-  thums_up_stroke: "thums_up_fill",
+  thumbs_up_stroke: "thumbs_up_fill",
   favorites_stroke: "favorites_fill",
   bookmark_stroke: "bookmark_fill",
 };

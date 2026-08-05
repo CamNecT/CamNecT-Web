@@ -67,7 +67,7 @@ export const CommunityPost = ({post}: CommunityPostProps) => {
 
                         <div className='flex items-center gap-[10px] text-r-12 text-gray-650'>
                             <span className='flex items-center gap-[4px]'>
-                                <Icon name='thums_up_stroke' className='h-[12px] w-[12px]' />
+                                <Icon name='thumbs_up_stroke' className='h-[12px] w-[12px]' />
                                 {post.likeCount}
                             </span>
                             <span className='flex items-center gap-[4px]'>

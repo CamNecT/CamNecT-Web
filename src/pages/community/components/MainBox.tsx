@@ -94,7 +94,7 @@ const MainBox = ({ post }: MainBoxProps) => {
         <div className='flex items-center justify-between text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
           <div className='flex items-center' style={{ gap: '10px' }}>
             <span className='flex items-center gap-[4px]'>
-              <Icon name='thums_up_stroke' className='h-[12px] w-[12px]' />
+              <Icon name='thumbs_up_stroke' className='h-[12px] w-[12px]' />
               {post.likes}
             </span>
             <span className='flex items-center gap-[4px]'>
