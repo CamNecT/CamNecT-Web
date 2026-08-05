@@ -84,7 +84,13 @@ export const useChatStore = create<ChatState>((set) => ({
         }))
     },
 
-    // 로그아웃 시 pending 메시지 초기화 
+    // 로그아웃 시 pending 메시지 초기화
     clearPendingMessages: () => set({ pendingMessages: [] }),
 
 }));
+
+// todo 전송 상태(pending/failed) UI 확인용. 개발 환경에서만 콘솔로 store 접근 허용
+// 상태 변경만 하므로 서버로 발행되는 메시지는 없음 (publish는 useStompChat에서만 호출)
+if (import.meta.env.DEV) {
+    (window as unknown as Record<string, unknown>).useChatStore = useChatStore;
+}

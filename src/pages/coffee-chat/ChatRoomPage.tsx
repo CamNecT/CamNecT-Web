@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import type { StompChatResponse } from "../../api-types/stompApiTypes";
 import { isReadReceipt } from "../../api-types/stompApiTypes";
 import { stompClient } from "../../api/stompClient";
@@ -14,12 +15,32 @@ import { useStompChat } from "../../hooks/useStompChat";
 import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useChatStore } from "../../store/useChatStore";
 import type { ChatMessage } from "../../types/coffee-chat/coffeeChatTypes";
 import { formatFullDateWithDay, formatTime } from "../../utils/formatDate";
+import { ChatDropdown } from "./components/ChatDropdown";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
 import { TypingArea } from "./components/TypingArea";
-import { useChatStore } from "../../store/useChatStore";
-import { useShallow } from "zustand/react/shallow";
+
+// todo Icon 컴포넌트가 개편 중이라 임시로 이 파일에서만 사용하는 로컬 아이콘
+// 아이콘 체계 정리되면 Icon 컴포넌트로 옮길 것
+const SendFailedIcon = ({ className }: { className?: string }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        className={className}
+        role="img"
+        aria-label="전송 실패"
+    >
+        <path
+            d="M12.573 16.4962C12.7295 16.3397 12.8077 16.1487 12.8077 15.923C12.8077 15.6973 12.7295 15.5063 12.573 15.35C12.4167 15.1937 12.2257 15.1155 12 15.1155C11.7743 15.1155 11.5833 15.1937 11.427 15.35C11.2705 15.5063 11.1923 15.6973 11.1923 15.923C11.1923 16.1487 11.2705 16.3397 11.427 16.4962C11.5833 16.6526 11.7743 16.7308 12 16.7308C12.2257 16.7308 12.4167 16.6526 12.573 16.4962ZM12.5345 12.8613C12.6782 12.7176 12.75 12.5395 12.75 12.327V7.827C12.75 7.6145 12.6781 7.43633 12.5343 7.2925C12.3904 7.14883 12.2122 7.077 11.9998 7.077C11.7871 7.077 11.609 7.14883 11.4655 7.2925C11.3218 7.43633 11.25 7.6145 11.25 7.827V12.327C11.25 12.5395 11.3219 12.7176 11.4658 12.8613C11.6096 13.0051 11.7878 13.077 12.0003 13.077C12.2129 13.077 12.391 13.0051 12.5345 12.8613ZM12.0017 21.5C10.6877 21.5 9.45267 21.2507 8.2965 20.752C7.14033 20.2533 6.13467 19.5766 5.2795 18.7218C4.42433 17.8669 3.74725 16.8617 3.24825 15.706C2.74942 14.5503 2.5 13.3156 2.5 12.0017C2.5 10.6877 2.74933 9.45267 3.248 8.2965C3.74667 7.14033 4.42342 6.13467 5.27825 5.2795C6.13308 4.42433 7.13833 3.74725 8.294 3.24825C9.44967 2.74942 10.6844 2.5 11.9983 2.5C13.3123 2.5 14.5473 2.74933 15.7035 3.248C16.8597 3.74667 17.8653 4.42342 18.7205 5.27825C19.5757 6.13308 20.2528 7.13833 20.7518 8.294C21.2506 9.44967 21.5 10.6844 21.5 11.9983C21.5 13.3123 21.2507 14.5473 20.752 15.7035C20.2533 16.8597 19.5766 17.8653 18.7218 18.7205C17.8669 19.5757 16.8617 20.2528 15.706 20.7518C14.5503 21.2506 13.3156 21.5 12.0017 21.5Z"
+            fill="#FF3838"
+        />
+    </svg>
+);
 
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -69,28 +90,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const isTerminated = chatRoomData?.closed || localIsTerminated;
     const opponentExited = chatRoomData?.opponentExited;
 
-    const menuRef = useRef<HTMLDivElement>(null);
+    // 전송 실패 메시지의 드롭다운: 열려 있는 메시지의 id (없으면 null)
+    const [openFailedMenuId, setOpenFailedMenuId] = useState<string | null>(null);
 
-    // 메뉴 바깥 클릭/터치 시 닫기
-    useEffect(() => {
-        const handleOutsideAction = (event: MouseEvent | TouchEvent) => {
-            const target = event.target as Node;
-            const isOptionButton = (target as HTMLElement).closest('[aria-label="option"]');
-
-            if (menuRef.current && !menuRef.current.contains(target) && !isOptionButton) {
-                setIsMenuOpen(false);
-            }
-        };
-
-        if (isMenuOpen) {
-            document.addEventListener("mousedown", handleOutsideAction);
-            document.addEventListener("touchstart", handleOutsideAction);
-        }
-        return () => {
-            document.removeEventListener("mousedown", handleOutsideAction);
-            document.removeEventListener("touchstart", handleOutsideAction);
-        };
-    }, [isMenuOpen]);
+    // 메뉴 바깥 클릭/터치 감지 로직은 ChatDropdown 컴포넌트로 이동함 (menuRef, useEffect 제거)
 
     // 실시간 읽음 처리 (Read Receipt) 감시 및 캐시 동기화
     useEffect(() => {
@@ -435,31 +438,31 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
                         )}
 
-                        {/* 더보기 메뉴 드롭다운 */}
-                        {isMenuOpen && (
-                            <div
-                                ref={menuRef}
-                                className="absolute right-[25px] top-[55px] z-[99] min-w-[160px] bg-white rounded-[10px] shadow-[0_4px_20px_0_rgba(0,0,0,0.1)] border border-gray-150 overflow-hidden flex flex-col items-start p-[15px_20px_15px_15px] gap-[10px]"
-                            >
-                                {isTerminated ? (
-                                    <button
-                                        onClick={handleExitChat}
-                                        className="w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors"
-                                    >
-                                        <Icon name="logOut" className="w-[24px] h-[24px]" />
-                                        <span className="text-r-16 text-[#FF3838] tracking-[-0.64px]">채팅 나가기</span>
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleEndChat}
-                                        className="w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors"
-                                    >
-                                        <Icon name="logOut" className="w-[24px] h-[24px]" />
-                                        <span className="text-r-16 text-[#FF3838] tracking-[-0.64px]">채팅 종료하기</span>
-                                    </button>
-                                )}
-                            </div>
-                        )}
+                        {/* 더보기 메뉴 드롭다운
+                            기존 인라인 마크업 → ChatDropdown 컴포넌트로 교체.
+                            위치/셀렉터/스타일 값은 기존과 동일하고, 항목만 items 배열로 옮김 */}
+                        <ChatDropdown
+                            isOpen={isMenuOpen}
+                            onClose={() => setIsMenuOpen(false)}
+                            positionClassName="right-[25px] top-[55px]"
+                            triggerSelector='[aria-label="option"]'
+                            hasDivider={false}
+                            items={[
+                                isTerminated
+                                    ? {
+                                        label: "채팅 나가기",
+                                        icon: <Icon name="logOut" className="w-[24px] h-[24px]" />,
+                                        labelClassName: "text-r-16 tracking-[-0.64px] text-[#FF3838]",
+                                        onClick: handleExitChat,
+                                    }
+                                    : {
+                                        label: "채팅 종료하기",
+                                        icon: <Icon name="logOut" className="w-[24px] h-[24px]" />,
+                                        labelClassName: "text-r-16 tracking-[-0.64px] text-[#FF3838]",
+                                        onClick: handleEndChat,
+                                    },
+                            ]}
+                        />
                     </div>
                 ) : (
                     <header
@@ -529,7 +532,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                         const bubbleRounding = isMe
                             ? (isSameAsNext ? 'rounded-[20px]' : 'rounded-l-[20px] rounded-br-[20px] rounded-tr-none')
                             : (isSameAsNext ? 'rounded-[20px]' : 'rounded-t-[20px] rounded-br-[20px] rounded-bl-none');
-
+                        
+                        const isPending = msg.deliveryState === 'pending'; 
+                        const isFailed = msg.deliveryState === 'failed'; 
+                    
                         return (
                             <React.Fragment key={msg.id}>
                                 {
@@ -576,37 +582,92 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             {!isMe && !isSameAsPrev && (
                                                 <span className="text-r-12 text-gray-750 tracking-[-0.24px] ml-[2px] ">{roomInfo?.name}</span>
                                             )}
-                                            <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding} ${
-                                                isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'
-                                            }`}>
-                                                {msg.content}
+
+                                            {/* 채팅 메시지 */}
+                                            <div className="flex items-center gap-[7px] relative">
+                                                <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
+                                                    ${isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'}
+                                                    ${isPending ? 'opacity-40' : ''}`}>
+                                                        {msg.content}
+                                                </div>
+
+                                                {/* 전송 실패 메시지 */}
+                                                {isMe && isFailed && (
+                                                    <div className="shrink-0 flex items-center justify-center">
+                                                        <button
+                                                            type="button"
+                                                            data-dropdown-trigger
+                                                            aria-label="전송 실패 메뉴 열기"
+                                                            className="flex items-center justify-center"
+                                                            onClick={() => setOpenFailedMenuId(openFailedMenuId === msg.id ? null : msg.id)}
+                                                        >
+                                                            <SendFailedIcon className="w-[24px] h-[24px]" />
+                                                        </button>
+
+                                                        {/* 아이콘 클릭시 메뉴 드롭다운 */}
+                                                        <ChatDropdown
+                                                            isOpen={openFailedMenuId === msg.id}
+                                                            onClose={() => setOpenFailedMenuId(null)}
+                                                            positionClassName="bottom-full right-0 mb-[7px]"
+                                                            triggerSelector="[data-dropdown-trigger]"
+                                                            hasDivider={true}
+                                                            items={[
+                                                                {
+                                                                    // todo 재전송 기능 구현 후 핸들러 연결
+                                                                    label: "재전송",
+                                                                    labelClassName: "text-m-16 tracking-[-0.4px] text-gray-750",
+                                                                    onClick: () => setOpenFailedMenuId(null),
+                                                                },
+                                                                {
+                                                                    // todo 메시지 삭제 기능 구현 후 핸들러 연결
+                                                                    label: "메시지 삭제",
+                                                                    labelClassName: "text-m-16 tracking-[-0.4px] text-red",
+                                                                    onClick: () => setOpenFailedMenuId(null),
+                                                                },
+                                                            ]}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
+
                                         </div>
 
-                                        {/* todo 시간 및 읽음 상태 표시 영역 */}
-                                        <div className={`flex flex-col justify-end gap-[2px] mb-[2px] ${isMe ? 'items-end' : 'items-start'}`}>
-                                            {/* 1. 내 메시지이고 안 읽었을 때 & "내가 보낸 전체 메시지 중 마지막"일 때만 '1' 표시 */}
-                                            {isMe && !msg.isRead && index === lastMyMessageIndex && (
-                                                <span className="text-[11px] text-primary font-bold leading-none mb-[1px]">1</span>
-                                            )}
+                                        {/* 
+                                            todo 시간 및 읽음 상태 표시 영역 (deliveryState = sent)
+                                        */}
+                                        {msg.deliveryState === 'sent' && (
+                                            <div className={`flex flex-col justify-end gap-[2px] mb-[2px] ${isMe ? 'items-end' : 'items-start'}`}>
+                                                {/* 1. 내 메시지이고 안 읽었을 때 & "내가 보낸 전체 메시지 중 마지막"일 때만 '1' 표시 */}
+                                                {isMe && !msg.isRead && index === lastMyMessageIndex && (
+                                                    <span className="text-[11px] text-primary font-bold leading-none mb-[1px]">1</span>
+                                                )}
 
-                                            {/* 2. 내 메시지이고 읽었을 때 & "내가 보낸 전체 메시지 중 마지막"일 때만 '읽음' 표시 */}
-                                            {isMe && msg.isRead && index === lastMyMessageIndex && (
-                                                <span className="text-[11px] text-gray-400 font-medium leading-none mb-[1px]">읽음</span>
-                                            )}
+                                                {/* 2. 내 메시지이고 읽었을 때 & "내가 보낸 전체 메시지 중 마지막"일 때만 '읽음' 표시 */}
+                                                {isMe && msg.isRead && index === lastMyMessageIndex && (
+                                                    <span className="text-[11px] text-gray-400 font-medium leading-none mb-[1px]">읽음</span>
+                                                )}
 
-                                            {/* 3. 시간 표시: 묶음의 마지막 메시지일 때만 노출
-                                                상대가 읽었으면 읽은 시간(readAt), 안 읽었으면 보낸 시간(createdAt) 표시
-                                            */}
-                                            {!isSameAsNext && (
-                                                <span className="text-r-12 text-gray-750 tracking-[-0.24px] shrink-0">
-                                                    {msg.isRead && msg.readAt
-                                                        ? formatTime(msg.readAt)
-                                                        : formatTime(msg.createdAt)
-                                                    }
-                                                </span>
-                                            )}
-                                        </div>
+                                                {/* 3. 시간 표시: 묶음의 마지막 메시지일 때만 노출
+                                                    상대가 읽었으면 읽은 시간(readAt), 안 읽었으면 보낸 시간(createdAt) 표시
+                                                */}
+                                                {!isSameAsNext && (
+                                                    <span className="text-r-12 text-gray-750 tracking-[-0.24px] shrink-0">
+                                                        {msg.isRead && msg.readAt
+                                                            ? formatTime(msg.readAt)
+                                                            : formatTime(msg.createdAt)
+                                                        }
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {isPending && (
+                                            <span className="text-r-12 text-gray-750 tracking-[-0.24px] 
+                                            shrink-0 mr-[1px] inline-flex items-center">
+                                                <span>전송 중</span>
+                                                <span className="inline-block w-[9px] text-left animate-loading-dots" />
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </React.Fragment>
