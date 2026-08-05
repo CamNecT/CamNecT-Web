@@ -395,4 +395,22 @@ body.hide-scrollbar::-webkit-scrollbar {
         text-overflow: ellipsis;
         white-space: normal;
     }
+
+    /* 
+        [개념 및 성능 최적화 노트]
+        Pure CSS 기반 로딩 점 애니메이션 (. -> .. -> ...)
+        - React state 및 setInterval 사용 시 발생하는 0.5초 주기의 컴포넌트 전체 리렌더링 방지
+        - JavaScript(CPU) 연산 없이 브라우저 GPU 기반으로 자체 동작하여 메인 스레드 부하 제로화
+        - ::after 가상 요소를 활용하여 HTML 구조 변경 없이 텍스트 동적 렌더링
+    */
+    .animate-loading-dots::after {
+        content: '.';
+        animation: loadingDots 1.5s infinite steps(1);
+    }
+}
+
+@keyframes loadingDots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
 }
