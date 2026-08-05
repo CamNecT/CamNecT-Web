@@ -71,18 +71,22 @@ export function Tabs({
       return;
     }
 
-    updateIndicator();
+    const animationFrameId = window.requestAnimationFrame(updateIndicator);
 
     const container = containerRef.current;
 
     if (!container) {
+      window.cancelAnimationFrame(animationFrameId);
       return;
     }
 
     const observer = new ResizeObserver(updateIndicator);
     observer.observe(container);
 
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
+    };
   }, [isVisible, tabs, updateIndicator]);
 
   return (
