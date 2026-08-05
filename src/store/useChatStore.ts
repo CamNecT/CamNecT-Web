@@ -3,6 +3,12 @@ import type {
     StompPendingChatMessage, StompMessageAck, StompSocketError
 } from '../api-types/stompApiTypes';
 
+const PENDING_CONFIRM_TIMEOUT_MS = 15_000; // timeout 판별 기준
+const PENDING_TIMEOUT_CHECK_INTERVAL_MS = 1_000; // timeout 검사주기
+
+// interval 중복 생성 방지
+let pendingTimeoutIntervalId: ReturnType<typeof setInterval> | null = null;
+
 interface ChatState {
     // 전역상태
     totalUnreadCount: number;
@@ -15,6 +21,7 @@ interface ChatState {
 
     addPendingMessage: (message: StompPendingChatMessage) => void;
     markPendingMessageSent: (ack: StompMessageAck) => void; // sent 처리 
+    decideMarkExpiredPendingMessages: (now: number) => void; // timeout 처리
     markPendingMessageFailed: (error: StompSocketError) => void; // failed 처리
     removePendingMessage: (clientMessageId: string) => void; // 메시지가 실제 채팅방에 추가된 후 제거 
     clearPendingMessages: () => void; // 로그아웃 시 초기화
@@ -49,11 +56,44 @@ export const useChatStore = create<ChatState>((set) => ({
                     ? {
                         ...pending,
                         serverMessageId: ack.messageId,
-                        state: 'sent'
+                        state: 'sent',
+                        failureKind: undefined,
+                        errorCode: undefined,
                     }
                     : pending
             ),
         }));
+    },
+
+    // timeout여부 검사 후 timeout으로 변경
+    decideMarkExpiredPendingMessages: (now) => {
+        set((state) => {
+            let hasChanged = false; // 리렌더링 방지용 (pendingMessages 변화체크)
+
+            const pendingMessages = state.pendingMessages.map((pending) => {
+
+                if (pending.state !== 'pending') {
+                    return pending;
+                }
+
+                const attemptedAt = new Date(pending.lastAttemptAt).getTime();
+                const isExpired = now - attemptedAt >= PENDING_CONFIRM_TIMEOUT_MS;
+
+                if (!isExpired) {
+                    return pending;
+                }
+
+                hasChanged = true;                    
+                return {
+                    ...pending,
+                    state: 'failed' as const,
+                    failureKind: 'timeout' as const
+                };
+            });
+
+            // timeout 없을 시 기존 state 반환
+            return hasChanged ? { pendingMessages } : state;
+        });
     },
 
     // 오류 시 삭제하지 않고 failed로 변경 
@@ -69,7 +109,7 @@ export const useChatStore = create<ChatState>((set) => ({
         set((state) => ({
             pendingMessages: state.pendingMessages.map(
                 (pending) => pending.clientMessageId === error.clientMessageId
-                    ? { ...pending, state: 'failed', errorCode: error.code}
+                    ? { ...pending, state: 'failed', failureKind: 'server', errorCode: error.code}
                     : pending
             ),
         }));
@@ -88,6 +128,29 @@ export const useChatStore = create<ChatState>((set) => ({
     clearPendingMessages: () => set({ pendingMessages: [] }),
 
 }));
+
+// 전역 타이머 실행
+export const startPendingMessageTimeoutWatcher = () => {
+    if (pendingTimeoutIntervalId !== null) {
+        return; // 이미 실행 중
+    }
+
+    pendingTimeoutIntervalId = setInterval(() => {
+        useChatStore
+            .getState()
+            .decideMarkExpiredPendingMessages(Date.now());
+        
+    }, PENDING_TIMEOUT_CHECK_INTERVAL_MS);
+};
+
+export const stopPendingMessageTimeoutWatcher = () => {
+    if (pendingTimeoutIntervalId === null) {
+        return; // 실행 중 아님
+    }
+
+    clearInterval(pendingTimeoutIntervalId);
+    pendingTimeoutIntervalId = null;
+};
 
 // todo 전송 상태(pending/failed) UI 확인용. 개발 환경에서만 콘솔로 store 접근 허용
 // 상태 변경만 하므로 서버로 발행되는 메시지는 없음 (publish는 useStompChat에서만 호출)

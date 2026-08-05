@@ -18,9 +18,9 @@ const brokerURL = import.meta.env.DEV
 export const stompClient = new Client({
     brokerURL, // WebSocket pipeline 연결주소
     // 연결 상태를 로그로 확인
-    debug: (str) => {
-        console.log('STOMP Debug:', str);
-    },
+    // debug: (str) => {
+    //     console.log('STOMP Debug:', str);
+    // },
     reconnectDelay: 2000, 
     // 4초간격으로 서버와 연결확인 
     heartbeatIncoming: 4000,

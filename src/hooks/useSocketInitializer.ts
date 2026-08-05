@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import type { StompChatRoomListResponse, StompMessageAck, StompSocketError } from "../api-types/stompApiTypes";
 import { isStompEnabled, stompClient } from "../api/stompClient";
 import { useAuthStore } from "../store/useAuthStore";
-import { useChatStore } from "../store/useChatStore";
+import { startPendingMessageTimeoutWatcher, stopPendingMessageTimeoutWatcher, useChatStore } from "../store/useChatStore";
 
 // 로그인 / 로그아웃 시 소켓 연결/해제 (커피챗 실시간 수신을 위해)
 export const useSocketInitializer = () => {
@@ -31,7 +31,8 @@ export const useSocketInitializer = () => {
         
         if (!isStompEnabled) {
             useChatStore.getState().setIsStompConnected(false);
-            
+            stopPendingMessageTimeoutWatcher();
+
             if (stompClient.active) {
                 stompClient.deactivate();
             }
@@ -42,12 +43,15 @@ export const useSocketInitializer = () => {
         if (!isAuthenticated || !user?.id || user?.nextStep !== 'HOME') {
             useChatStore.getState().setIsStompConnected(false); // 소켓 연결 해제 상태로 업데이트
             useChatStore.getState().clearPendingMessages(); // 다른 사용자 세션으로 pending message 이전 방지
+            stopPendingMessageTimeoutWatcher();
 
             if (stompClient.active) {
                 stompClient.deactivate();
             }
             return;
         }
+
+        startPendingMessageTimeoutWatcher();
         
         // accessToken 주입
         stompClient.connectHeaders = {
@@ -133,6 +137,7 @@ export const useSocketInitializer = () => {
             
             // 소켓 연결 상태 해제 (전역상태)
             useChatStore.getState().setIsStompConnected(false); 
+            stopPendingMessageTimeoutWatcher();
 
             // 연결 중일 때만 UNSUBSCRIBE frame을 보내 전역 구독의 중복 등록 방지
             if (stompClient.connected) {

@@ -29,12 +29,14 @@ export const useStompChat = (roomId: number) => {
 
         // 논리 메시지 ID 생성 (서버 ACK 받기 전 UI 렌더용)
         const clientMessageId = crypto.randomUUID();
+        const attemptedAt = new Date().toISOString(); // pending 메시지 생성 시간
 
         const requestMessage: StompMessageRequest = { clientMessageId, roomId, content };
         const pendingMessage: StompPendingChatMessage = {
             roomId,
             content,
-            createdAt: new Date().toISOString(), // pending 메시지 생성 시간
+            createdAt: attemptedAt,
+            lastAttemptAt: attemptedAt,
             clientMessageId,
             state: 'pending',
             retryCount: 0,
