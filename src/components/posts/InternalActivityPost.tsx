@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ActivityPost } from '../../types/activityPage/activityPageTypes';
 import { formatTimeAgo } from '../../utils/formatDate';
 import replaceImg from "../../assets/image/replaceImg.png"
+import PressableMotion from '../PressableMotion';
 
 const REPLACE_IMAGE = replaceImg;
 
@@ -18,7 +19,9 @@ const InternalActivityPost = ({
   const thumbnailUrl = post.thumbnailUrl ?? post.postImages?.[0];
 
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='soft'
       className='flex flex-col gap-[10px] px-[25px] py-[20px] border-b border-gray-150 text-left w-full'
       onClick={() => navigate(`/activity/internal/${post.id}`)}
     >
@@ -86,7 +89,7 @@ const InternalActivityPost = ({
           />
         )}
       </div>
-    </button>
+    </PressableMotion>
   );
 };
 

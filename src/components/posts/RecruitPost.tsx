@@ -1,11 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { formatTimeAgo } from "../../utils/formatDate";
 import type { TeamRecruitPost } from '../../types/activityPage/activityPageTypes';
+import PressableMotion from "../PressableMotion";
 
 export const RecruitPost = (post: TeamRecruitPost) => {
     const navigate = useNavigate();
     return (
-        <button
+        <PressableMotion
+            as="button"
+            intensity="soft"
             className="flex flex-col items-start gap-[10px] px-[25px] py-[20px] border-b border-gray-150 text-left"
             onClick={() => navigate(`/activity/recruit/${post.id}`)}
         >
@@ -45,6 +48,6 @@ export const RecruitPost = (post: TeamRecruitPost) => {
                 <span>|</span>
                 <span>{formatTimeAgo(post.createdAt)}</span>
             </div>
-        </button>
+        </PressableMotion>
     );
 };

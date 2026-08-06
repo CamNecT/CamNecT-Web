@@ -1,4 +1,5 @@
 import type { ChatRoomListItem } from "../../../types/coffee-chat/coffeeChatTypes";
+import PressableMotion from "../../../components/PressableMotion";
 import { formatDate } from "../../../utils/formatDate";
 import { formatStudentLabel } from "../../../utils/formatStudent";
 
@@ -21,9 +22,11 @@ export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = 
         <li 
             className={`border-b border-gray-150 py-[15px] ${isFirstPaddingDisabled ? 'first:pt-0' : ''} ${isClosed ? 'bg-gray-150' : ''}`}
         >
-            <button
+            <PressableMotion
+                as="button"
+                intensity="soft"
                 onClick={onClick}
-                className="flex gap-[12px] px-[25px] w-full text-left cursor-pointer active:bg-gray-100 transition-colors"
+                className="flex gap-[12px] px-[25px] w-full text-left cursor-pointer transition-colors"
             >
                 {/* 프로필 이미지 영역 */}
                 <div className={`shrink-0 ${isClosed ? 'grayscale opacity-50' : ''}`}>
@@ -69,7 +72,7 @@ export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = 
                         )}
                     </div>
                 </div>
-            </button>
+            </PressableMotion>
         </li>
     );
 };

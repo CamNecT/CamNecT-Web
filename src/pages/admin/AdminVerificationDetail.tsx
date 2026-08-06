@@ -124,7 +124,7 @@ export const AdminVerificationDetail = () => {
                     <div className="flex items-center gap-[15px]">
                         {/* 아바타 아이콘 */}
                         <div className="w-[70px] h-[70px] rounded-full bg-gray-150 flex items-center justify-center overflow-hidden">
-                        <Icon name="me" className="w-[42px] h-[42px] text-gray-400" />
+                        <Icon name="Navigation_mypage_stroke" className="w-[42px] h-[42px] text-gray-400" />
                     </div>
                     
                     {/* 유저 정보 */}

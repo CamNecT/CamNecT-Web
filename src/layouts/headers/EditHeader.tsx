@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import Icon, {type IconName} from '../../components/Icon';
+import PressableMotion from '../../components/PressableMotion';
 import { useNavigate } from 'react-router-dom';
 import { isStandalone } from '../../utils/isStandalone';
 
@@ -33,21 +34,23 @@ export const EditHeader = ({ title, rightElement, leftAction }: EditHeaderProps)
     >
       {/* 왼쪽 슬롯: 취소 아이콘 */}
       <div className='flex w-[28px] items-center justify-start z-10'>
-        <button
+        <PressableMotion
+          as="button"
+          intensity="soft"
           type="button"
           onClick={handleLeftClick}
           className="flex items-center justify-center"
           aria-label={leftLabel}
         >
           <Icon
-            name={leftAction?.icon ?? "cancel"}
+            name={leftAction?.icon ?? "x"}
             style={{
               width: "clamp(24px, 7.467cqw, 28px)",
               height: "clamp(24px, 7.467cqw, 28px)",
               ...leftAction?.style,
             }}
           />
-        </button>
+        </PressableMotion>
       </div>
       {/* 중앙 타이틀: 좌우 요소와 무관하게 정중앙 유지 */}
       <div

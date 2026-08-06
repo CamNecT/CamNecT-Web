@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { twMerge } from 'tailwind-merge';
 import { BUTTON_FONT, type ButtonFont } from '../constants/buttonFont';
+import PressableMotion from './PressableMotion';
 
 type ButtonProps = {
   label: string;
@@ -21,7 +22,9 @@ const Button = ({ label, font = 'sb-18', className = '', disabled, loading = fal
   const isDisabled = disabled || loading;
 
   return (
-    <button
+    <PressableMotion
+      as="button"
+      intensity="strong"
       disabled={isDisabled}
       className={`${twMerge(
         `max-w-[325px] w-full h-[50px] rounded-[25px] flex items-center justify-center rotate-0 transition
@@ -34,7 +37,7 @@ const Button = ({ label, font = 'sb-18', className = '', disabled, loading = fal
       {...props}
     >
       {label}
-    </button>
+    </PressableMotion>
   );
 };
 

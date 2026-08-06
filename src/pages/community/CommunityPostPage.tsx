@@ -275,7 +275,7 @@ const CommunityPostPage = () => {
               ariaLabel: '이전 페이지로 이동',
             }}
             rightActions={[
-              { icon: 'option', onClick: () => {}, ariaLabel: '게시글 옵션 열기' },
+              { icon: 'more_menu', onClick: () => {}, ariaLabel: '게시글 옵션 열기' },
             ]}
           />
         }
@@ -637,7 +637,7 @@ const CommunityPostPage = () => {
             ariaLabel: '이전 페이지로 이동',
           }}
           rightActions={[
-            { icon: 'option', onClick: handleOpenPostOptions, ariaLabel: '게시글 옵션 열기' },
+            { icon: 'more_menu', onClick: handleOpenPostOptions, ariaLabel: '게시글 옵션 열기' },
           ]}
         />
       }
@@ -672,7 +672,7 @@ const CommunityPostPage = () => {
                 <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
                   <div className='flex items-center gap-[5px]'>
                     <div className='flex items-center gap-[3px]'>
-                      <Icon name='like' className='h-[14px] w-[14px]' />
+                      <Icon name='thumbs_up_stroke' className='h-[14px] w-[14px]' />
                       <span>{likeCount}</span>
                     </div>
                     

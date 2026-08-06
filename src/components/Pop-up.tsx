@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Button from './Button';
+import PressableMotion from './PressableMotion';
 
 // 팝업 유형: 안내/경고/확인/로딩
 export type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
@@ -143,20 +144,24 @@ const PopUp = ({
     if (type === 'warning') {
       return (
         <div className='flex w-full gap-[10px]'>
-          <button
+          <PressableMotion
+            as='button'
+            intensity='strong'
             type='button'
             onClick={onLeftClick}
             className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--Color_Red2,#FFEFEF)] text-b-14-hn text-[var(--ColorRed,#FF3838)]'
           >
             <span className='whitespace-pre-wrap'>{leftButtonText ?? '삭제하기'}</span>
-          </button>
-          <button
+          </PressableMotion>
+          <PressableMotion
+            as='button'
+            intensity='strong'
             type='button'
             onClick={onRightClick}
             className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorGray1,#ECECEC)] text-sb-14 text-[var(--ColorGray2,#A1A1A1)]'
           >
             <span className='whitespace-pre-wrap'>아니오</span>
-          </button>
+          </PressableMotion>
         </div>
       );
     }
@@ -164,13 +169,15 @@ const PopUp = ({
     // 안내 팝업: 기본 좌/우 버튼
     return (
       <div className='flex w-full gap-[10px]'>
-        <button
+        <PressableMotion
+          as='button'
+          intensity='strong'
           type='button'
           onClick={onLeftClick}
           className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorSub2,#F2FCF8)] text-sb-14 text-[var(--ColorMain,#00C56C)]'
         >
           <span className='whitespace-pre-wrap'>{leftButtonText ?? '아니오'}</span>
-        </button>
+        </PressableMotion>
         <Button
           type='button'
           label={rightButtonText ?? '네, 확인했습니다'}

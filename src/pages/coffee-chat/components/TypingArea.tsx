@@ -1,6 +1,7 @@
 import { useState } from "react";
 // import BottomSheetModal from "../../../components/BottomSheetModal/BottomSheetModal";
 import Icon from "../../../components/Icon";
+import PressableMotion from "../../../components/PressableMotion";
 
 interface TypingAreaProps {
     onSend: (text: string) => boolean;
@@ -34,7 +35,7 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                         onClick={() => setIsModalOpen(true)}
                         className="shrink-0 w-[36px] h-[36px] rounded-full bg-gray-150 flex items-center justify-center active:bg-gray-200 transition-colors"
                     >
-                        <Icon name="plus" />
+                        <Icon name="add" />
                     </button> */}
                     
                     {/* 입력창 영역 */}
@@ -52,7 +53,9 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                             className="w-full h-[44px] bg-gray-100 border border-gray-150 rounded-[30px] pl-[18px] pr-[48px] text-r-16 outline-none placeholder:text-gray-400" 
                         />
                         {/* 전송 버튼 */}
-                        <button 
+                        <PressableMotion
+                            as="button"
+                            intensity="strong"
                             type="button" 
                             onClick={handleSend}
                             disabled={disabled}
@@ -62,8 +65,8 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                                     : 'bg-primary active:scale-95 active:brightness-95'
                             }`}
                         >
-                            <Icon name="send" />
-                        </button>
+                            <Icon name="send" color="var(--ColorWhite,#FFF)" />
+                        </PressableMotion>
                     </div>
                 </div>
             </div>
@@ -74,7 +77,7 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                         className="flex items-center gap-[15px] py-[20px] w-full border-b border-gray-150 active:opacity-50 transition-opacity" 
                         onClick={() => setIsModalOpen(false)}
                     >
-                        <Icon name="album" style={{ width: '32px', height: '32px' }} />
+                        <Icon name="image" style={{ width: '32px', height: '32px' }} />
                         <span className="text-m-16 text-gray-750">사진</span>
                     </button>
                     <button 
