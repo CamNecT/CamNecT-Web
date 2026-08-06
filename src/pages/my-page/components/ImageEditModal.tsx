@@ -28,7 +28,7 @@ export default function ImageEditModal({ isOpen, onClose, onSelect, onDelete }: 
                     className="flex items-center gap-[15px] pl-[10px] py-[15px] border-b border-gray-150"
                     type="button"
                 >
-                    <Icon name="photo" className="w-[20px] h-[20px] block shrink-0" />
+                    <Icon name="image" className="w-[20px] h-[20px] block shrink-0" />
                     <span className="text-m-16 text-gray-750">프로필 사진 변경</span>                    
                 </button>
                 <button
@@ -36,7 +36,7 @@ export default function ImageEditModal({ isOpen, onClose, onSelect, onDelete }: 
                     className="flex items-center gap-[15px] pl-[10px] py-[15px]"
                     type="button"
                 >
-                    <Icon name="delete" className="w-[20px] h-[20px] block shrink-0" />
+                    <Icon name="trash" className="w-[20px] h-[20px] block shrink-0" />
                     <span className="text-R-16 text-red">사진 삭제</span>
                 </button>
 

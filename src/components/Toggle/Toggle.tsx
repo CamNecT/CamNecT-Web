@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { useState } from 'react';
+import PressableMotion from '../PressableMotion';
 
 type Size = number | string;
 
@@ -43,7 +44,9 @@ const Toggle = ({
   };
 
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='soft'
       type='button'
       aria-pressed={isOn}
       onClick={handleClick}
@@ -61,7 +64,7 @@ const Toggle = ({
         </svg>
 
       )}
-    </button>
+    </PressableMotion>
   );
 };
 

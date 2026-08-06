@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
+import PressableMotion from '../../components/PressableMotion';
 import { logout } from '../../api/profileApi';
 import { useAuthStore } from '../../store/useAuthStore';
 import { isStandalone } from '../../utils/isStandalone';
@@ -70,7 +71,7 @@ export const MainHeader = ({
   const normalizedRightActions = rightActions ?? [];
   // 왼쪽 아이콘 기본 동작: 별도 전달이 없으면 mainBack + 뒤로가기(-1)
   // isAdmin인 경우 로그아웃 아이콘과 동작으로 고정
-  const leftIconName = isAdmin ? 'logOut' : (leftAction?.icon ?? 'mainBack');
+  const leftIconName = isAdmin ? 'logOut' : (leftAction?.icon ?? 'arrow_left');
   const leftClickHandler = isAdmin ? handleLogout : (leftAction?.onClick ?? (() => navigate(-1)));
   const leftLabel = isAdmin ? '로그아웃' : (leftAction?.ariaLabel ?? leftAriaLabel ?? '뒤로 가기');
 
@@ -87,17 +88,18 @@ export const MainHeader = ({
       <div className='flex w-[28px] items-center justify-start z-10'>
         {/* leftIcon="empty"를 받으면 좌측 아이콘 영역 자체를 숨김 */}
         {leftIcon !== 'empty' ? (
-          <button type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
+          <PressableMotion as='button' intensity='soft' type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
             <Icon
               name={leftIconName}
               style={{
                 width: 'clamp(24px, 7.467cqw, 28px)',
                 height: 'clamp(24px, 7.467cqw, 28px)',
+                color: leftIconName === 'arrow_left' ? 'var(--ColorBlack,#202023)' : undefined,
                 // 개별 아이콘 스타일을 덮어쓰고 싶을 때 leftAction.style로 전달
                 ...leftAction?.style,
               }}
             />
-          </button>
+          </PressableMotion>
         ) : null}
       </div>
       {/* 제목은 헤더 항상 가운데 정렬 */}
@@ -114,7 +116,9 @@ export const MainHeader = ({
         {/* 오른쪽 액션 아이콘들: 없으면 아무 것도 렌더하지 않음 */}
         {normalizedRightActions.length > 0
           ? normalizedRightActions.map((action, index) => (
-              <button
+              <PressableMotion
+                as='button'
+                intensity='soft'
                 key={action.icon}
                 type='button'
                 className='flex items-center justify-center'
@@ -127,6 +131,7 @@ export const MainHeader = ({
                     style={{
                       width: 'clamp(24px, 7.467cqw, 28px)',
                       height: 'clamp(24px, 7.467cqw, 28px)',
+                      color: action.icon === 'search' ? 'var(--ColorBlack,#202023)' : undefined,
                       // 개별 아이콘별 스타일 커스터마이징
                       ...action.style,
                     }}
@@ -134,7 +139,7 @@ export const MainHeader = ({
                   {/* 뱃지 조건부 렌더링 */}
                   {showBadge && index === 0 ? <Badge /> : null}
                 </span>
-              </button>
+              </PressableMotion>
             ))
           : null}
       </div>

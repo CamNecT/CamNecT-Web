@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import Icon from '../../components/Icon';
+import PressableMotion from '../../components/PressableMotion';
 import SaveToggle from './components/SaveToggle';
 import LikeToggle from './components/LikeToggle';
 
@@ -115,14 +116,16 @@ export const BottomChat = ({
               className='min-h-[40px] max-h-[120px] min-w-0 flex-1 resize-none bg-transparent px-[clamp(12px,3.5vw,15px)] py-[10px] text-[16px] text-[var(--ColorBlack,#202023)] placeholder:text-[16px] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-[var(--ColorGray2,#A1A1A1)]'
             />
             {hasContent ? (
-              <button
+              <PressableMotion
+                as='button'
+                intensity='strong'
                 type='submit'
                 disabled={disabled}
-                className='flex h-[36px] w-[36px] items-center justify-center rounded-full active:bg-[var(--ColorGray1,#ECECEC)] disabled:cursor-not-allowed'
+                className='flex h-[36px] w-[36px] items-center justify-center rounded-full disabled:cursor-not-allowed'
                 aria-label='댓글 작성'
               >
-                <Icon name='transmit' className='h-5 w-5' />
-              </button>
+                <Icon name='send' className='h-5 w-5' />
+              </PressableMotion>
             ) : null}
           </form>
         </div>

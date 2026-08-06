@@ -22,7 +22,7 @@ type OptionId = 'copy-url' | 'report-post' | 'edit-post';
 
 type OptionItem = {
     id: OptionId;
-    icon: 'edit' | 'url' | 'report';
+    icon: 'writing' | 'link' | 'report';
     label: string;
 };
 
@@ -134,10 +134,10 @@ export const RecruitDetailPage = () => {
 
     const optionItems: OptionItem[] = isMine
         ? [
-            { id: 'edit-post', icon: 'edit', label: '게시글 수정' },
+            { id: 'edit-post', icon: 'writing', label: '게시글 수정' },
         ]
         : [
-            { id: 'copy-url', icon: 'url', label: 'URL 복사' },
+            { id: 'copy-url', icon: 'link', label: 'URL 복사' },
             { id: 'report-post', icon: 'report', label: '게시글 신고' },
         ];
 
@@ -173,7 +173,7 @@ export const RecruitDetailPage = () => {
                 <MainHeader
                     title='팀원 모집'
                     rightActions={[
-                        { icon: 'option', onClick: () => setIsOptionOpen(true), ariaLabel: '게시글 옵션 열기' },
+                        { icon: 'more_menu', onClick: () => setIsOptionOpen(true), ariaLabel: '게시글 옵션 열기' },
                     ]}
                 />
             }
@@ -198,7 +198,7 @@ export const RecruitDetailPage = () => {
                             </div>
                             <div className="flex items-center gap-[5px] text-r-12-hn text-gray-650">
                                 <div className="flex items-center gap-[2px]">
-                                    <Icon name='bookmark' className='w-[12px] h-[12px]'/>
+                                    <Icon name='bookmark_stroke' className='w-[12px] h-[12px]'/>
                                     <span>{recruitment.bookmarkCount}</span>
                                 </div>
                                 <span>|</span>

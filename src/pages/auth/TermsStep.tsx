@@ -96,7 +96,7 @@ export const TermsStep = ({ onNext }: TermsStepProps) => {
                                     <span className="text-m-16 text-gray-900" style={{ letterSpacing: '-0.4px' }}>[필수]</span>
                                     <span className="text-r-14 text-gray-750" style={{ letterSpacing: '-0.56px' }}>{terms[0].label}</span>
                                 </div>
-                                <Icon name="more" onClick={() => handleModalOpen('service')}></Icon>
+                                <Icon name="arrow_right" onClick={() => handleModalOpen('service')}></Icon>
                             </div>
                         </button>
                     </li>
@@ -112,7 +112,7 @@ export const TermsStep = ({ onNext }: TermsStepProps) => {
                                     <span className="text-m-16 text-gray-900" style={{ letterSpacing: '-0.4px' }}>[필수]</span>
                                     <span className="text-r-14 text-gray-750" style={{ letterSpacing: '-0.56px' }}>{terms[1].label}</span>
                                 </div>
-                                <Icon name="more" onClick={() => handleModalOpen('privacy')}></Icon>
+                                <Icon name="arrow_right" onClick={() => handleModalOpen('privacy')}></Icon>
                             </div>
                         </button>
                     </li>

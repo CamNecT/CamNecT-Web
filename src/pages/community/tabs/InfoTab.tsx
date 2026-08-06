@@ -110,7 +110,7 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
 
                 <div className='flex items-center gap-[10px] text-r-12 text-gray-650'>
                   <span className='flex items-center gap-[4px]'>
-                    <Icon name='like' className='h-[12px] w-[12px]' />
+                    <Icon name='thumbs_up_stroke' className='h-[12px] w-[12px]' />
                     {post.likes}
                   </span>
                   <span className='flex items-center gap-[4px]'>
@@ -118,7 +118,7 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
                     {post.comments}
                   </span>
                   <span className='flex items-center gap-[4px]'>
-                    <Icon name='save' className='h-[12px] w-[12px]' />
+                    <Icon name='bookmark_stroke' className='h-[12px] w-[12px]' />
                     {post.saveCount}
                   </span>
                   <span>{formatTimeAgo(post.createdAt)}</span>

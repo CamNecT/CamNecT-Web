@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import PressableMotion from './PressableMotion';
 
 type FilterIconProps = {
   onClick?: () => void;
@@ -21,7 +22,9 @@ const FilterIcon = ({
     .join(' ');
 
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='soft'
       type='button'
       aria-label={ariaLabel}
       onClick={onClick}
@@ -43,7 +46,7 @@ const FilterIcon = ({
           strokeLinejoin='round'
         />
       </svg>
-    </button>
+    </PressableMotion>
   );
 };
 

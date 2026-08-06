@@ -25,7 +25,7 @@ const MainLayout = ({ title, rightElement, onBack, children }: MainLayoutProps) 
           }}
         >
           <button type='button' className='flex items-center justify-start' onClick={onBack}>
-            <Icon name='mainBack' className='w-[28px] h-[28px]' />
+            <Icon name='arrow_left' className='w-[28px] h-[28px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
           </button>
           <div
             className='text-center font-semibold leading-[140%] tracking-[-0.02em] text-[#202023]'
