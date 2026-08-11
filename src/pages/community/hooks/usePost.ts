@@ -24,13 +24,16 @@ export const usePost = ({ postId }: UsePostParams) => {
   // 게시글 상세를 재조회하는 공용 함수
   const refetchPost = useCallback(() => {
     if (!postId) return;
+    // 모든 ID는 1 이상의 정수라는 API 계약을 만족할 때만 요청한다.
     const numericUserId = Number(userId);
-    if (!Number.isFinite(numericUserId)) return;
+    if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
+    const numericPostId = Number(postId);
+    if (!Number.isInteger(numericPostId) || numericPostId < 1) return;
     if (isFetchingRef.current) return;
 
     isFetchingRef.current = true;
     getCommunityPostDetail({
-      postId,
+      postId: numericPostId,
       params: { userId: numericUserId },
     })
       .then((response) => {
@@ -81,10 +84,11 @@ export const usePost = ({ postId }: UsePostParams) => {
   const isPostMine = userId ? selectedPost.author.id === userId : false;
   const isAdopted = selectedPost.isAdopted;
   const showAdoptButton = isQuestionPost && isPostMine && !isAdopted;
+  // 잠금 판단은 FREE/POINT_REQUIRED 정책값이 아니라 사용자별 accessStatus를 따른다.
   const accessStatus =
-    selectedPost.accessStatus ?? (isPostMine ? 'GRANTED' : 'LOCKED');
+    selectedPost.accessStatus ?? (isPostMine ? 'GRANTED' : 'NEED_PURCHASE');
   const isLockedQuestion = isQuestionPost && !isPostMine && accessStatus !== 'GRANTED';
-  const requiredPoints = selectedPost.requiredPoints ?? 100;
+  const requiredPoints = selectedPost.requiredPoints ?? 0;
   const textCount = selectedPost.content?.length ?? 0;
   const imageCount = selectedPost.postImages?.length ?? 0;
 

@@ -16,7 +16,11 @@ type MainBoxProps = {
 
 // 메인 캐러셀에서 사용하는 요약 카드
 const MainBox = ({ post }: MainBoxProps) => {
-  const postImageUrl = post.postImageUrl ?? post.imageUrl;
+  // 보호된 본문과 썸네일은 GRANTED일 때만 카드에 노출한다.
+  const isGranted = post.accessStatus === 'GRANTED';
+  // 익명 응답은 author=null에서 만든 대체 저자이므로 프로필 영역을 렌더링하지 않는다.
+  const isAnonymous = post.author.id === 'unknown';
+  const postImageUrl = isGranted ? post.postImageUrl ?? post.imageUrl : undefined;
 
   return (
     <Link to={`/community/post/${post.id}`} className='block'>
@@ -29,29 +33,31 @@ const MainBox = ({ post }: MainBoxProps) => {
         <div className='flex flex-col' style={{ gap: '15px' }}>
           <div className='flex flex-col' style={{ gap: '10px' }}>
             <div className='flex' style={{ gap: '15px' }}>
-              {post.authorProfileImageUrl ? (
+              {!isAnonymous && post.authorProfileImageUrl ? (
                 <img
                   src={post.authorProfileImageUrl}
                   alt={`${post.author.name} 프로필`}
                   className='h-[48px] w-[48px] rounded-full object-cover'
                 />
-              ) : (
+              ) : !isAnonymous ? (
                 <div
                   className='h-[48px] w-[48px] rounded-full'
                   style={{ backgroundColor: '#D5D5D5' }}
                   aria-hidden
                 />
-              )}
+              ) : null}
               <div className='flex flex-col justify-center' style={{ gap: '3px' }}>
                 <div className='text-sb-14' style={{ color: 'var(--ColorBlack, #202023)' }}>
                   {post.author.name}
                 </div>
-                <div className='text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
-                  {post.author.major}
-                  {post.author.studentId
-                    ? ` ${post.author.studentId}학번`
-                    : ''}
-                </div>
+                {post.author.major ? (
+                  <div className='text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
+                    {post.author.major}
+                    {post.author.studentId
+                      ? ` ${post.author.studentId}학번`
+                      : ''}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -70,9 +76,19 @@ const MainBox = ({ post }: MainBoxProps) => {
                 >
                   {post.title}
                 </div>
-                <div className='line-clamp-2 whitespace-pre-wrap text-r-14' style={{ color: 'var(--ColorGray3, #646464)' }}>
-                  {post.content}
-                </div>
+                {isGranted ? (
+                  <div className='line-clamp-2 whitespace-pre-wrap text-r-14' style={{ color: 'var(--ColorGray3, #646464)' }}>
+                    {post.content}
+                  </div>
+                ) : (
+                  <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
+                    {post.accessStatus === 'LOGIN_REQUIRED'
+                      ? '로그인 후 열람 가능'
+                      : post.accessStatus === 'INSUFFICIENT_POINTS'
+                        ? '포인트가 부족합니다'
+                        : `${post.requiredPoints ?? 0} P`}
+                  </div>
+                )}
               </div>
               {postImageUrl && (
                 <img

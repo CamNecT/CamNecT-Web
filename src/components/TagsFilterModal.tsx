@@ -73,7 +73,6 @@ const TagsFilterModalContent = ({
   onClose,
   onSave,
   categories,
-  allTags,
   extraCategories = [],
   maxSelected = 5,
   onCloseRef,
@@ -120,6 +119,7 @@ const TagsFilterModalContent = ({
     }));
   }, [categories]);
 
+  // 표시할 카테고리 자체를 기준으로 검색하므로 전체 태그 배열을 별도 의존하지 않는다.
   const filteredCategories = useMemo(() => {
     if (!searchQuery) return dedupedCategories;
     return dedupedCategories
@@ -130,7 +130,7 @@ const TagsFilterModalContent = ({
         ),
       }))
       .filter((category) => category.tags.length > 0);
-  }, [allTags, dedupedCategories, searchQuery]);
+  }, [dedupedCategories, searchQuery]);
 
   const filteredExtraCategories = useMemo(() => {
     if (extraCategories.length === 0) return [];

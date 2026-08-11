@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Category from '../../../components/Category';
 import FilterHeader from '../../../components/FilterHeader';
@@ -23,21 +23,16 @@ type InfoTabProps = {
   posts: InfoPost[];
   sortKey: SortKey;
   onSortChange: (next: SortKey) => void;
+  selectedTag: string | null;
+  onTagChange: (next: string | null) => void;
 };
 
 // 정보 탭: 필터 + 정렬 + 정보글 리스트
-const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange }: InfoTabProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
-
-  // 선택된 태그 기준으로 목록 필터링
-  const filteredPosts = useMemo(() => {
-    if (selectedTags.length === 0) return posts;
-    return posts.filter((post) =>
-      selectedTags.every((tag) => post.categories.includes(tag)),
-    );
-  }, [posts, selectedTags]);
+  // 목록 API가 tagId 하나만 받으므로 정보 탭의 일반 태그는 단일 선택으로 제한한다.
+  const selectedTags = selectedTag ? [selectedTag] : [];
 
   return (
     <div
@@ -50,9 +45,7 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
           <FilterHeader
             activeFilters={selectedTags}
             onOpenFilter={() => setIsFilterOpen(true)}
-            onRemoveFilter={(tag) =>
-              setSelectedTags((prev) => prev.filter((item) => item !== tag))
-            }
+            onRemoveFilter={() => onTagChange(null)}
           />
         </div>
         <SortSelector sortKey={sortKey} sortLabels={sortLabels} onChange={onSortChange} />
@@ -61,7 +54,9 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
       {/* 정보글 리스트 */}
       <div className='flex flex-col' style={{ gap: '10px' }}>
         {/* TODO: 정보글 리스트 API 연결 */}
-        {filteredPosts.map((post) => (
+        {posts.map((post) => {
+          const isGranted = post.accessStatus === 'GRANTED';
+          return (
           <Link key={post.id} to={`/community/post/${post.id}`} className='block'>
             <article
               className='flex flex-col'
@@ -82,22 +77,34 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
                   <div className='flex flex-1 flex-col' style={{ gap: '5px' }}>
                   <div className='flex items-center gap-[6px]'>
                     <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
-                    <span className='text-r-12 text-gray-750'>
-                      · {post.author.major}
-                      {post.author.studentId
-                        ? ` ${post.author.studentId}학번`
-                        : ''}
-                    </span>
+                    {post.author.major ? (
+                      <span className='text-r-12 text-gray-750'>
+                        · {post.author.major}
+                        {post.author.studentId
+                          ? ` ${post.author.studentId}학번`
+                          : ''}
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className='text-sb-16-hn leading-[150%] text-gray-900'>{post.title}</div>
 
-                  <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>
-                    {post.content}
-                  </div>
+                  {isGranted ? (
+                    <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>
+                      {post.content}
+                    </div>
+                  ) : (
+                    <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
+                      {post.accessStatus === 'LOGIN_REQUIRED'
+                        ? '로그인 후 열람 가능'
+                        : post.accessStatus === 'INSUFFICIENT_POINTS'
+                          ? '포인트가 부족합니다'
+                          : `${post.requiredPoints ?? 0} P`}
+                    </div>
+                  )}
                   </div>
 
-                  {post.thumbnailUrl && (
+                  {isGranted && post.thumbnailUrl && (
                     <div className='h-[70px] w-[70px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--ColorGray1,#D5D5D5)]'>
                       <img
                         src={post.thumbnailUrl}
@@ -126,7 +133,8 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
               </div>
             </article>
           </Link>
-        ))}
+          );
+        })}
       </div>
 
       <TagsFilterModal
@@ -134,11 +142,12 @@ const InfoTab = ({ posts, sortKey, onSortChange }: InfoTabProps) => {
         tags={selectedTags}
         onClose={() => setIsFilterOpen(false)}
         onSave={(next) => {
-          setSelectedTags(next);
+          onTagChange(next[0] ?? null);
           setIsFilterOpen(false);
         }}
         categories={filterCategories}
         allTags={filterTags}
+        maxSelected={1}
       />
 
       <WriteButton />

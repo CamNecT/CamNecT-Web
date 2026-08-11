@@ -17,6 +17,8 @@ export type CommentItem = {
   author: CommentAuthor;
   content: string;
   createdAt: string;
+  // 삭제 여부를 본문 문자열이 아닌 author=null 응답에서 명시적으로 보존한다.
+  isDeleted?: boolean;
   replies?: CommentItem[];
 };
 
@@ -34,6 +36,8 @@ export type InfoPost = {
   saveCount: number;
   comments: number;
   createdAt: string;
+  accessStatus?: import('../api-types/communityApiTypes').CommunityAccessStatus;
+  requiredPoints?: number;
 };
 
 export type QuestionPost = {
@@ -49,7 +53,7 @@ export type QuestionPost = {
   answers: number;
   isAdopted: boolean;
   createdAt: string;
-  accessStatus: 'GRANTED' | 'LOCKED';
+  accessStatus: import('../api-types/communityApiTypes').CommunityAccessStatus;
   accessType?: 'FREE' | 'POINT_REQUIRED';
   requiredPoints: number;
   myPoints: number;
@@ -80,7 +84,9 @@ export type CommunityPostDetail = {
     height: number;
     fileSize: number;
   }[];
-  accessStatus?: 'GRANTED' | 'LOCKED';
+  accessStatus?: import('../api-types/communityApiTypes').CommunityAccessStatus;
+  // 익명 글에서는 상세 화면의 프로필 이동과 커피챗 UI를 숨긴다.
+  anonymous?: boolean;
   requiredPoints?: number;
   myPoints?: number;
 };

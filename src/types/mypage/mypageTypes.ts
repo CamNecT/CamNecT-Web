@@ -85,13 +85,15 @@ export type CommunityPostItem = {
     acceptedBadge?: boolean;
     tags: string[];
     thumbnailUrl?: string | null;
+    // 익명 게시글은 마이페이지 목록에서도 작성자 프로필을 표시하지 않는다.
     author: {
       userId: number;
       name: string;
       profileImageUrl: string | null;
       studentNo: string;
       majorName: string;
-    };
+    } | null;
     accessType?: "FREE" | "POINT_REQUIRED";
-    accessStatus?: "GRANTED" | "LOCKED";
+    // 보호 콘텐츠 노출은 accessType 대신 이 상태로 결정한다.
+    accessStatus?: import("../../api-types/communityApiTypes").CommunityAccessStatus;
 };

@@ -1,6 +1,6 @@
 import type { AxiosError } from 'axios';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { acceptCommunityComment, createCommunityComment, deleteCommunityComment, deleteCommunityPost, getCommunityPostComments, postCommunityBookmark, postCommunityLike, purchaseCommunityPostAccess, updateCommunityComment } from '../../api/community';
 import BottomSheetModalPost, {
@@ -28,6 +28,11 @@ import { isEditOption, type OptionItemId } from './utils/option';
 import { formatPostDisplayDate } from './utils/post';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import { getFileName } from '../../utils/getFileName';
+import type {
+  CommunityAccessStatus,
+  CommunityErrorResponse,
+  CommunityPostCommentResponse,
+} from '../../api-types/communityApiTypes';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -65,7 +70,7 @@ const CommunityPostPage = () => {
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('URL 복사가 완료되었습니다');
   const [accessStatusOverride, setAccessStatusOverride] = useState<
-    'GRANTED' | 'LOCKED' | null
+    CommunityAccessStatus | null
   >(null);
   const [myPoints, setMyPoints] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
@@ -74,8 +79,14 @@ const CommunityPostPage = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
-  const [commentListFromApi, setCommentListFromApi] = useState<CommentItem[]>([]);
-  const isFetchingCommentsRef = useRef(false);
+  // 댓글 API의 items는 평면 배열이지만 페이지 기준은 루트 스레드이므로,
+  // 커서와 원본 배열을 따로 보관한 뒤 화면 렌더 직전에 트리로 변환한다.
+  const [commentItemsFromApi, setCommentItemsFromApi] = useState<CommunityPostCommentResponse[]>([]);
+  const [commentCursorId, setCommentCursorId] = useState<number | null>(null);
+  const [hasNextComments, setHasNextComments] = useState(false);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentAccessBlocked, setCommentAccessBlocked] = useState(false);
+  const commentRequestSeqRef = useRef(0);
   // mutation pending 반영 전 같은 tick에서 들어오는 구매 확인 연타를 즉시 차단합니다.
   const purchasePostAccessPendingRef = useRef(false);
   const closePopUp = () => setPopUpConfig(null);
@@ -85,7 +96,6 @@ const CommunityPostPage = () => {
   const {
     selectedPost,
     isQuestionPost,
-    isInfoPost,
     isPostMine,
     isAdopted,
     showAdoptButton,
@@ -97,12 +107,14 @@ const CommunityPostPage = () => {
     refetchPost,
     isLoading: isDetailLoading,
   } = usePost({ postId });
+  // 실제 본문/썸네일 노출 여부는 게시글 정책(accessType)이 아니라
+  // 현재 사용자의 열람 결과인 accessStatus만을 기준으로 판단한다.
   const accessStatus =
     accessStatusOverride ??
     selectedPost?.accessStatus ??
-    (isPostMine ? 'GRANTED' : 'LOCKED');
+    (isPostMine ? 'GRANTED' : 'NEED_PURCHASE');
   const isLockedQuestion =
-    isQuestionPost && !isPostMine && accessStatus !== 'GRANTED';
+    !isPostMine && accessStatus !== 'GRANTED';
   const userId = useAuthStore((state) => state.user?.id);
   // 잠긴 질문글 포인트 구매 API를 mutation으로 관리해 요청 상태와 후처리를 한곳에 둡니다.
   const purchasePostAccessMutation = useMutation({
@@ -143,22 +155,76 @@ const CommunityPostPage = () => {
     setIsBookmarked(Boolean(selectedPost.bookmarked));
   }, [selectedPost, likedByMe]);
 
-  // 댓글 목록 1회 로딩 (중복 호출 방지 포함)
+  const loadComments = useCallback(
+    async (append = false) => {
+      if (!postId || (append && isLoadingComments)) return;
+      const numericPostId = Number(postId);
+      if (!Number.isInteger(numericPostId) || numericPostId < 1) return;
+      if (append && (!hasNextComments || commentCursorId == null)) return;
+
+      const requestId = ++commentRequestSeqRef.current;
+      setIsLoadingComments(true);
+      if (!append) {
+        // 새로 열기와 새로고침은 이전 커서를 폐기하고 첫 루트 스레드부터 조회한다.
+        setCommentItemsFromApi([]);
+        setCommentCursorId(null);
+        setHasNextComments(false);
+        setCommentAccessBlocked(false);
+      }
+
+      try {
+        const response = await getCommunityPostComments({
+          postId: numericPostId,
+          params: {
+            size: 20,
+            ...(append && commentCursorId != null ? { cursorId: commentCursorId } : {}),
+          },
+        });
+        if (requestId !== commentRequestSeqRef.current) return;
+
+        setCommentItemsFromApi((previous) => {
+          if (!append) return response.data.items;
+          // 루트 댓글의 대댓글이 함께 재등장할 수 있으므로 commentId로 중복을 제거한다.
+          const existingIds = new Set(previous.map((comment) => comment.commentId));
+          return [
+            ...previous,
+            ...response.data.items.filter((comment) => !existingIds.has(comment.commentId)),
+          ];
+        });
+        setCommentCursorId(response.data.nextCursorId);
+        setHasNextComments(response.data.hasNext);
+      } catch (error) {
+        if (requestId !== commentRequestSeqRef.current) return;
+        const axiosError = error as AxiosError<CommunityErrorResponse>;
+        // 숨김·삭제 게시글의 댓글 조회 차단(43925)은 일반 빈 댓글과 구분해 안내한다.
+        setCommentAccessBlocked(axiosError.response?.data?.code === 43925);
+        if (!append) setCommentItemsFromApi([]);
+      } finally {
+        if (requestId === commentRequestSeqRef.current) setIsLoadingComments(false);
+      }
+    }, [commentCursorId, hasNextComments, isLoadingComments, postId],
+  );
+
   useEffect(() => {
-    if (!postId) return;
-    if (isFetchingCommentsRef.current) return;
-    isFetchingCommentsRef.current = true;
-    getCommunityPostComments(postId)
-      .then((response) => {
-        setCommentListFromApi(mapFlatCommentsToTree(response.data));
-      })
-      .catch(() => {
-        setCommentListFromApi([]);
-      })
-      .finally(() => {
-        isFetchingCommentsRef.current = false;
-      });
+    commentRequestSeqRef.current += 1;
+    setCommentItemsFromApi([]);
+    setCommentCursorId(null);
+    setHasNextComments(false);
+    setCommentAccessBlocked(false);
+    const timer = window.setTimeout(() => void loadComments(false), 0);
+    return () => window.clearTimeout(timer);
+    // postId 변경 때만 첫 페이지를 새로 가져온다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
+
+  const commentListFromApi = useMemo(
+    () => mapFlatCommentsToTree(commentItemsFromApi),
+    [commentItemsFromApi],
+  );
+
+  const refreshComments = useCallback(async () => {
+    await loadComments(false);
+  }, [loadComments]);
 
   // 댓글 상태/액션 묶음
   const {
@@ -185,7 +251,6 @@ const CommunityPostPage = () => {
     currentUser,
     initialComments: commentListFromApi,
     resetKey: postId,
-    isInfoPost,
     isLockedQuestion,
     isQuestionPost,
     isAdopted,
@@ -193,50 +258,47 @@ const CommunityPostPage = () => {
     onSubmitCommentApi: async ({ content, parentCommentId }) => {
       if (!userId || !postId) return;
       const numericUserId = Number(userId);
-      if (!Number.isFinite(numericUserId)) return;
+      if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericParentId = parentCommentId ? Number(parentCommentId) : null;
       await createCommunityComment({
         postId,
         params: { userId: numericUserId },
         body: {
           content,
-          parentCommentId: Number.isFinite(numericParentId ?? NaN)
+          parentCommentId: Number.isInteger(numericParentId) && (numericParentId ?? 0) > 0
             ? numericParentId
             : null,
         },
       });
-      const response = await getCommunityPostComments(postId);
-      setCommentListFromApi(mapFlatCommentsToTree(response.data));
+      await refreshComments();
     },
     onDeleteCommentApi: async (commentId) => {
       if (!userId) return;
       const numericUserId = Number(userId);
-      if (!Number.isFinite(numericUserId)) return;
+      if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericCommentId = Number(commentId);
-      if (!Number.isFinite(numericCommentId)) return;
+      if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
       await deleteCommunityComment({
         commentId: numericCommentId,
         params: { userId: numericUserId },
       });
       if (postId) {
-        const response = await getCommunityPostComments(postId);
-        setCommentListFromApi(mapFlatCommentsToTree(response.data));
+        await refreshComments();
       }
     },
     onUpdateCommentApi: async ({ commentId, content }) => {
       if (!userId) return;
       const numericUserId = Number(userId);
-      if (!Number.isFinite(numericUserId)) return;
+      if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericCommentId = Number(commentId);
-      if (!Number.isFinite(numericCommentId)) return;
+      if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
       await updateCommunityComment({
         commentId: numericCommentId,
         params: { userId: numericUserId },
         body: { content },
       });
       if (postId) {
-        const response = await getCommunityPostComments(postId);
-        setCommentListFromApi(mapFlatCommentsToTree(response.data));
+        await refreshComments();
       }
     },
   });
@@ -320,7 +382,7 @@ const CommunityPostPage = () => {
     setPopUpConfig({
       type: 'info',
       title: '정말 채택하시겠습니까?',
-      content: '답변 채택 후 게시물의\n수정 및 삭제가 불가능 합니다.',
+      content: '채택된 댓글은 이후 수정하거나 삭제할 수 없습니다.',
       onLeftClick: closePopUp,
       onRightClick: async () => {
         if (!userId || !postId) {
@@ -329,7 +391,12 @@ const CommunityPostPage = () => {
         }
         const numericUserId = Number(userId);
         const numericCommentId = Number(comment.id);
-        if (!Number.isFinite(numericUserId) || !Number.isFinite(numericCommentId)) {
+        if (
+          !Number.isInteger(numericUserId) ||
+          numericUserId < 1 ||
+          !Number.isInteger(numericCommentId) ||
+          numericCommentId < 1
+        ) {
           closePopUp();
           return;
         }
@@ -340,8 +407,7 @@ const CommunityPostPage = () => {
             params: { userId: numericUserId },
           });
           refetchPost();
-          const response = await getCommunityPostComments(postId);
-          setCommentListFromApi(mapFlatCommentsToTree(response.data));
+          await refreshComments();
         } finally {
           closePopUp();
         }
@@ -351,6 +417,7 @@ const CommunityPostPage = () => {
 
   // 구매 확인 및 포인트 검증 플로우
   const handleOpenPurchasePopup = () => {
+    if (accessStatus !== 'NEED_PURCHASE') return;
     // 구매 처리 중에는 구매 팝업을 다시 열거나 동일 요청을 시작하지 않습니다.
     if (purchasePostAccessPendingRef.current || purchasePostAccessMutation.isPending) return;
     setMyPoints(selectedPost.myPoints ?? 0);
@@ -364,7 +431,7 @@ const CommunityPostPage = () => {
         if (purchasePostAccessPendingRef.current || purchasePostAccessMutation.isPending) return;
         if (!userId || !postId) return;
         const numericUserId = Number(userId);
-        if (!Number.isFinite(numericUserId)) return;
+        if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
         if (selectedPost.myPoints == null) {
           setPopUpConfig({
             type: 'confirm',
@@ -499,7 +566,7 @@ const CommunityPostPage = () => {
         onLeftClick: async () => {
           if (!userId) return;
           const numericUserId = Number(userId);
-          if (!Number.isFinite(numericUserId)) return;
+          if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
           try {
             await deleteCommunityPost({
               postId: selectedPost.id,
@@ -566,18 +633,6 @@ const CommunityPostPage = () => {
       return;
     }
 
-    if (target === 'post' && isQuestionPost && isAdopted && isPostMine) {
-      setPopUpConfig({
-        type: 'confirm',
-        title: '이미 채택된 게시물입니다.',
-        content:
-          '채택이 완료된 게시물의\n수정 및 삭제를 원하실 경우,\n[문의하기]를 통해 접수 부탁드립니다',
-        onClick: closePopUp,
-      });
-      setIsOptionOpen(false);
-      return;
-    }
-
     if (
       target === 'comment' &&
       isQuestionPost &&
@@ -610,8 +665,11 @@ const CommunityPostPage = () => {
       isQuestionPost={isQuestionPost}
       isAdopted={isAdopted}
       adoptedCommentId={selectedPost.adoptedCommentId}
-      showAdoptButton={showAdoptButton}
-      isInfoPost={isInfoPost}
+      showAdoptButton={
+        showAdoptButton &&
+        !comment.isDeleted &&
+        comment.author.id !== currentUserIdForOwnership
+      }
       isHighlighted={highlightedCommentId === comment.id}
       isEditing={editingCommentId === comment.id}
       editingContent={editingCommentId === comment.id ? editingCommentContent : comment.content}
@@ -706,66 +764,67 @@ const CommunityPostPage = () => {
             </div>
 
             <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
-              <button
-                type='button'
-                disabled={isPostMine}
-                className='flex items-center gap-[10px] text-left'
-                onClick={() =>
-                  navigate(`/alumni/profile/${selectedPost.author.id}`, {
-                    state: {
-                      author: {
-                        name: selectedPost.author.name,
-                        major: selectedPost.author.major,
-                        studentId: selectedPost.author.studentId,
-                        profileImageUrl: selectedPost.author.profileImageUrl,
-                      },
-                    },
-                  })
-                }
-              >
-                <img
-                  src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
-                  alt={`${selectedPost.author.name} 프로필`}
-                  onError={(e) => {
-                    e.currentTarget.onerror = null; //이미지 깨짐 방지
-                    e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                  }}
-                  className='h-[32px] w-[32px] rounded-full object-cover'
-                />
-                <div className='flex flex-col gap-[4px]'>
-                  <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
-                    {selectedPost.author.name}
-                  </div>
-                  <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
-                    {selectedPost.author.major}
-                    {selectedPost.author.studentId
-                      ? ` ${selectedPost.author.studentId}학번`
-                      : ''}
-                  </div>
+              {selectedPost.anonymous ? (
+                <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
+                  익명
                 </div>
-              </button>
-              {!isPostMine && (<button
-                type='button'
-                className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
-                onClick={() =>
-                  navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`, {
-                    state: {
-                      author: {
-                        name: selectedPost.author.name,
-                        major: selectedPost.author.major,
-                        studentId: selectedPost.author.studentId,
-                        profileImageUrl: selectedPost.author.profileImageUrl,
-                      },
-                    },
-                  })
-                }
-              >
-                커피챗 보내기
-              </button>)}
+              ) : (
+                <>
+                  <button
+                    type='button'
+                    disabled={isPostMine}
+                    className='flex items-center gap-[10px] text-left'
+                    onClick={() =>
+                      navigate(`/alumni/profile/${selectedPost.author.id}`, {
+                        state: {
+                          author: {
+                            name: selectedPost.author.name,
+                            major: selectedPost.author.major,
+                            studentId: selectedPost.author.studentId,
+                            profileImageUrl: selectedPost.author.profileImageUrl,
+                          },
+                        },
+                      })
+                    }
+                  >
+                    <img
+                      src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
+                      alt={`${selectedPost.author.name} 프로필`}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                      }}
+                      className='h-[32px] w-[32px] rounded-full object-cover'
+                    />
+                    <div className='flex flex-col gap-[4px]'>
+                      <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
+                        {selectedPost.author.name}
+                      </div>
+                      <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
+                        {selectedPost.author.major}
+                        {selectedPost.author.studentId
+                          ? ` ${selectedPost.author.studentId}학번`
+                          : ''}
+                      </div>
+                    </div>
+                  </button>
+                  {!isPostMine ? (
+                    <button
+                      type='button'
+                      className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
+                      onClick={() =>
+                        navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`)
+                      }
+                    >
+                      커피챗 보내기
+                    </button>
+                  ) : null}
+                </>
+              )}
             </div>
 
             <div className='flex flex-col gap-[20px]'>
-              {isLockedQuestion ? (
+              {isLockedQuestion && accessStatus === 'NEED_PURCHASE' ? (
                 <LockedQuestionCard
                   requiredPoints={requiredPoints}
                   textCount={textCount}
@@ -773,6 +832,12 @@ const CommunityPostPage = () => {
                   onPurchaseClick={handleOpenPurchasePopup}
                   isPurchasing={purchasePostAccessMutation.isPending}
                 />
+              ) : isLockedQuestion ? (
+                <div className='rounded-[10px] bg-[var(--Color_Gray_B,#FCFCFC)] px-[20px] py-[30px] text-center text-m-14 text-[var(--ColorGray3,#646464)]'>
+                  {accessStatus === 'INSUFFICIENT_POINTS'
+                    ? '포인트가 부족해 본문을 열람할 수 없습니다'
+                    : '로그인 후 본문을 열람할 수 있습니다'}
+                </div>
               ) : (
                 <>
                   <div className='text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] whitespace-pre-wrap'>
@@ -838,11 +903,27 @@ const CommunityPostPage = () => {
             </div>
             {isLockedQuestion ? (
               <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
-                질문 구매 후 열람이 가능합니다
+                {accessStatus === 'LOGIN_REQUIRED'
+                  ? '로그인 후 댓글을 볼 수 있습니다'
+                  : '열람 권한 획득 후 댓글을 볼 수 있습니다'}
+              </div>
+            ) : commentAccessBlocked ? (
+              <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
+                공개 상태가 아닌 게시글의 댓글은 볼 수 없습니다
               </div>
             ) : (
               <div className='flex flex-col'>
                 {sortedComments.map((comment) => renderComment(comment))}
+                {hasNextComments ? (
+                  <button
+                    type='button'
+                    disabled={isLoadingComments}
+                    onClick={() => void loadComments(true)}
+                    className='mx-[25px] my-[15px] rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] py-[10px] text-m-14 text-[var(--ColorGray3,#646464)] disabled:opacity-50'
+                  >
+                    {isLoadingComments ? '댓글을 불러오는 중...' : '댓글 더 보기'}
+                  </button>
+                ) : null}
               </div>
             )}
             </section>
@@ -856,13 +937,20 @@ const CommunityPostPage = () => {
           onLikeChange={handleLikeChange}
           isSaved={isBookmarked}
           onSaveChange={handleBookmarkChange}
-          placeholder={isLockedQuestion ? '구매 후 입력 가능' : '댓글을 입력해 주세요'}
+          placeholder={
+            isLockedQuestion
+              ? accessStatus === 'LOGIN_REQUIRED'
+                ? '로그인 후 입력 가능'
+                : '열람 권한 획득 후 입력 가능'
+              : '댓글을 입력해 주세요'
+          }
           content={commentContent}
           onChange={setCommentContent}
           onSubmit={handleSubmitComment}
           disabled={isLockedQuestion}
           replyTargetName={replyTarget?.name}
           focusToken={replyFocusToken}
+          maxLength={5000}
         />
       ) : null}
       <ImagePopUp

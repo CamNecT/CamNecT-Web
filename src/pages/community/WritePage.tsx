@@ -1,7 +1,11 @@
 import type { AxiosError } from 'axios';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { CommunityUploadPresignItemResponse } from '../../api-types/communityApiTypes';
+import type {
+    CommunityErrorResponse,
+    CommunityUploadPresignItemResponse,
+    UpdateCommunityPostBody,
+} from '../../api-types/communityApiTypes';
 import { createCommunityPost, getCommunityPostDetail, postCommunityUploadPresign, updateCommunityPost } from '../../api/community';
 import BoardTypeToggle from '../../components/BoardTypeToggle';
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
@@ -17,10 +21,54 @@ import type { CommunityPostDetail } from '../../types/community';
 import { mapToCommunityPostDetail } from '../../utils/communityMapper';
 import { mapToCommunityPost } from './utils/post';
 import { getFileName } from '../../utils/getFileName';
+import OnOffToggle from '../../components/Toggle/OnOffToggle';
 
-//TODO: 사진 미리보기 개수 제한이나 파일 크기 제한을 정책으로 추가할지 결정 필요
+// 프론트에서도 Community Bean Validation과 동일한 경계를 적용해 불필요한 업로드/요청을 막는다.
+const MAX_TITLE_LENGTH = 200;
+const MAX_CONTENT_LENGTH = 20_000;
+const MAX_ATTACHMENTS = 3;
+const MAX_FILENAME_LENGTH = 255;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = new Set([
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+]);
+const isControlCharacter = (character: string) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || (code >= 127 && code <= 159);
+};
+
+const sanitizeTitle = (value: string) =>
+    Array.from(value).filter((character) => !isControlCharacter(character)).join('');
+
+const sanitizeContent = (value: string) =>
+    Array.from(value)
+        .filter((character) => {
+            if (character === '\r' || character === '\n' || character === '\t') return true;
+            return !isControlCharacter(character);
+        })
+        .join('');
+
+const hasInvalidFilename = (value: string) =>
+    value.includes('/') ||
+    value.includes('\\') ||
+    Array.from(value).some(isControlCharacter);
+
 const boardTypes = ['정보', '질문'] as const;
 type BoardType = (typeof boardTypes)[number];
+
+const getSortedAttachments = (
+    attachments: NonNullable<CommunityPostDetail['attachments']>,
+) => attachments.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+
+const getSortedAttachmentKeys = (
+    attachments: NonNullable<CommunityPostDetail['attachments']>,
+) => getSortedAttachments(attachments).map((attachment) => attachment.fileKey);
+
+const areAttachmentKeysEqual = (left: string[], right: string[]) =>
+    left.length === right.length && left.every((key, index) => key === right[index]);
 
 export const WritePage = () => {
     const navigate = useNavigate();
@@ -46,6 +94,7 @@ export const WritePage = () => {
     // 입력 폼 상태
     const [title, setTitle] = useState(initialTitle);
     const [content, setContent] = useState(initialContent);
+    const [anonymous, setAnonymous] = useState(false);
     const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
     const isKeyboardUp = window.innerHeight - viewportHeight > 100;
     // 완료 확인 모달 상태
@@ -54,6 +103,7 @@ export const WritePage = () => {
     // 작성 취소 경고 팝업 상태
     const [isCancelWarningOpen, setIsCancelWarningOpen] = useState(false);
     const [errorPopUp, setErrorPopUp] = useState<{ title: string; content: string } | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     type AttachmentItem = {
         id: string;
         file: File;
@@ -76,20 +126,6 @@ export const WritePage = () => {
     );
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    // sortOrder 기준으로 정렬된 기존 첨부파일 키 목록을 만든다.
-    const getSortedAttachments = (
-        attachments: NonNullable<CommunityPostDetail['attachments']>,
-    ) => attachments.slice().sort((a, b) => a.sortOrder - b.sortOrder);
-
-    const getSortedAttachmentKeys = (
-        attachments: NonNullable<CommunityPostDetail['attachments']>,
-    ) =>
-        getSortedAttachments(attachments).map((attachment) => attachment.fileKey);
-
-    // 첨부파일 순서/구성이 수정 전과 같은지 확인한다.
-    const areAttachmentKeysEqual = (left: string[], right: string[]) =>
-        left.length === right.length && left.every((key, index) => key === right[index]);
-
     const openBoardSelector = () => {
         setDraftBoardType(boardType);
         setIsBoardOpen(true);
@@ -106,27 +142,45 @@ export const WritePage = () => {
     const boardLabelColor = boardType
         ? 'var(--ColorMain, #00C56C)'
         : 'var(--ColorGray2, #A1A1A1)';
-    const isQuestionBoard = boardType === '질문';
     const confirmTitle = isEditMode
         ? `${boardType ?? '게시글'}을 수정하시겠습니까?`
         : '게시글을 등록하시겠습니까?';
-    const confirmContent = isQuestionBoard
-        ? '답변 채택 후 게시물의\n수정 및 삭제가 불가능 합니다.'
-        : isEditMode
-            ? '수정된 내용으로 저장됩니다.'
-            : '등록 후에도 수정/삭제가 가능합니다.';
+    const confirmContent = isEditMode
+        ? '수정된 내용으로 저장됩니다.'
+        : '입력한 내용으로 게시글이 등록됩니다.';
     const isSubmitEnabled =
         Boolean(boardType) &&
         title.trim().length > 0 &&
         content.trim().length > 0 &&
-        selectedTags.length > 0;
+        title.length <= MAX_TITLE_LENGTH &&
+        content.length <= MAX_CONTENT_LENGTH &&
+        existingAttachments.length + newAttachments.length <= MAX_ATTACHMENTS;
     const hasDraftContent =
         title.trim().length > 0 ||
         content.trim().length > 0 ||
         existingAttachments.length > 0 ||
         newAttachments.length > 0 ||
+        anonymous ||
         Boolean(boardType) ||
         selectedTags.length > 0;
+
+    // 제출 직전에는 입력 UI 제약과 별개로 공백-only, 중복 태그, 첨부 개수를 다시 검증한다.
+    const validateForm = () => {
+        const nextErrors: Record<string, string> = {};
+        if (!title.trim()) nextErrors.title = '제목을 입력해 주세요.';
+        if (title.length > MAX_TITLE_LENGTH) nextErrors.title = `제목은 ${MAX_TITLE_LENGTH}자 이하로 입력해 주세요.`;
+        if (Array.from(title).some(isControlCharacter)) nextErrors.title = '제목에는 줄바꿈이나 제어문자를 사용할 수 없습니다.';
+        if (!content.trim()) nextErrors.content = '본문을 입력해 주세요.';
+        if (content.length > MAX_CONTENT_LENGTH) nextErrors.content = `본문은 ${MAX_CONTENT_LENGTH.toLocaleString()}자 이하로 입력해 주세요.`;
+        if (selectedTags.length > 5 || new Set(selectedTags).size !== selectedTags.length) {
+            nextErrors.tagIds = '태그는 중복 없이 최대 5개까지 선택할 수 있습니다.';
+        }
+        if (existingAttachments.length + newAttachments.length > MAX_ATTACHMENTS) {
+            nextErrors.attachments = `첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 등록할 수 있습니다.`;
+        }
+        setFieldErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
 
     // 이미지 업로드 전 가로/세로 사이즈 측정
     const getImageSize = (file: File) =>
@@ -158,7 +212,7 @@ export const WritePage = () => {
                 : attachments;
 
         const presignItems = orderedAttachments.map((item) => ({
-            contentType: item.file.type || 'application/octet-stream',
+            contentType: item.file.type,
             size: item.file.size,
             originalFilename: item.file.name,
         }));
@@ -192,11 +246,21 @@ export const WritePage = () => {
             }),
         );
 
+        if (
+            orderedAttachments.some(
+                (item, index) =>
+                    item.kind === 'image' &&
+                    (sizes[index].width < 1 || sizes[index].height < 1),
+            )
+        ) {
+            throw new Error('이미지 크기 정보를 확인할 수 없습니다.');
+        }
+
         await Promise.all(
             presignedItems.map((presigned, index) => {
                 const attachment = orderedAttachments[index];
                 const headers = {
-                    'Content-Type': attachment.file.type || 'application/octet-stream',
+                    'Content-Type': attachment.file.type,
                     ...(presigned.requiredHeaders ?? {}),
                 };
                 return fetch(presigned.uploadUrl, {
@@ -211,11 +275,14 @@ export const WritePage = () => {
             }),
         );
 
+        // 이미지의 width/height는 서버 계약상 한 쪽만 보낼 수 없으므로 함께 추가하고,
+        // PDF처럼 크기 정보가 없는 파일에는 두 필드를 모두 생략한다.
         return presignedItems.map((item, index) => ({
             fileKey: item.fileKey,
-            width: sizes[index].width,
-            height: sizes[index].height,
             fileSize: orderedAttachments[index].file.size,
+            ...(orderedAttachments[index].kind === 'image'
+                ? { width: sizes[index].width, height: sizes[index].height }
+                : {}),
         }));
     };
 
@@ -247,8 +314,10 @@ export const WritePage = () => {
     useEffect(() => {
         if (!isEditMode || !postId) return;
         const numericUserId = Number(userId);
-        if (!Number.isFinite(numericUserId)) return;
-        getCommunityPostDetail({ postId, params: { userId: numericUserId } })
+        if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
+        const numericPostId = Number(postId);
+        if (!Number.isInteger(numericPostId) || numericPostId < 1) return;
+        getCommunityPostDetail({ postId: numericPostId, params: { userId: numericUserId } })
             .then((response) => {
                 setEditPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
             })
@@ -270,19 +339,49 @@ export const WritePage = () => {
         setTitle(editPost.title);
         setContent(editPost.content);
         setSelectedTags(mappedTags);
+        setAnonymous(Boolean(editPost.anonymous));
         setExistingAttachments(editPost.attachments ?? []);
         setNewAttachments([]);
         originalAttachmentKeysRef.current = getSortedAttachmentKeys(editPost.attachments ?? []);
         didInitEditRef.current = true;
     }, [isEditMode, editPost, mapTagIdsToNames]);
 
-    // 파일 선택 -> object URL 생성 -> 미리보기 상태에 추가
+    // 파일 선택 -> 서버 허용 MIME/크기/파일명 검증 -> object URL 미리보기 생성
     const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (!files || files.length === 0) return;
 
+        const availableCount = MAX_ATTACHMENTS - existingAttachments.length - newAttachments.length;
+        if (availableCount <= 0 || files.length > availableCount) {
+            setFieldErrors((previous) => ({
+                ...previous,
+                attachments: `첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 등록할 수 있습니다.`,
+            }));
+        }
+
         const nextAttachments = Array.from(files)
+            .slice(0, Math.max(0, availableCount))
             .map((file) => {
+                if (
+                    file.size < 1 ||
+                    file.size > MAX_FILE_SIZE_BYTES ||
+                    !ALLOWED_MIME_TYPES.has(file.type) ||
+                    file.name.length > MAX_FILENAME_LENGTH ||
+                    hasInvalidFilename(file.name)
+                ) {
+                    setFieldErrors((previous) => ({
+                        ...previous,
+                        attachments: 'PDF, JPEG, PNG, WEBP 파일만 등록할 수 있으며 파일명과 용량을 확인해 주세요.',
+                    }));
+                    return null;
+                }
+                const isDuplicate = newAttachments.some(
+                    (attachment) =>
+                        attachment.file.name === file.name &&
+                        attachment.file.size === file.size &&
+                        attachment.file.lastModified === file.lastModified,
+                );
+                if (isDuplicate) return null;
                 const prepared = prepareFile(file);
                 if (!prepared) return null;
                 const kind: AttachmentItem['kind'] =
@@ -312,20 +411,20 @@ export const WritePage = () => {
 
     // 완료 버튼 -> 확인 모달 오픈
     const handleSubmit = () => {
+        if (!validateForm()) return;
         setIsConfirmOpen(true);
     };
 
     // 확인 모달에서 "네" 클릭 시 메인으로 이동
     // 작성/수정 확정 처리
     const handleConfirm = async () => {
-        // TODO: 수정 모드인 경우 변경된 데이터만 전송
         if (!userId) {
             console.warn('로그인 정보가 없습니다. 다시 로그인해 주세요.');
             return;
         }
         if (isSubmitting) return;
         const numericUserId = Number(userId);
-        if (!Number.isFinite(numericUserId)) {
+        if (!Number.isInteger(numericUserId) || numericUserId < 1) {
             console.warn('로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.');
             return;
         }
@@ -333,6 +432,13 @@ export const WritePage = () => {
         const isQuestionBoard = boardType === '질문';
         const boardCode = isQuestionBoard ? 'QUESTION' : 'INFO';
         const tagIds = mapTagNamesToIds(selectedTags);
+        if (new Set(tagIds).size !== tagIds.length || tagIds.length !== selectedTags.length) {
+            setFieldErrors((previous) => ({
+                ...previous,
+                tagIds: '유효하지 않거나 중복된 태그가 포함되어 있습니다.',
+            }));
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -359,41 +465,77 @@ export const WritePage = () => {
                     ? [
                         ...currentExistingAttachments.map((attachment) => ({
                             fileKey: attachment.fileKey,
-                            width: attachment.width,
-                            height: attachment.height,
                             fileSize: attachment.fileSize,
+                            ...(!attachment.fileKey.toLowerCase().endsWith('.pdf')
+                                ? { width: attachment.width, height: attachment.height }
+                                : {}),
                         })),
-                        ...uploadedAttachments.map((attachment) => ({
-                            fileKey: attachment.fileKey,
-                            width: attachment.width,
-                            height: attachment.height,
-                            fileSize: attachment.fileSize,
-                        })),
+                        ...uploadedAttachments,
                     ]
                     : null;
+
+                if (
+                    attachments &&
+                    new Set(attachments.map((attachment) => attachment.fileKey)).size !==
+                        attachments.length
+                ) {
+                    setFieldErrors((previous) => ({
+                        ...previous,
+                        attachments: '동일한 첨부파일 키를 중복해서 사용할 수 없습니다.',
+                    }));
+                    return;
+                }
+
+                // PATCH에는 실제로 바뀐 필드만 넣는다. 빈 배열은 전체 제거이고,
+                // anonymous는 작성 시 확정되므로 수정 body에는 절대 포함하지 않는다.
+                const body: UpdateCommunityPostBody = {};
+                const nextTitle = title;
+                const nextContent = content;
+                if (nextTitle !== editPost?.title) body.title = nextTitle;
+                if (nextContent !== editPost?.content) body.content = nextContent;
+                const originalTagIds = editPost?.tagIds ?? [];
+                if (
+                    originalTagIds.length !== tagIds.length ||
+                    originalTagIds.some((tagId, index) => tagId !== tagIds[index])
+                ) {
+                    body.tagIds = tagIds;
+                }
+                if (attachments !== null) body.attachments = attachments;
+
+                if (Object.keys(body).length === 0) {
+                    setErrorPopUp({
+                        title: '수정할 내용이 없습니다',
+                        content: '변경한 내용을 확인해 주세요.',
+                    });
+                    return;
+                }
 
                 await updateCommunityPost({
                     postId,
                     params: { userId: numericUserId },
-                    body: {
-                        title: title.trim(),
-                        content: content.trim(),
-                        anonymous: false,
-                        tagIds,
-                        attachments,
-                    },
+                    body,
                 });
                 // 저장 후 뒤로가기로 수정 페이지에 다시 돌아오지 않도록 히스토리를 교체한다.
                 navigate(`/community/post/${postId}`, { replace: true });
                 return;
             }
 
+            if (
+                new Set(uploadedAttachments.map((attachment) => attachment.fileKey)).size !==
+                uploadedAttachments.length
+            ) {
+                setFieldErrors({ attachments: '동일한 첨부파일 키를 중복해서 사용할 수 없습니다.' });
+                return;
+            }
+
             const response = await createCommunityPost({
+                params: { userId: numericUserId },
                 body: {
                     boardCode,
-                    title: title.trim(),
-                    content: content.trim(),
-                    anonymous: false,
+                    title,
+                    content,
+                    // 익명 여부는 작성 시에만 확정하며 위의 수정 PATCH에는 포함하지 않는다.
+                    anonymous,
                     tagIds,
                     attachments: uploadedAttachments,
                 },
@@ -409,7 +551,38 @@ export const WritePage = () => {
                 });
                 return;
             }
-            console.error('게시글 업로드/등록에 실패했습니다.', error);
+            const axiosError = error as AxiosError<CommunityErrorResponse>;
+            const validationErrors = axiosError.response?.data?.errors ?? [];
+            if (validationErrors.length > 0) {
+                // items[0].originalFilename 같은 서버 필드 경로를 화면의 첨부 오류로 묶어 표시한다.
+                const nextErrors: Record<string, string> = {};
+                validationErrors.forEach(({ field, message }) => {
+                    const normalizedField = field.startsWith('items[')
+                        ? 'attachments'
+                        : field === '$request'
+                            ? '$request'
+                            : field.split(/[.[]/, 1)[0];
+                    nextErrors[normalizedField] = message;
+                });
+                setFieldErrors(nextErrors);
+                if (nextErrors.$request) {
+                    setErrorPopUp({ title: '요청 오류', content: nextErrors.$request });
+                }
+                return;
+            }
+            const errorCode = axiosError.response?.data?.code;
+            if (errorCode === 43060) {
+                setFieldErrors({ tagIds: '유효하지 않은 태그가 포함되어 있습니다.' });
+                return;
+            }
+            if (errorCode === 49021 || errorCode === 49022) {
+                setFieldErrors({ attachments: '첨부파일 정보를 다시 확인해 주세요.' });
+                return;
+            }
+            setErrorPopUp({
+                title: '게시글 저장 오류',
+                content: axiosError.response?.data?.message ?? '잠시 후 다시 시도해 주세요.',
+            });
         } finally {
             setIsSubmitting(false);
             setIsConfirmOpen(false);
@@ -514,13 +687,23 @@ export const WritePage = () => {
                             name='title'
                             type='text'
                             value={title}
-                            onChange={(event) => setTitle(event.target.value)}
+                            maxLength={MAX_TITLE_LENGTH}
+                            onChange={(event) => {
+                                const value = sanitizeTitle(event.target.value);
+                                setTitle(value);
+                                setFieldErrors((previous) => ({ ...previous, title: '' }));
+                            }}
                             placeholder='제목'
                             className='w-full border-none bg-transparent p-0 text-b-18 outline-none placeholder:text-gray-650'
                             style={{
                                 color: title ? 'var(--ColorBlack, #202023)' : 'var(--ColorGray2, #A1A1A1)',
                             }}
                         />
+                        {fieldErrors.title ? (
+                            <span className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
+                                {fieldErrors.title}
+                            </span>
+                        ) : null}
                     </div>
 
                     {/* 필터 선택 */}
@@ -538,7 +721,23 @@ export const WritePage = () => {
                                 setSelectedTags((prev) => prev.filter((item) => item !== tag))
                             }
                         />
+                        {fieldErrors.tagIds ? (
+                            <span className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
+                                {fieldErrors.tagIds}
+                            </span>
+                        ) : null}
                     </div>
+
+                    {!isEditMode ? (
+                        <div className='flex items-center justify-between border-b border-[var(--ColorGray2,#A1A1A1)] px-[10px] py-[10px]'>
+                            <span className='text-r-14 text-[var(--ColorGray3,#646464)]'>익명으로 작성</span>
+                            <OnOffToggle
+                                toggled={anonymous}
+                                onToggle={setAnonymous}
+                                aria-label='익명 작성 여부'
+                            />
+                        </div>
+                    ) : null}
 
                     {/* 내용 입력 */}
                     <div className='flex w-full flex-1 flex-col' style={{ padding: isKeyboardUp ? '10px 10px 20px' : '15px 10px 40px' }}>
@@ -546,7 +745,11 @@ export const WritePage = () => {
                             id='community-content'
                             name='content'
                             value={content}
-                            onChange={(event) => setContent(event.target.value)}
+                            maxLength={MAX_CONTENT_LENGTH}
+                            onChange={(event) => {
+                                setContent(sanitizeContent(event.target.value));
+                                setFieldErrors((previous) => ({ ...previous, content: '' }));
+                            }}
                             placeholder='내용을 적어주세요'
                             className='min-h-[160px] w-full flex-1 border-none bg-transparent p-0 text-[16px] font-normal leading-[140%] tracking-[-0.64px] outline-none placeholder:text-gray-650'
                             style={{
@@ -556,6 +759,11 @@ export const WritePage = () => {
                                     : 'var(--ColorGray2, #A1A1A1)',
                             }}
                         />
+                        {fieldErrors.content ? (
+                            <span className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
+                                {fieldErrors.content}
+                            </span>
+                        ) : null}
                     </div>
                 </section>
 
@@ -709,12 +917,17 @@ export const WritePage = () => {
                             id='community-photos'
                             name='photos'
                             type='file'
-                            accept='image/*,application/pdf'
+                            accept='image/jpeg,image/png,image/webp,application/pdf'
                             multiple
                             className='hidden'
                             onChange={handleAttachmentChange}
                         />
                     </div>
+                    {fieldErrors.attachments ? (
+                        <div className='px-[25px] pb-[8px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
+                            {fieldErrors.attachments}
+                        </div>
+                    ) : null}
                 </div>
             </div>
             </div>

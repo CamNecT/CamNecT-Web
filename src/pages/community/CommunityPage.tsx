@@ -11,6 +11,10 @@ import { loggedInUserMajor } from '../../mock/community';
 import { getCommunityHome, getCommunityPosts } from '../../api/community';
 import type { CommunityPostItem, Sort, Tab } from '../../api-types/communityApiTypes';
 import { mapToInfoPost, mapToQuestionPost } from '../../utils/communityMapper';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useTagList } from '../../hooks/useTagList';
+import type { AxiosError } from 'axios';
+import type { CommunityErrorResponse } from '../../api-types/communityApiTypes';
 
 const tabItems: TabItem[] = [
   { id: 'all', label: '전체' },
@@ -40,7 +44,32 @@ const createInitialState = (): CommunityListState => ({
   error: null,
 });
 
+const dedupePosts = (items: CommunityPostItem[]) => {
+  // 정렬 기준 값이 실시간으로 변하면 페이지 사이에 같은 글이 섞일 수 있다.
+  const seen = new Set<number>();
+  return items.filter((item) => {
+    if (seen.has(item.postId)) return false;
+    seen.add(item.postId);
+    return true;
+  });
+};
+
+const sanitizeSearchKeyword = (value: string) =>
+  // 서버의 검색어 형식 검증(제어문자 금지)과 동일한 값만 남긴다.
+  Array.from(value)
+    .filter((character) => {
+      const code = character.charCodeAt(0);
+      return code >= 32 && !(code >= 127 && code <= 159);
+    })
+    .join('');
+
 type SortKey = 'recommended' | 'latest' | 'likes' | 'bookmarks';
+
+type ListQuery = {
+  keyword: string;
+  sort: Sort;
+  tagId?: number;
+};
 
 const mapSortKeyToApiSort = (sortKey: SortKey): Sort => {
   if (sortKey === 'latest') return 'LATEST';
@@ -52,6 +81,8 @@ const mapSortKeyToApiSort = (sortKey: SortKey): Sort => {
 
 export const CommunityPage = () => {
   const navigate = useNavigate();
+  const userId = useAuthStore((state) => state.user?.id);
+  const { mapTagNamesToIds } = useTagList();
   // 탭 선택 및 검색 UI 상태
   const [activeTab, setActiveTab] = useState<string>(() => {
     const stored = sessionStorage.getItem('communityActiveTab');
@@ -79,6 +110,8 @@ export const CommunityPage = () => {
   );
   const [infoSortKey, setInfoSortKey] = useState<SortKey>('latest');
   const [questionSortKey, setQuestionSortKey] = useState<SortKey>('latest');
+  const [infoTag, setInfoTag] = useState<string | null>(null);
+  const [questionTag, setQuestionTag] = useState<string | null>(null);
   const [mainState, setMainState] = useState<{
     tagId?: number;
     tagName?: string;
@@ -99,10 +132,16 @@ export const CommunityPage = () => {
     hasFetched: false,
   });
   const requestSeq = useRef({ INFO: 0, QUESTION: 0 });
-  const lastRequestRef = useRef({
-    INFO: { keyword: '', sort: 'LATEST' as Sort },
-    QUESTION: { keyword: '', sort: 'LATEST' as Sort },
+  const requestControllersRef = useRef<{
+    INFO: AbortController | null;
+    QUESTION: AbortController | null;
+  }>({ INFO: null, QUESTION: null });
+  const lastRequestRef = useRef<Record<'INFO' | 'QUESTION', ListQuery | null>>({
+    // 다음 페이지에도 첫 요청의 검색어·정렬·태그를 그대로 재사용한다.
+    INFO: null,
+    QUESTION: null,
   });
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const infoStateRef = useRef(infoState);
   const questionStateRef = useRef(questionState);
 
@@ -137,24 +176,32 @@ export const CommunityPage = () => {
   // 탭별 목록을 서버에서 조회 (페이징 포함)
   const fetchCommunityPosts = useCallback(
     async (
-      tab: Tab,
-      options: { append?: boolean; keyword?: string; sort?: Sort } = {},
+      tab: 'INFO' | 'QUESTION',
+      options: { append?: boolean; query?: ListQuery } = {},
     ) => {
-      if (tab === 'ALL') return;
-
       const isAppend = options.append ?? false;
-      const keyword = options.keyword ?? undefined;
-      const sort = options.sort ?? undefined;
       const state = getTabState(tab);
+      const query = isAppend ? lastRequestRef.current[tab] : options.query;
+      const numericUserId = Number(userId);
+
+      if (!query || !Number.isInteger(numericUserId) || numericUserId < 1) return;
 
       if (isAppend && (!state.hasNext || state.isLoadingMore || state.isLoading)) {
         return;
       }
 
-      if (!isAppend && sort) {
-        lastRequestRef.current[tab] = { keyword: keyword ?? '', sort };
+      if (isAppend) {
+        // 최신순은 cursorId만, 나머지 정렬은 두 커서를 모두 보내야 한다.
+        if (state.nextCursorId == null) return;
+        if (query.sort !== 'LATEST' && state.nextCursorValue == null) return;
+      } else {
+        // 새 검색 조건은 이전 네트워크 요청과 기존 커서를 모두 폐기한다.
+        requestControllersRef.current[tab]?.abort();
+        lastRequestRef.current[tab] = query;
       }
 
+      const controller = new AbortController();
+      requestControllersRef.current[tab] = controller;
       const requestId = ++requestSeq.current[tab];
 
       setTabState(tab, (previous) => ({
@@ -163,24 +210,43 @@ export const CommunityPage = () => {
         isLoadingMore: isAppend,
         error: null,
         items: isAppend ? previous.items : [],
+        nextCursorId: isAppend ? previous.nextCursorId : null,
+        nextCursorValue: isAppend ? previous.nextCursorValue : null,
+        hasNext: isAppend ? previous.hasNext : false,
       }));
 
       try {
+        const cursorParams = isAppend
+          ? query.sort === 'LATEST'
+            ? { cursorId: state.nextCursorId ?? undefined }
+            : {
+                cursorId: state.nextCursorId ?? undefined,
+                cursorValue: state.nextCursorValue ?? undefined,
+              }
+          : {};
         const response = await getCommunityPosts({
+          userId: numericUserId,
           tab,
-          keyword,
-          sort,
+          keyword: query.keyword || undefined,
+          sort: query.sort,
+          tagId: query.tagId,
           size: DEFAULT_PAGE_SIZE,
-          cursorId: isAppend ? state.nextCursorId ?? undefined : undefined,
-          cursorValue: isAppend ? state.nextCursorValue ?? undefined : undefined,
-        });
+          ...cursorParams,
+        }, { signal: controller.signal });
 
         if (requestId !== requestSeq.current[tab]) return;
 
         const page = response.data;
 
         setTabState(tab, (previous) => ({
-          items: isAppend ? [...previous.items, ...page.items] : page.items,
+          items: isAppend
+            ? [
+                ...previous.items,
+                ...page.items.filter(
+                  (item) => !previous.items.some((post) => post.postId === item.postId),
+                ),
+              ]
+            : dedupePosts(page.items),
           nextCursorId: page.nextCursorId,
           nextCursorValue: page.nextCursorValue,
           hasNext: page.hasNext,
@@ -188,17 +254,35 @@ export const CommunityPage = () => {
           isLoadingMore: false,
           error: null,
         }));
-      } catch {
+      } catch (error) {
+        if (controller.signal.aborted) return;
         if (requestId !== requestSeq.current[tab]) return;
+        const code = (error as AxiosError<CommunityErrorResponse>).response?.data?.code;
         setTabState(tab, (previous) => ({
           ...previous,
+          nextCursorId: isAppend ? null : previous.nextCursorId,
+          nextCursorValue: isAppend ? null : previous.nextCursorValue,
+          hasNext: isAppend ? false : previous.hasNext,
           isLoading: false,
           isLoadingMore: false,
-          error: '커뮤니티 글을 불러오지 못했어요.',
+          error:
+            code === 43040
+              ? '목록 커서가 만료되어 새로고침이 필요해요.'
+              : code === 43041
+                ? '검색어를 다시 확인해 주세요.'
+                : '커뮤니티 글을 불러오지 못했어요.',
         }));
       }
     },
-    [getTabState, setTabState],
+    [getTabState, setTabState, userId],
+  );
+
+  useEffect(
+    () => () => {
+      requestControllersRef.current.INFO?.abort();
+      requestControllersRef.current.QUESTION?.abort();
+    },
+    [],
   );
 
   const infoPostsFromApi = useMemo(
@@ -248,31 +332,43 @@ export const CommunityPage = () => {
       if (activeTab === 'info') {
         const state = getTabState('INFO');
         const apiSort = mapSortKeyToApiSort(infoSortKey);
+        const tagId = infoTag ? mapTagNamesToIds([infoTag])[0] : undefined;
+        const query: ListQuery = { keyword: debouncedQuery, sort: apiSort, tagId };
         const lastRequest = lastRequestRef.current.INFO;
         const isNewRequest =
-          lastRequest.keyword !== debouncedQuery || lastRequest.sort !== apiSort;
+          !lastRequest ||
+          lastRequest.keyword !== query.keyword ||
+          lastRequest.sort !== query.sort ||
+          lastRequest.tagId !== query.tagId;
         if (isNewRequest || (!state.isLoading && state.items.length === 0 && !state.error)) {
-          fetchCommunityPosts('INFO', { keyword: debouncedQuery, sort: apiSort });
+          fetchCommunityPosts('INFO', { query });
         }
       }
       if (activeTab === 'question') {
         const state = getTabState('QUESTION');
         const apiSort = mapSortKeyToApiSort(questionSortKey);
+        const tagId = questionTag ? mapTagNamesToIds([questionTag])[0] : undefined;
+        const query: ListQuery = { keyword: debouncedQuery, sort: apiSort, tagId };
         const lastRequest = lastRequestRef.current.QUESTION;
         const isNewRequest =
-          lastRequest.keyword !== debouncedQuery || lastRequest.sort !== apiSort;
+          !lastRequest ||
+          lastRequest.keyword !== query.keyword ||
+          lastRequest.sort !== query.sort ||
+          lastRequest.tagId !== query.tagId;
         if (isNewRequest || (!state.isLoading && state.items.length === 0 && !state.error)) {
-          fetchCommunityPosts('QUESTION', { keyword: debouncedQuery, sort: apiSort });
+          fetchCommunityPosts('QUESTION', { query });
         }
       }
       if (activeTab === 'all') {
+        const numericUserId = Number(userId);
+        if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
         if (
           !mainState.isLoading &&
           !mainState.hasFetched &&
           !mainState.error
         ) {
           setMainState((previous) => ({ ...previous, isLoading: true, error: null }));
-          getCommunityHome()
+          getCommunityHome({ userId: numericUserId })
             .then((response) => {
               const recommendedByTag = response.data.recommendedByTag ?? [];
               const recommendedByInterest = response.data.recommendedByInterest ?? [];
@@ -306,12 +402,43 @@ export const CommunityPage = () => {
     debouncedQuery,
     infoSortKey,
     questionSortKey,
+    infoTag,
+    questionTag,
     fetchCommunityPosts,
     getTabState,
+    mapTagNamesToIds,
+    userId,
     mainState.isLoading,
     mainState.error,
     mainState.hasFetched,
   ]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || activeTab === 'all') return;
+    const tab = activeTab === 'info' ? 'INFO' : 'QUESTION';
+    const state = getTabState(tab);
+    if (!state.hasNext || state.isLoading || state.isLoadingMore) return;
+
+    // 목록 하단 접근 시 hasNext가 남아 있는 경우에만 다음 커서 페이지를 요청한다.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchCommunityPosts(tab, { append: true });
+        }
+      },
+      { rootMargin: '240px 0px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [activeTab, fetchCommunityPosts, getTabState, infoState, questionState]);
+
+  const retryActiveList = () => {
+    // 잘못된 커서 등으로 실패하면 커서 없이 현재 조건의 첫 페이지부터 복구한다.
+    const tab = activeTab === 'info' ? 'INFO' : 'QUESTION';
+    const query = lastRequestRef.current[tab];
+    if (query) void fetchCommunityPosts(tab, { query });
+  };
 
   // 현재 탭에 맞는 화면 반환
   const renderTab = () => {
@@ -321,6 +448,8 @@ export const CommunityPage = () => {
           posts={infoPostsFromApi}
           sortKey={infoSortKey}
           onSortChange={setInfoSortKey}
+          selectedTag={infoTag}
+          onTagChange={setInfoTag}
         />
       );
     if (activeTab === 'question')
@@ -329,6 +458,8 @@ export const CommunityPage = () => {
           posts={questionPostsFromApi}
           sortKey={questionSortKey}
           onSortChange={setQuestionSortKey}
+          selectedTag={questionTag}
+          onTagChange={setQuestionTag}
         />
       );
     return (
@@ -361,8 +492,11 @@ export const CommunityPage = () => {
                 <input
                   type='text'
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder='제목, 내용, 태그, 검색'
+                  maxLength={100}
+                  onChange={(event) =>
+                    setSearchQuery(sanitizeSearchKeyword(event.target.value))
+                  }
+                  placeholder='제목, 내용 검색'
                   className='flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
               </div>
@@ -391,7 +525,28 @@ export const CommunityPage = () => {
         </div>
       }
     >
-      <div>{renderTab()}</div>
+      <div className='min-h-0 flex-1 overflow-y-auto'>
+        {renderTab()}
+        {activeTab === 'info' && infoState.error ? (
+          <div className='flex flex-col items-center gap-[8px] px-[25px] py-[15px] text-center text-r-14 text-[var(--Color_Red,#FF3838)]'>
+            <span>{infoState.error}</span>
+            <button type='button' onClick={retryActiveList} className='text-m-14 text-[var(--ColorMain,#00C56C)]'>
+              처음부터 다시 불러오기
+            </button>
+          </div>
+        ) : null}
+        {activeTab === 'question' && questionState.error ? (
+          <div className='flex flex-col items-center gap-[8px] px-[25px] py-[15px] text-center text-r-14 text-[var(--Color_Red,#FF3838)]'>
+            <span>{questionState.error}</span>
+            <button type='button' onClick={retryActiveList} className='text-m-14 text-[var(--ColorMain,#00C56C)]'>
+              처음부터 다시 불러오기
+            </button>
+          </div>
+        ) : null}
+        {activeTab !== 'all' ? (
+          <div ref={loadMoreRef} className='h-[24px]' aria-hidden='true' />
+        ) : null}
+      </div>
     </HeaderLayout>
   );
 };
