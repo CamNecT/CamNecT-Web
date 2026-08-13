@@ -477,7 +477,8 @@ export const CommunityPage = () => {
         <div className='sticky top-0 z-50 bg-white'>
           {isSearchOpen && activeTab !== 'all' ? (
             <div className='px-[25px]'>
-              <div className='mx-auto flex w-full max-w-[720px] items-center gap-[15px] py-[10px]'>
+              {/* 검색 전후 헤더 높이를 같게 유지해 탭과 목록이 위아래로 흔들리지 않게 한다. */}
+              <div className='mx-auto flex h-[50px] w-full max-w-[720px] items-center gap-[15px]'>
                 <button
                   type='button'
                   onClick={() => {
@@ -504,6 +505,8 @@ export const CommunityPage = () => {
           ) : (
             <MainHeader
               title='커뮤니티'
+              className='h-[50px] min-h-[50px] py-[11px]'
+              headerPaddingTop={11}
               leftAction={{
                 onClick: () => navigate('/home', { replace: true }),
                 ariaLabel: '홈으로 이동',

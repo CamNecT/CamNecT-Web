@@ -15,7 +15,8 @@ const FilterIcon = ({
   style,
 }: FilterIconProps) => {
   const buttonClassName = [
-    'flex items-center justify-center p-0 bg-transparent rounded-[3px]',
+    // 적용된 필터 칩과 동일한 높이로 맞춰 필터 영역의 세로폭을 일정하게 유지한다.
+    'flex h-[25px] w-[25px] items-center justify-center rounded-[3px] bg-transparent p-0',
     className,
   ]
     .filter(Boolean)
@@ -32,8 +33,8 @@ const FilterIcon = ({
       style={{ border: '1px solid var(--ColorGray2, #A1A1A1)', ...style }}
     >
       <svg
-        width='24'
-        height='24'
+        width='23'
+        height='23'
         viewBox='0 0 24 24'
         fill='none'
         xmlns='http://www.w3.org/2000/svg'
