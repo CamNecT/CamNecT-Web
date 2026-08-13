@@ -331,8 +331,6 @@ const CommunityPostPage = () => {
         headerSlot={
           <MainHeader
             title='커뮤니티'
-            className='h-[50px] min-h-[50px] py-[11px]'
-            headerPaddingTop={11}
             leftAction={{
               // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
               onClick: () => navigate(-1),
@@ -691,8 +689,6 @@ const CommunityPostPage = () => {
       headerSlot={
         <MainHeader
           title='커뮤니티'
-          className='h-[50px] min-h-[50px] py-[11px]'
-          headerPaddingTop={11}
           leftAction={{
             // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
             onClick: () => navigate(-1),

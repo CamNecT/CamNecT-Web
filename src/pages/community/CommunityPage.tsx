@@ -505,8 +505,6 @@ export const CommunityPage = () => {
           ) : (
             <MainHeader
               title='커뮤니티'
-              className='h-[50px] min-h-[50px] py-[11px]'
-              headerPaddingTop={11}
               leftAction={{
                 onClick: () => navigate('/home', { replace: true }),
                 ariaLabel: '홈으로 이동',
