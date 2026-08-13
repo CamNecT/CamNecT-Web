@@ -242,13 +242,13 @@ export const PortfolioDetailPage = ({
                                     {/* 프로젝트 역할 */}
                                     <div className="flex items-center gap-[10px]">
                                         <span className="text-m-14-hn text-gray-750 min-w-[77px]">프로젝트 역할</span>
-                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.assignedRole[0] || ""}</span>
+                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.assignedRole.join(', ')}</span>
                                     </div>
 
                                     {/* 사용 기술 */}
                                     <div className="flex items-center gap-[10px]">
                                         <span className="text-m-14-hn text-gray-750 min-w-[77px]">사용 기술</span>
-                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.techStack[0] || ""}</span>
+                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.techStack.join(', ')}</span>
                                     </div>
                                 </div>
                             </div>
