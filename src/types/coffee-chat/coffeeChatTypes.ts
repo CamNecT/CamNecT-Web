@@ -26,8 +26,9 @@ export interface PostAttachment {
   description?: string; // 게시글 본문 일부 (옵션)
 }
 
-// pending : 서버 저장 확인 전 / sent : ACK 수신 or 서버 메시지 수신 완료 / failed : chat-errors 수신 
-export type ChatMessageDeliveryState = 'pending' | 'sent' | 'failed';
+// pending : 서버 응답 대기 / unconfirmed : 응답 제한 시간을 넘겼지만 저장 여부 미확정
+// sent : ACK 수신 or 서버 메시지 수신 완료 / failed : chat-errors로 미전송 확정
+export type ChatMessageDeliveryState = 'pending' | 'unconfirmed' | 'sent' | 'failed';
 
 // 3. 채팅 메시지 
 export interface ChatMessage {
