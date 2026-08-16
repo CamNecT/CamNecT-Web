@@ -54,11 +54,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const { user } = useAuthStore();
 
-    // STOMP 연결 여부 전역 상태 및 전송 대기 메시지 리스트
-    const {isStompConnected, pendingMessages} = useChatStore(
+    // 전송 대기 메시지 리스트
+    const { pendingMessages, removeFailedPendingMessage } = useChatStore(
         useShallow((state) => ({
-            isStompConnected: state.isStompConnected,
             pendingMessages: state.pendingMessages,
+            removeFailedPendingMessage: state.removeFailedPendingMessage,
         }))
     );
 
@@ -168,9 +168,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const isLoading = isRoomLoading;
     const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited;
 
-    // STOMP 연결 상태와 채팅방 사용 불가능 여부를 조합해 입력창 비활성화 상태 계산
-    // todo hasFailedMessage 추가해야됨
-    const isSendDisabled = !isStompConnected || isChatUnavailable;
+    // 오프라인에서도 로컬 실패 메시지를 만들 수 있도록 연결 상태로 전송 버튼을 막지 않음
+    const isSendDisabled = isChatUnavailable;
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const roomInfo = chatRoomData?.partner;
@@ -339,6 +338,22 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         if (isChatUnavailable) return false;
 
         return sendMessage(text);
+    }
+
+    // 서버가 미전송으로 확정한 failed 메시지만 삭제한다.
+    // 삭제는 로컬 대기 항목 제거만 수행하며 publish를 호출하지 않는다.
+    const handleRemoveMessage = (clientMessageId: string) => {
+        setOpenFailedMenuId(null); // 메뉴 닫기
+
+        setConfirmPopUpConfig({
+            title: "전송을 취소하시겠습니까?",
+            content: "해당 메시지는 삭제됩니다.",
+            leftButtonText: "삭제",
+            onConfirm: () => {
+                removeFailedPendingMessage(clientMessageId);
+                setConfirmPopUpConfig(null);
+            }
+        });
     }
 
     // 채팅 종료 함수
@@ -517,6 +532,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 <div className="flex flex-col mt-[40px] px-[25px]">
                     {localMessages.map((msg, index) => {
                         const isMe = String(msg.senderId) === myId;
+                        const clientMessageId = msg.clientMessageId; // 삭제 식별용 아이디
 
                         // 날짜 구분선 표시 여부 확인
                         const showDateDivider = index === 0 || !dayjs(msg.createdAt).isSame(dayjs(localMessages[index - 1].createdAt), 'day');
@@ -533,7 +549,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             ? (isSameAsNext ? 'rounded-[20px]' : 'rounded-l-[20px] rounded-br-[20px] rounded-tr-none')
                             : (isSameAsNext ? 'rounded-[20px]' : 'rounded-t-[20px] rounded-br-[20px] rounded-bl-none');
                         
-                        const isPending = msg.deliveryState === 'pending'; 
+                        const isPending = msg.deliveryState === 'pending';
+                        const isUnconfirmed = msg.deliveryState === 'unconfirmed';
                         const isFailed = msg.deliveryState === 'failed'; 
                     
                         return (
@@ -587,7 +604,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             <div className="flex items-center gap-[7px] relative">
                                                 <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
                                                     ${isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'}
-                                                    ${isPending ? 'opacity-40' : ''}`}>
+                                                    ${isPending || isUnconfirmed ? 'opacity-40' : ''}`}>
                                                         {msg.content}
                                                 </div>
 
@@ -619,10 +636,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                                     onClick: () => setOpenFailedMenuId(null),
                                                                 },
                                                                 {
-                                                                    // todo 메시지 삭제 기능 구현 후 핸들러 연결
-                                                                    label: "메시지 삭제",
+                                                                    label: "전송 취소",
                                                                     labelClassName: "text-m-16 tracking-[-0.4px] text-red",
-                                                                    onClick: () => setOpenFailedMenuId(null),
+                                                                    onClick: () => clientMessageId && handleRemoveMessage(clientMessageId),
                                                                 },
                                                             ]}
                                                         />
@@ -666,6 +682,12 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             shrink-0 mr-[1px] inline-flex items-center">
                                                 <span>전송 중</span>
                                                 <span className="inline-block w-[9px] text-left animate-loading-dots" />
+                                            </span>
+                                        )}
+
+                                        {isUnconfirmed && (
+                                            <span className="text-r-12 text-gray-750 tracking-[-0.24px] shrink-0 mr-[1px]">
+                                                전송 여부 확인 중
                                             </span>
                                         )}
                                     </div>
