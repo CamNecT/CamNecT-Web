@@ -11,47 +11,60 @@ export const useStompChat = (roomId: number) => {
     // 모든 실시간 메시지들 (수신 / 발신)
     const [messages, setMessages] = useState<StompMessageResponse[]>([]);
 
-    const { addPendingMessage, removePendingMessage } = useChatStore(
+    const {
+        addPendingMessage,
+        markPendingMessagePublishFailed,
+        removePendingMessage,
+    } = useChatStore(
         useShallow((state) => ({
             addPendingMessage: state.addPendingMessage,
+            markPendingMessagePublishFailed: state.markPendingMessagePublishFailed,
             removePendingMessage: state.removePendingMessage,
         }))
     );
 
     // 1. 메시지 발행 함수 (발신) - useCallback으로 메모이제이션 
     const sendMessage = useCallback((content: string): boolean => {
-        // stomp 연결 여부 검사
-        if (!stompClient.connected) {
-            
-            console.log("소켓 연결 안됨 (발신함수)");
-            return false; 
-        }
-
         // 논리 메시지 ID 생성 (서버 ACK 받기 전 UI 렌더용)
         const clientMessageId = crypto.randomUUID();
-        const attemptedAt = new Date().toISOString(); // pending 메시지 생성 시간
+        const createdAt = new Date().toISOString();
+
+        // 현재 온라인이고 STOMP 연결이 되어 있는지 확인
+        const canPublish = navigator.onLine && stompClient.connected;
 
         const requestMessage: StompMessageRequest = { clientMessageId, roomId, content };
         const pendingMessage: StompPendingChatMessage = {
             roomId,
             content,
-            createdAt: attemptedAt,
-            lastAttemptAt: attemptedAt,
+            createdAt,
+            lastAttemptAt: canPublish ? createdAt : null,
             clientMessageId,
             state: 'pending',
+            publishAttempted: canPublish,
             retryCount: 0,
         };
 
-        addPendingMessage(pendingMessage); // pending 전역상태 말풍선에 추가 (publish 이전)
+        // 연결 여부와 관계없이 먼저 로컬 말풍선 생성
+        addPendingMessage(pendingMessage);
 
-        // STOMP 연결여부 검사 후 발송 
-        stompClient.publish({
-            destination: `/pub/chat/message`,
-            body: JSON.stringify(requestMessage) // STOMP는 String형태로만 전송가능
-        });
+        // 오프라인 메시지는 로컬에만 남기고 전송 X
+        if (!canPublish) {
+            return true;
+        }
+
+        try {
+            stompClient.publish({
+                destination: `/pub/chat/message`,
+                body: JSON.stringify(requestMessage),
+            });
+        } catch (error) {
+            // 연결 확인 직후 끊겨 publish 자체가 실패한 경우 미전송 상태로 보존
+            console.error("메시지 publish 실패:", error);
+            markPendingMessagePublishFailed(clientMessageId);
+        }
         
-        return true; // pending 등록 및 publish 요청 실행 완료
-    }, [roomId, addPendingMessage]);
+        return true; // 로컬 메시지 등록 완료
+    }, [roomId, addPendingMessage, markPendingMessagePublishFailed]);
 
     // 2. 채팅방 나가기 함수 - useCallback으로 메모이제이션 (없었을때의 안읽은 채팅뱃지 개수 문제)
     const leaveChatRoom = useCallback(() => {

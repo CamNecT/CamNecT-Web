@@ -69,19 +69,21 @@ export interface StompMessageRequest {
 }
 
 // 8. 클라이언트에서 관리하는 전송 대기 메시지 상태
-export type StompPendingState = 'pending' | 'sent' | 'failed';
+// unconfirmed: 제한 시간 안에 ACK/ERROR를 받지 못해 서버 저장 여부를 아직 확정할 수 없는 상태
+export type StompPendingState = 'pending' | 'unconfirmed' | 'sent' | 'failed';
 
-// 전송 실패 원인
-export type StompPendingFailureKind = 'timeout' | 'server';
+// 전송 상태를 확정하지 못한 원인 또는 전송 실패 원인
+export type StompPendingFailureKind = 'offline' | 'timeout' | 'server';
 
 export interface StompPendingChatMessage {
     roomId: number; // 채팅방 ID
     content: string; // 최초 전송 내용
     createdAt: string; // pending 메시지 생성 시간
-    lastAttemptAt: string; // 마지막 전송시도 시각
+    lastAttemptAt: string | null; // 마지막 publish 시도 시각. 아직 publish하지 않았으면 null
     clientMessageId: string; // 최초 생성한 UUID
     serverMessageId?: number; // ACK로 확인한 서버 메시지 ID
     state: StompPendingState; // 현재 전송 상태
+    publishAttempted: boolean; // 이 논리 메시지에 대해 실제 publish를 호출했는지 여부
     retryCount: number; // 재시도 횟수
     failureKind?: StompPendingFailureKind; // 전송 실패 원인
     errorCode?: number; // 전송 실패 시 서버 오류 코드
