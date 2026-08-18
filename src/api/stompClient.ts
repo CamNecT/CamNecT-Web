@@ -32,4 +32,14 @@ export const stompClient = new Client({
         console.error('STOMP Error:', frame.headers['message']);
         console.log('STOMP Error Details:', frame.body);
     },
-})
+});
+
+// localhost 재연결 테스트 전용 — 테스트 후 제거
+// 명령어 : window.__stompClient.forceDisconnect();
+if (isLocalDevHost()) {
+    (
+        window as Window & {
+            __stompClient?: Client;
+        }
+    ).__stompClient = stompClient;
+}
