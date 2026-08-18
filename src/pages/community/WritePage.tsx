@@ -1,6 +1,6 @@
 import type { AxiosError } from 'axios';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type {
     CommunityErrorResponse,
     CommunityUploadPresignItemResponse,
@@ -71,6 +71,7 @@ const areAttachmentKeysEqual = (left: string[], right: string[]) =>
 
 export const WritePage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { postId } = useParams();
     const isEditMode = Boolean(postId);
     const { filterCategories, filterTags, mapTagNamesToIds, mapTagIdToName, mapTagIdsToNames } = useTagList();
@@ -80,7 +81,11 @@ export const WritePage = () => {
     // 수정 전 첨부파일 목록과 비교해서 변경 여부를 판단하기 위해 보관한다.
     const originalAttachmentKeysRef = useRef<string[]>([]);
 
-    const initialBoardType = (editPost?.boardType as BoardType | undefined) ?? null;
+    const navigationBoardType = (location.state as { boardType?: unknown } | null)?.boardType;
+    // 탭에서 새 글을 작성할 때만 현재 게시판을 이어받고, 직접 진입이나 수정은 기존 흐름을 유지한다.
+    const initialBoardType = isEditMode
+        ? (editPost?.boardType as BoardType | undefined) ?? null
+        : boardTypes.find((type) => type === navigationBoardType) ?? null;
     const initialTitle = editPost?.title ?? '';
     const initialContent = editPost?.content ?? '';
 

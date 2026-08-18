@@ -171,7 +171,7 @@ const QuestionTab = ({
         maxSelected={2}
       />
 
-      <WriteButton />
+      <WriteButton boardType='질문' />
     </div>
   );
 };

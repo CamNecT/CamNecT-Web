@@ -150,7 +150,7 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange }: Inf
         maxSelected={1}
       />
 
-      <WriteButton />
+      <WriteButton boardType='정보' />
     </div>
   );
 };
