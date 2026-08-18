@@ -60,6 +60,7 @@ const CommunityPostPage = () => {
     name: authUser?.name ?? loggedInUserProfile.name,
   };
   const currentUserIdForOwnership = authUser?.id ?? loggedInUserProfile.id;
+  const userId = authUser?.id;
   // 옵션/팝업/이미지 실패 등 화면 단일 상태
   const [isOptionOpen, setIsOptionOpen] = useState(false);
   const [selectedIsMine, setSelectedIsMine] = useState(false);
@@ -115,7 +116,6 @@ const CommunityPostPage = () => {
     (isPostMine ? 'GRANTED' : 'NEED_PURCHASE');
   const isLockedQuestion =
     !isPostMine && accessStatus !== 'GRANTED';
-  const userId = useAuthStore((state) => state.user?.id);
   // 잠긴 질문글 포인트 구매 API를 mutation으로 관리해 요청 상태와 후처리를 한곳에 둡니다.
   const purchasePostAccessMutation = useMutation({
     mutationFn: (params: { postId: number | string; userId: number }) =>
@@ -323,6 +323,22 @@ const CommunityPostPage = () => {
         type: 'loading',
         title: '게시글을 불러오는 중입니다',
       }
+    : !userId
+      ? {
+          type: 'confirm',
+          title: '로그인이 필요합니다',
+          content: '서비스를 이용하시려면 로그인을 해주세요.',
+          buttonText: '로그인하러 가기',
+          onClick: () => navigate('/login', { replace: true }),
+        }
+      : detailError
+        ? {
+            type: 'error',
+            title: '일시적 오류',
+            content: '잠시 후 다시 시도해주세요.',
+            rightButtonText: '확인',
+            onClick: () => navigate(-1),
+          }
     : popUpConfig;
 
   if (!selectedPost) {

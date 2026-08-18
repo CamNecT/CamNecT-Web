@@ -23,14 +23,33 @@ export const usePost = ({ postId }: UsePostParams) => {
 
   // 게시글 상세를 재조회하는 공용 함수
   const refetchPost = useCallback(() => {
-    if (!postId) return;
+    if (!postId) {
+      setSelectedPost(null);
+      setLikedByMe(false);
+      setDetailError(true);
+      setIsLoading(false);
+      return;
+    }
     // 모든 ID는 1 이상의 정수라는 API 계약을 만족할 때만 요청한다.
     const numericUserId = Number(userId);
-    if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
+    if (!Number.isInteger(numericUserId) || numericUserId < 1) {
+      setSelectedPost(null);
+      setLikedByMe(false);
+      setDetailError(false);
+      setIsLoading(false);
+      return;
+    }
     const numericPostId = Number(postId);
-    if (!Number.isInteger(numericPostId) || numericPostId < 1) return;
+    if (!Number.isInteger(numericPostId) || numericPostId < 1) {
+      setSelectedPost(null);
+      setLikedByMe(false);
+      setDetailError(true);
+      setIsLoading(false);
+      return;
+    }
     if (isFetchingRef.current) return;
 
+    setIsLoading(true);
     isFetchingRef.current = true;
     getCommunityPostDetail({
       postId: numericPostId,

@@ -317,13 +317,20 @@ export const WritePage = () => {
         if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
         const numericPostId = Number(postId);
         if (!Number.isInteger(numericPostId) || numericPostId < 1) return;
+        let isActive = true;
         getCommunityPostDetail({ postId: numericPostId, params: { userId: numericUserId } })
             .then((response) => {
+                if (!isActive) return;
                 setEditPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
             })
             .catch(() => {
+                if (!isActive) return;
                 setEditPost(mapToCommunityPost(postId));
             });
+
+        return () => {
+            isActive = false;
+        };
     }, [isEditMode, postId, userId, mapTagIdToName]);
 
     useEffect(() => {
