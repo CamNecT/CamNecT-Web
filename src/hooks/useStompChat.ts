@@ -17,6 +17,7 @@ export const useStompChat = (roomId: number) => {
 
     // 모든 실시간 메시지들 (수신 / 발신)
     const [messages, setMessages] = useState<StompMessageResponse[]>([]);
+    // PWA/FCM 직접 진입 시 현재 방 구독이 생성되기 전까지 채팅 화면 렌더링을 보류
     const [isRoomSubscriptionReady, setIsRoomSubscriptionReady] = useState(false);
 
     const {
@@ -89,9 +90,10 @@ export const useStompChat = (roomId: number) => {
 
         // 특정 roomId 구독 함수
         const performSubscribe = () => {
-            // todo 연결 안되면 return -> FCM 푸시 알림 클릭 후 바로 접근하면...?
-            if (!stompClient.connected || subscription) return;
-            
+            // 연결 전 호출은 건너뛰고, 연결 완료 이벤트에서 다시 시도
+            if (!stompClient.connected) return;
+
+            // 재연결 시 이전 연결의 구독은 이미 종료됐으므로 새 구독 객체로 덮어쓴다.
             subscription = stompClient.subscribe(`/sub/chat/room/${roomId}`, (message) => {
                 // 개별 채팅방 구독시의 서버의 응답
                 const data: StompChatResponse = JSON.parse(message.body); // String -> Object 변환 (응답 response)
@@ -158,18 +160,21 @@ export const useStompChat = (roomId: number) => {
             performSubscribe();
         };
 
-        if (stompClient.connected) {
-            performSubscribe();
-        } else {
-            // stomp-connected 발생 시 performSubscribe(채팅방 구독) 실행
-            window.addEventListener('stomp-connected', handleStompConnected);
+        // 현재 연결 여부와 무관하게 리스너를 유지해 이후의 모든 재연결을 처리
+        window.addEventListener('stomp-connected', handleStompConnected);
 
-            // todo 여기에 setIsRoom~ (false) 넣어야되는지 (현재 해당 state를 false 처리가 없음)
-        }
+        // 마운트 시 이미 연결된 경우에는 연결 이벤트를 기다리지 않고 즉시 구독
+        performSubscribe();
 
         return () => {
-            // 구독 시 구독취소 로직
-            if (subscription) subscription.unsubscribe();
+            // 끊어진 연결에는 UNSUBSCRIBE를 보낼 수 없으므로 살아 있는 구독만 해제
+            if (subscription && stompClient.connected) {
+                subscription.unsubscribe();
+            }
+
+            // 종료된 연결의 구독 객체가 다음 생명주기에 남지 않도록 참조를 비움
+            subscription = null;
+
             window.removeEventListener('stomp-connected', handleStompConnected);
             leaveChatRoom();
         };
