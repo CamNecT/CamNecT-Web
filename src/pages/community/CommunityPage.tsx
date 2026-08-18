@@ -112,6 +112,7 @@ export const CommunityPage = () => {
   const [questionSortKey, setQuestionSortKey] = useState<SortKey>('latest');
   const [infoTag, setInfoTag] = useState<string | null>(null);
   const [questionTag, setQuestionTag] = useState<string | null>(null);
+  const [questionAdoptionFilter, setQuestionAdoptionFilter] = useState<string | null>(null);
   const [mainState, setMainState] = useState<{
     tagId?: number;
     tagName?: string;
@@ -460,6 +461,8 @@ export const CommunityPage = () => {
           onSortChange={setQuestionSortKey}
           selectedTag={questionTag}
           onTagChange={setQuestionTag}
+          adoptionFilter={questionAdoptionFilter}
+          onAdoptionFilterChange={setQuestionAdoptionFilter}
         />
       );
     return (
@@ -467,6 +470,11 @@ export const CommunityPage = () => {
         tagName={mainState.tagName ?? loggedInUserMajor}
         recommendedPosts={recommendedPosts}
         unansweredQuestions={unansweredQuestions}
+        onViewWaitingQuestions={() => {
+          // 전체 탭의 대기 질문 진입은 질문 목록과 미채택 상태를 함께 보여준다.
+          setQuestionAdoptionFilter('채택 전');
+          setActiveTab('question');
+        }}
       />
     );
   };

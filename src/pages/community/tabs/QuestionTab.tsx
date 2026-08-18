@@ -24,6 +24,8 @@ type QuestionTabProps = {
   onSortChange: (next: SortKey) => void;
   selectedTag: string | null;
   onTagChange: (next: string | null) => void;
+  adoptionFilter: string | null;
+  onAdoptionFilterChange: (next: string | null) => void;
 };
 
 // 질문 탭: 필터 + 정렬 + 질문글 리스트
@@ -33,8 +35,9 @@ const QuestionTab = ({
   onSortChange,
   selectedTag,
   onTagChange,
+  adoptionFilter,
+  onAdoptionFilterChange,
 }: QuestionTabProps) => {
-  const [adoptionFilter, setAdoptionFilter] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
   const selectedTags = [selectedTag, adoptionFilter].filter(
@@ -58,7 +61,7 @@ const QuestionTab = ({
             activeFilters={selectedTags}
             onOpenFilter={() => setIsFilterOpen(true)}
             onRemoveFilter={(tag) => {
-              if (tag === adoptionFilter) setAdoptionFilter(null);
+              if (tag === adoptionFilter) onAdoptionFilterChange(null);
               if (tag === selectedTag) onTagChange(null);
             }}
           />
@@ -152,7 +155,7 @@ const QuestionTab = ({
         onClose={() => setIsFilterOpen(false)}
         onSave={(next) => {
           const adoptionTags = ['채택 전', '채택 완료'];
-          setAdoptionFilter(next.find((tag) => adoptionTags.includes(tag)) ?? null);
+          onAdoptionFilterChange(next.find((tag) => adoptionTags.includes(tag)) ?? null);
           onTagChange(next.find((tag) => !adoptionTags.includes(tag)) ?? null);
           setIsFilterOpen(false);
         }}
