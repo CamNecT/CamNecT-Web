@@ -1,16 +1,12 @@
-import type { StompSubscription } from "@stomp/stompjs";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
-import type { StompChatResponse } from "../../api-types/stompApiTypes";
-import { isReadReceipt } from "../../api-types/stompApiTypes";
-import { stompClient } from "../../api/stompClient";
 import Icon from "../../components/Icon";
 import PopUp from "../../components/Pop-up";
 import Toggle from "../../components/Toggle/Toggle";
-import { useChatRoom, useChatRoomClose, useChatRoomExit, type ChatRoomDetailData } from "../../hooks/useChatQuery";
+import { useChatRoom, useChatRoomClose, useChatRoomExit} from "../../hooks/useChatQuery";
 import { useStompChat } from "../../hooks/useStompChat";
 import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
@@ -66,14 +62,13 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const { mutate: endChat } = useChatRoomClose();
     const { mutate: exitChat } = useChatRoomExit();
 
-    const {messages: socketMessages, sendMessage, leaveChatRoom} = useStompChat(Number(roomId));
+    const { messages: socketMessages,
+        sendMessage, leaveChatRoom,
+        isRoomSubscriptionReady} = useStompChat(Number(roomId));
 
     // 검색 관련 상태
     const [isSearching, setIsSearching] = useState(false);
     const [roomSearchQuery, setRoomSearchQuery] = useState("");
-
-    // 소켓 연결 상태를 추적할 로컬 상태 (지연 초기화로 최신 상태 반영)
-    const [isSocketReady, setIsSocketReady] = useState(() => stompClient.connected);
 
     // 메뉴 관련 상태
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -94,58 +89,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [openFailedMenuId, setOpenFailedMenuId] = useState<string | null>(null);
 
     // 메뉴 바깥 클릭/터치 감지 로직은 ChatDropdown 컴포넌트로 이동함 (menuRef, useEffect 제거)
-
-    // 실시간 읽음 처리 (Read Receipt) 감시 및 캐시 동기화
-    useEffect(() => {
-        let subscription: StompSubscription | null = null;
-
-        // 채팅방 구독 함수
-        const performSubscribe = () => {
-            if (!stompClient.connected || subscription) return;
-
-            subscription = stompClient.subscribe(`/sub/chat/room/${roomId}`, (message) => {
-                const data: StompChatResponse = JSON.parse(message.body);
-
-                if (isReadReceipt(data)) {
-                    // setQueryData : 로컬 캐시 데이터를 업데이트 (updater 함수의 첫 인자는 oldData)
-                    queryClient.setQueryData(['chatRoom', roomId], (oldData: ChatRoomDetailData | undefined) => {
-                        if (!oldData) return oldData;
-                        return {
-                            ...oldData, // 다른 property들은 유지
-                            messages: oldData.messages.map((msg: ChatMessage) =>
-                                Number(msg.id) <= data.lastReadMessageId
-                                    ? { ...msg, isRead: true, readAt: data.readAt }
-                                    : msg
-                            )
-                        };
-                    });
-                }
-            });
-            console.log("채팅방 구독 성공:", roomId);
-            setIsSocketReady(true);
-        }
-
-        // 연결 상태 소식 듣기
-        const handleStompConnected = () => {
-            console.log("ChatRoomPage: 연결 완료!");
-            performSubscribe();
-        };
-
-        if (stompClient.connected) {
-            performSubscribe();
-        } else {
-            // 전역 이벤트 리스너 등록
-            window.addEventListener('stomp-connected', handleStompConnected);
-        }
-
-        return () => {
-            if (subscription) {
-                subscription.unsubscribe();
-                subscription = null;
-            }
-            window.removeEventListener('stomp-connected', handleStompConnected);
-        };
-    }, [roomId, queryClient]);
 
     // STOMP 채팅방 나가기 처리 (브라우저 종료/새로고침 대응)
     // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행
@@ -293,27 +236,27 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // todo 1. 레이아웃 안정화 및 초기 스크롤
     useLayoutEffect(() => {
-        if (!isLoading && !isReady && isSocketReady) {
+        if (!isLoading && !isReady && isRoomSubscriptionReady) {
             if (localMessages.length > 0) {
                 window.scrollTo(0, document.documentElement.scrollHeight);
                 requestAnimationFrame(() => {
                     window.scrollTo(0, document.documentElement.scrollHeight);
                     setIsReady(true);
                 });
-            } else {
+            } else { 
                 requestAnimationFrame(() => {
                     setIsReady(true);
                 });
             }
         }
-    }, [isLoading, localMessages.length, isReady, isSocketReady]);
+    }, [isLoading, localMessages.length, isReady, isRoomSubscriptionReady]);
 
     // 2. 메시지가 추가될 때 부드럽게 스크롤
     useEffect(() => {
-        if (isReady && localMessages.length > 0 && isSocketReady) {
+        if (isReady && localMessages.length > 0 && isRoomSubscriptionReady) {
             scrollToBottom();
         }
-    }, [localMessages.length, isReady, isSocketReady]);
+    }, [localMessages.length, isReady, isRoomSubscriptionReady]);
 
     // 3. 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
     useEffect(() => {
@@ -323,7 +266,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     }, [queryClient]);
 
     // 소켓이 준비되지 않은 상태에서 렌더링을 시도하면 STOMP 커넥션 에러가 발생할 수 있음
-    if (!isSocketReady) {
+    if (!isRoomSubscriptionReady) {
         return (
             <HeaderLayout headerSlot={<MainHeader title="연결 중..." />}>
                 <div className="flex h-[calc(100vh-100px)] items-center justify-center text-gray-400">
