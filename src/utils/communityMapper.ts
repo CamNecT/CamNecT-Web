@@ -5,10 +5,9 @@ import type {
 } from "../api-types/communityApiTypes";
 import type { CommentItem, CommunityPostDetail, InfoPost, QuestionPost } from "../types/community";
 
-// 익명 게시글의 nullable author를 기존 화면 모델과 안전하게 연결하는 표시용 저자다.
 const buildAuthor = () => ({
   id: "unknown",
-  name: "익명",
+  name: "알 수 없음",
   major: "",
   studentId: "",
 });
@@ -38,7 +37,6 @@ const mapCommentAuthorFromApi = (comment: CommunityPostCommentResponse) => {
 };
 
 const mapAuthorFromApi = (post: CommunityPostItem) => {
-  if (!post.author) return buildAuthor();
   return {
     id: String(post.author.userId),
     name: post.author.name,
@@ -99,19 +97,17 @@ export const mapToCommunityPostDetail = (
   isAdopted: Boolean(post.acceptedCommentId),
   adoptedCommentId: post.acceptedCommentId ? String(post.acceptedCommentId) : undefined,
   createdAt: post.createdAt,
-  anonymous: post.anonymous,
   accessStatus: post.accessStatus,
   requiredPoints: post.requiredPoints,
   myPoints: post.myPoints,
   tagIds: post.tagIds,
-  // 익명 상세 응답은 author가 null이므로 authorId만 식별값으로 남기고 개인정보는 대체한다.
   author: {
-    id: post.author ? String(post.author.userId) : String(post.authorId),
-    name: post.author?.name ?? "익명",
-    major: post.author?.majorName ?? "",
-    studentId: sliceStudentNo(post.author?.studentNo),
-    yearLevel: post.author?.yearLevel,
-    profileImageUrl: post.author?.profileImageUrl,
+    id: String(post.author.userId),
+    name: post.author.name,
+    major: post.author.majorName,
+    studentId: sliceStudentNo(post.author.studentNo),
+    yearLevel: post.author.yearLevel,
+    profileImageUrl: post.author.profileImageUrl,
   },
   content: post.content,
   categories: mapTagIdToName

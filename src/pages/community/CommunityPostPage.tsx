@@ -780,63 +780,55 @@ const CommunityPostPage = () => {
             </div>
 
             <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
-              {selectedPost.anonymous ? (
-                <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
-                  익명
+              <button
+                type='button'
+                disabled={isPostMine}
+                className='flex items-center gap-[10px] text-left'
+                onClick={() =>
+                  navigate(`/alumni/profile/${selectedPost.author.id}`, {
+                    state: {
+                      author: {
+                        name: selectedPost.author.name,
+                        major: selectedPost.author.major,
+                        studentId: selectedPost.author.studentId,
+                        profileImageUrl: selectedPost.author.profileImageUrl,
+                      },
+                    },
+                  })
+                }
+              >
+                <img
+                  src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
+                  alt={`${selectedPost.author.name} 프로필`}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                  }}
+                  className='h-[32px] w-[32px] rounded-full object-cover'
+                />
+                <div className='flex flex-col gap-[4px]'>
+                  <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
+                    {selectedPost.author.name}
+                  </div>
+                  <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
+                    {selectedPost.author.major}
+                    {selectedPost.author.studentId
+                      ? ` ${selectedPost.author.studentId}학번`
+                      : ''}
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <button
-                    type='button'
-                    disabled={isPostMine}
-                    className='flex items-center gap-[10px] text-left'
-                    onClick={() =>
-                      navigate(`/alumni/profile/${selectedPost.author.id}`, {
-                        state: {
-                          author: {
-                            name: selectedPost.author.name,
-                            major: selectedPost.author.major,
-                            studentId: selectedPost.author.studentId,
-                            profileImageUrl: selectedPost.author.profileImageUrl,
-                          },
-                        },
-                      })
-                    }
-                  >
-                    <img
-                      src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
-                      alt={`${selectedPost.author.name} 프로필`}
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                      }}
-                      className='h-[32px] w-[32px] rounded-full object-cover'
-                    />
-                    <div className='flex flex-col gap-[4px]'>
-                      <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
-                        {selectedPost.author.name}
-                      </div>
-                      <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
-                        {selectedPost.author.major}
-                        {selectedPost.author.studentId
-                          ? ` ${selectedPost.author.studentId}학번`
-                          : ''}
-                      </div>
-                    </div>
-                  </button>
-                  {!isPostMine ? (
-                    <button
-                      type='button'
-                      className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
-                      onClick={() =>
-                        navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`)
-                      }
-                    >
-                      커피챗 보내기
-                    </button>
-                  ) : null}
-                </>
-              )}
+              </button>
+              {!isPostMine ? (
+                <button
+                  type='button'
+                  className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
+                  onClick={() =>
+                    navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`)
+                  }
+                >
+                  커피챗 보내기
+                </button>
+              ) : null}
             </div>
 
             <div className='flex flex-col gap-[20px]'>

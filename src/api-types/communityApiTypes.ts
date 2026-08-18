@@ -32,8 +32,7 @@ export type CommunityPostItem = {
   acceptedBadge?: boolean;
   tags: string[];
   thumbnailUrl?: string | null;
-  // 익명 게시글은 작성자 정보가 내려오지 않는다.
-  author: CommunityAuthor | null;
+  author: CommunityAuthor;
   accessType?: "FREE" | "POINT_REQUIRED";
   accessStatus?: CommunityAccessStatus;
   requiredPoints?: number;
@@ -112,7 +111,6 @@ export type CreateCommunityPostBody = {
   boardCode: "INFO" | "QUESTION";
   title: string;
   content: string;
-  anonymous: boolean;
   tagIds: number[];
   attachments: CommunityAttachment[];
   accessType?: "FREE" | "POINT_REQUIRED";
@@ -149,7 +147,7 @@ export type UpdateCommunityPostParams = {
 };
 
 export type UpdateCommunityPostBody = {
-  // PATCH는 변경된 필드만 포함하며 anonymous는 작성 이후 변경할 수 없다.
+  // PATCH는 변경된 필드만 포함한다.
   title?: string | null;
   content?: string | null;
   tagIds?: number[] | null;
@@ -163,7 +161,6 @@ export type CommunityPostDetailResponse = {
   boardCode: "INFO" | "QUESTION";
   title: string;
   content: string;
-  anonymous: boolean;
   authorId: number;
   createdAt: string;
   bookmarked?: boolean;
@@ -176,8 +173,7 @@ export type CommunityPostDetailResponse = {
     height: number;
     fileSize: number;
   }[];
-  // 익명 상세 응답에서도 프로필을 강제로 만들지 않도록 null을 유지한다.
-  author: CommunityAuthor | null;
+  author: CommunityAuthor;
   viewCount: number;
   bookmarkCount: number;
   likeCount: number;

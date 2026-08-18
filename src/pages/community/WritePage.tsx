@@ -21,7 +21,6 @@ import type { CommunityPostDetail } from '../../types/community';
 import { mapToCommunityPostDetail } from '../../utils/communityMapper';
 import { mapToCommunityPost } from './utils/post';
 import { getFileName } from '../../utils/getFileName';
-import OnOffToggle from '../../components/Toggle/OnOffToggle';
 
 // 프론트에서도 Community Bean Validation과 동일한 경계를 적용해 불필요한 업로드/요청을 막는다.
 const MAX_TITLE_LENGTH = 200;
@@ -94,7 +93,6 @@ export const WritePage = () => {
     // 입력 폼 상태
     const [title, setTitle] = useState(initialTitle);
     const [content, setContent] = useState(initialContent);
-    const [anonymous, setAnonymous] = useState(false);
     const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
     const isKeyboardUp = window.innerHeight - viewportHeight > 100;
     // 완료 확인 모달 상태
@@ -160,7 +158,6 @@ export const WritePage = () => {
         content.trim().length > 0 ||
         existingAttachments.length > 0 ||
         newAttachments.length > 0 ||
-        anonymous ||
         Boolean(boardType) ||
         selectedTags.length > 0;
 
@@ -346,7 +343,6 @@ export const WritePage = () => {
         setTitle(editPost.title);
         setContent(editPost.content);
         setSelectedTags(mappedTags);
-        setAnonymous(Boolean(editPost.anonymous));
         setExistingAttachments(editPost.attachments ?? []);
         setNewAttachments([]);
         originalAttachmentKeysRef.current = getSortedAttachmentKeys(editPost.attachments ?? []);
@@ -493,8 +489,7 @@ export const WritePage = () => {
                     return;
                 }
 
-                // PATCH에는 실제로 바뀐 필드만 넣는다. 빈 배열은 전체 제거이고,
-                // anonymous는 작성 시 확정되므로 수정 body에는 절대 포함하지 않는다.
+                // PATCH에는 실제로 바뀐 필드만 넣는다. 빈 배열은 전체 제거를 의미한다.
                 const body: UpdateCommunityPostBody = {};
                 const nextTitle = title;
                 const nextContent = content;
@@ -541,8 +536,6 @@ export const WritePage = () => {
                     boardCode,
                     title,
                     content,
-                    // 익명 여부는 작성 시에만 확정하며 위의 수정 PATCH에는 포함하지 않는다.
-                    anonymous,
                     tagIds,
                     attachments: uploadedAttachments,
                 },
@@ -734,17 +727,6 @@ export const WritePage = () => {
                             </span>
                         ) : null}
                     </div>
-
-                    {!isEditMode ? (
-                        <div className='flex items-center justify-between border-b border-[var(--ColorGray2,#A1A1A1)] px-[10px] py-[10px]'>
-                            <span className='text-r-14 text-[var(--ColorGray3,#646464)]'>익명으로 작성</span>
-                            <OnOffToggle
-                                toggled={anonymous}
-                                onToggle={setAnonymous}
-                                aria-label='익명 작성 여부'
-                            />
-                        </div>
-                    ) : null}
 
                     {/* 내용 입력 */}
                     <div className='flex w-full flex-1 flex-col' style={{ padding: isKeyboardUp ? '10px 10px 20px' : '15px 10px 40px' }}>

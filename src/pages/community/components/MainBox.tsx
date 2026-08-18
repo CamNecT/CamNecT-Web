@@ -18,8 +18,6 @@ type MainBoxProps = {
 const MainBox = ({ post }: MainBoxProps) => {
   // 보호된 본문과 썸네일은 GRANTED일 때만 카드에 노출한다.
   const isGranted = post.accessStatus === 'GRANTED';
-  // 익명 응답은 author=null에서 만든 대체 저자이므로 프로필 영역을 렌더링하지 않는다.
-  const isAnonymous = post.author.id === 'unknown';
   const postImageUrl = isGranted ? post.postImageUrl ?? post.imageUrl : undefined;
 
   return (
@@ -33,19 +31,19 @@ const MainBox = ({ post }: MainBoxProps) => {
         <div className='flex flex-col' style={{ gap: '15px' }}>
           <div className='flex flex-col' style={{ gap: '10px' }}>
             <div className='flex' style={{ gap: '15px' }}>
-              {!isAnonymous && post.authorProfileImageUrl ? (
+              {post.authorProfileImageUrl ? (
                 <img
                   src={post.authorProfileImageUrl}
                   alt={`${post.author.name} 프로필`}
                   className='h-[48px] w-[48px] rounded-full object-cover'
                 />
-              ) : !isAnonymous ? (
+              ) : (
                 <div
                   className='h-[48px] w-[48px] rounded-full'
                   style={{ backgroundColor: '#D5D5D5' }}
                   aria-hidden
                 />
-              ) : null}
+              )}
               <div className='flex flex-col justify-center' style={{ gap: '3px' }}>
                 <div className='text-sb-14' style={{ color: 'var(--ColorBlack, #202023)' }}>
                   {post.author.name}

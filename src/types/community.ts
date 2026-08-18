@@ -85,8 +85,6 @@ export type CommunityPostDetail = {
     fileSize: number;
   }[];
   accessStatus?: import('../api-types/communityApiTypes').CommunityAccessStatus;
-  // 익명 글에서는 상세 화면의 프로필 이동과 커피챗 UI를 숨긴다.
-  anonymous?: boolean;
   requiredPoints?: number;
   myPoints?: number;
 };
