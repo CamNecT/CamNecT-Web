@@ -149,6 +149,7 @@ const QuestionTab = ({
         })}
       </div>
 
+      {/* 질문 목록은 채택 상태와 서버 조회용 일반 태그를 각각 하나씩만 조합한다. */}
       <TagsFilterModal
         isOpen={isFilterOpen}
         tags={selectedTags}
@@ -172,6 +173,17 @@ const QuestionTab = ({
           },
         ]}
         maxSelected={2}
+        selectionGroups={[
+          {
+            tagNames: ['채택 전', '채택 완료'],
+            maxSelected: 1,
+          },
+          {
+            tagNames: filterTags.map((tag) => tag.name),
+            maxSelected: 1,
+          },
+        ]}
+        selectionGuide='채택/일반 태그 각 1개'
       />
 
       <WriteButton boardType='질문' />

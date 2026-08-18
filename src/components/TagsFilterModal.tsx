@@ -19,6 +19,11 @@ export type TagCategory = {
   tags: TagItem[];
 };
 
+type TagSelectionGroup = {
+  tagNames: string[];
+  maxSelected: number;
+};
+
 type TagsFilterModalProps = {
   isOpen: boolean;
   tags: string[];
@@ -28,6 +33,8 @@ type TagsFilterModalProps = {
   allTags: TagItem[];
   extraCategories?: TagCategory[];
   maxSelected?: number;
+  selectionGroups?: TagSelectionGroup[];
+  selectionGuide?: string;
   title?: string;
 };
 
@@ -40,6 +47,8 @@ const TagsFilterModal = ({
   allTags,
   extraCategories = [],
   maxSelected = 5,
+  selectionGroups = [],
+  selectionGuide,
 }: TagsFilterModalProps) => {
   const onCloseRef = useRef<() => void>(() => onClose);
   const handleBottomSheetClose = () => onCloseRef.current();
@@ -58,6 +67,8 @@ const TagsFilterModal = ({
         allTags={allTags}
         extraCategories={extraCategories}
         maxSelected={maxSelected}
+        selectionGroups={selectionGroups}
+        selectionGuide={selectionGuide}
         onCloseRef={onCloseRef}
       />
     </BottomSheetModal>
@@ -75,6 +86,8 @@ const TagsFilterModalContent = ({
   categories,
   extraCategories = [],
   maxSelected = 5,
+  selectionGroups = [],
+  selectionGuide,
   onCloseRef,
 }: TagsFilterModalContentProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>(tags);
@@ -96,6 +109,24 @@ const TagsFilterModalContent = ({
     if (selectedTags.includes(tagName)) {
       setSelectedTags(selectedTags.filter((tag) => tag !== tagName));
       return;
+    }
+    const selectionGroup = selectionGroups.find((group) =>
+      group.tagNames.includes(tagName),
+    );
+    if (selectionGroup) {
+      const tagsInGroup = selectedTags.filter((tag) =>
+        selectionGroup.tagNames.includes(tag),
+      );
+      if (tagsInGroup.length >= selectionGroup.maxSelected) {
+        // 단일 선택 그룹은 새 항목을 누르면 기존 항목을 교체해 다시 해제할 필요가 없도록 한다.
+        if (selectionGroup.maxSelected === 1) {
+          setSelectedTags([
+            tagName,
+            ...selectedTags.filter((tag) => !selectionGroup.tagNames.includes(tag)),
+          ]);
+        }
+        return;
+      }
     }
     if (selectedTags.length >= maxSelected) return;
     setSelectedTags([tagName, ...selectedTags]);
@@ -152,7 +183,9 @@ const TagsFilterModalContent = ({
         <section className='flex w-full flex-col gap-[13px] border-b border-gray-150 px-[25px] pb-[20px] pt-[30px]'>
           <div className='flex items-center gap-[5px]'>
             <span className='text-sb-16-hn text-gray-900'>태그 선택</span>
-            <span className='text-r-12-hn text-gray-750'>(최대 {maxSelected}개)</span>
+            <span className='text-r-12-hn text-gray-750'>
+              ({selectionGuide ?? `최대 ${maxSelected}개`})
+            </span>
           </div>
           <div className='flex h-[30px] gap-[7px] overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
             {selectedTags.length !== 0 &&
