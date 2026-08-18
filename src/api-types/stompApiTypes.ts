@@ -73,12 +73,14 @@ export interface StompMessageRequest {
 export type StompPendingState = 'pending' | 'unconfirmed' | 'sent' | 'failed';
 
 // 전송 상태를 확정하지 못한 원인 또는 전송 실패 원인
+// offline : publish에 실패 (오프라인 상황)
+// timeout : publish 성공 but 15초간 응답 X / server : 서버에서의 에러 응답
 export type StompPendingFailureKind = 'offline' | 'timeout' | 'server';
 
 export interface StompPendingChatMessage {
-    roomId: number; // 채팅방 ID
+    roomId: string; // 프론트엔드 내부 채팅방 ID
     content: string; // 최초 전송 내용
-    createdAt: string; // pending 메시지 생성 시간
+    createdAt: string; // pending 메시지 생성 시간 (local 말풍선 생성시각)
     lastAttemptAt: string | null; // 마지막 publish 시도 시각. 아직 publish하지 않았으면 null
     clientMessageId: string; // 최초 생성한 UUID
     serverMessageId?: number; // ACK로 확인한 서버 메시지 ID

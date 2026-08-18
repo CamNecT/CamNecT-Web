@@ -64,7 +64,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const { messages: socketMessages,
         sendMessage, leaveChatRoom,
-        isRoomSubscriptionReady} = useStompChat(Number(roomId));
+        isRoomSubscriptionReady} = useStompChat(roomId);
 
     // 검색 관련 상태
     const [isSearching, setIsSearching] = useState(false);
@@ -160,7 +160,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
         // 3. 현재 roomId의 pendingMessages들 선택
         const currentRoomPendingMessages = pendingMessages.filter(
-            (pending) => pending.roomId === Number(roomId)
+            (pending) => pending.roomId === roomId
         );
 
         // 중복 제거: 서버에서 이미 수신되어 화면에 표시되고 있는 pending 메시지는 제외
@@ -186,7 +186,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         const mappedPendingMessages = visiblePendingMessages.map(
             (pending): ChatMessage => ({
                 id: `pending:${pending.clientMessageId}`, // clientMessageId로 임시 ID 설정
-                roomId: String(pending.roomId),
+                roomId: pending.roomId,
                 senderId: myId, // 내 ID로 설정
                 content: pending.content,
                 createdAt: pending.createdAt,
@@ -308,7 +308,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             content: "더이상 대화가 불가능하며,\n이후 채팅방 나가기를 통해 목록에서 제거됩니다.",
             leftButtonText: "종료하기",
             onConfirm: () => {
-                endChat({ roomId: Number(roomId) }, {
+                endChat({ roomId }, {
                     onSuccess: () => {
                         setLocalIsTerminated(true);
                         queryClient.invalidateQueries({ queryKey: ['chatRoom', roomId] });
@@ -328,7 +328,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             content: "방을 나가면 채팅목록에서 사라지며\n다시 복구할 수 없습니다.",
             leftButtonText: "나가기",
             onConfirm: () => {
-                exitChat({ roomId: Number(roomId) }, {
+                exitChat({ roomId }, {
                     onSuccess: () => {
                         navigate('/chat', { replace: true });
                         setConfirmPopUpConfig(null);

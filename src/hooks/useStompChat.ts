@@ -11,7 +11,7 @@ import type { ChatMessage } from "../types/coffee-chat/coffeeChatTypes";
 
 
 // 개별 채팅방 구독 및 메시지 송수신을 위한 훅
-export const useStompChat = (roomId: number) => {
+export const useStompChat = (roomId: string) => {
 
     const queryClient = useQueryClient();
 
@@ -41,7 +41,11 @@ export const useStompChat = (roomId: number) => {
         // 현재 온라인이고 STOMP 연결이 되어 있는지 확인
         const canPublish = navigator.onLine && stompClient.connected;
 
-        const requestMessage: StompMessageRequest = { clientMessageId, roomId, content };
+        const requestMessage: StompMessageRequest = {
+            clientMessageId,
+            roomId: Number(roomId),
+            content,
+        };
         const pendingMessage: StompPendingChatMessage = {
             roomId,
             content,
@@ -111,7 +115,7 @@ export const useStompChat = (roomId: number) => {
 
                     // REST 기존 메시지 갱신
                     // setQueryData : 로컬 캐시 데이터를 업데이트 (updater 함수의 첫 인자는 oldData)
-                    queryClient.setQueryData(['chatRoom', String(roomId)], (oldData: ChatRoomDetailData | undefined) => {
+                    queryClient.setQueryData(['chatRoom', roomId], (oldData: ChatRoomDetailData | undefined) => {
                                             
                         // 캐시가 아직 없을 때(API 응답보다 읽음 영수증이 먼저 도착) 방어
                         // undefined를 반환하면 react-query가 캐시를 건드리지 않고 넘어감

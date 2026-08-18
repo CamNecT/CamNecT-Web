@@ -292,10 +292,10 @@ export const useChatRoomClose = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (variables: { roomId: number }) => 
+        mutationFn: (variables: { roomId: string }) =>
             requestChatRoomClose({
                 userId: Number(user?.id),
-                ...variables
+                roomId: Number(variables.roomId)
             }),
         onSuccess: () => {
             // 채팅 목록 최신화
@@ -310,10 +310,10 @@ export const useChatRoomExit = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (variables: { roomId: number }) => 
+        mutationFn: (variables: { roomId: string }) =>
             requestChatRoomExit({
                 userId: Number(user?.id),
-                ...variables
+                roomId: Number(variables.roomId)
             }),
         onSuccess: () => {
             // 채팅 목록 최신화
