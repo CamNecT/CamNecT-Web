@@ -613,15 +613,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                     <span className="text-[11px] text-gray-400 font-medium leading-none mb-[1px]">읽음</span>
                                                 )}
 
-                                                {/* 3. 시간 표시: 묶음의 마지막 메시지일 때만 노출
-                                                    상대가 읽었으면 읽은 시간(readAt), 안 읽었으면 보낸 시간(createdAt) 표시
-                                                */}
+                                                {/* 3. 시간 표시: 읽음 여부와 관계없이 보낸 시간을 묶음의 마지막 메시지에만 노출 */}
                                                 {!isSameAsNext && (
                                                     <span className="text-r-12 text-gray-750 tracking-[-0.24px] shrink-0">
-                                                        {msg.isRead && msg.readAt
-                                                            ? formatTime(msg.readAt)
-                                                            : formatTime(msg.createdAt)
-                                                        }
+                                                        {formatTime(msg.createdAt)}
                                                     </span>
                                                 )}
                                             </div>

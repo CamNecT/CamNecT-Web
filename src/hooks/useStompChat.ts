@@ -160,7 +160,7 @@ export const useStompChat = (roomId: string) => {
                     setMessages((prev) => 
                         prev.map((msg) => 
                             msg.messageId <= data.lastReadMessageId 
-                                ? { ...msg, read: true, readAt: data.readAt } 
+                                ? { ...msg, read: true, readAt: msg.readAt ?? data.readAt }
                                 : msg
                         )
                     );
@@ -176,7 +176,7 @@ export const useStompChat = (roomId: string) => {
                             ...oldData, // 다른 property들은 유지
                             messages: oldData.messages.map((msg: ChatMessage) =>
                                 Number(msg.id) <= data.lastReadMessageId
-                                    ? { ...msg, isRead: true, readAt: data.readAt }
+                                    ? { ...msg, isRead: true, readAt: msg.readAt ?? data.readAt }
                                     : msg
                             )
                         };
