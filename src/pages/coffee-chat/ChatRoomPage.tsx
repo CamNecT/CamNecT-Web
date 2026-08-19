@@ -63,7 +63,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const { mutate: exitChat } = useChatRoomExit();
 
     const { messages: socketMessages,
-        sendMessage, leaveChatRoom,
+        sendMessage, retryMessage, leaveChatRoom,
         isRoomSubscriptionReady} = useStompChat(roomId);
 
     // 검색 관련 상태
@@ -281,6 +281,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         if (isChatUnavailable) return false;
 
         return sendMessage(text);
+    }
+
+    // 메시지 재전송 함수
+    const handleRetryMessage = (clientMessageId: string): boolean => {
+        setOpenFailedMenuId(null); // 메뉴 닫기
+        if (isChatUnavailable) return false;
+
+        return retryMessage(clientMessageId);
     }
 
     // 서버가 미전송으로 확정한 failed 메시지만 삭제한다.
@@ -552,12 +560,12 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                 </div>
 
                                                 {/* 전송 실패 메시지 */}
-                                                {isMe && isFailed && (
+                                                {isMe && (isUnconfirmed || isFailed) && (
                                                     <div className="shrink-0 flex items-center justify-center">
                                                         <button
                                                             type="button"
                                                             data-dropdown-trigger
-                                                            aria-label="전송 실패 메뉴 열기"
+                                                            aria-label="메시지 재전송 메뉴 열기"
                                                             className="flex items-center justify-center"
                                                             onClick={() => setOpenFailedMenuId(openFailedMenuId === msg.id ? null : msg.id)}
                                                         >
@@ -573,22 +581,21 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                             hasDivider={true}
                                                             items={[
                                                                 {
-                                                                    // todo 재전송 기능 구현 후 핸들러 연결
                                                                     label: "재전송",
                                                                     labelClassName: "text-m-16 tracking-[-0.4px] text-gray-750",
-                                                                    onClick: () => setOpenFailedMenuId(null),
+                                                                    onClick: () => clientMessageId && handleRetryMessage(clientMessageId),
                                                                 },
-                                                                {
+                                                                // isFailed일 때만 '전송 취소' 항목 포함
+                                                                ...(isFailed ? [{
                                                                     label: "전송 취소",
                                                                     labelClassName: "text-m-16 tracking-[-0.4px] text-red",
                                                                     onClick: () => clientMessageId && handleRemoveMessage(clientMessageId),
-                                                                },
+                                                                }] : []),
                                                             ]}
                                                         />
                                                     </div>
                                                 )}
                                             </div>
-
                                         </div>
 
                                         {/* 
@@ -630,7 +637,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
                                         {isUnconfirmed && (
                                             <span className="text-r-12 text-gray-750 tracking-[-0.24px] shrink-0 mr-[1px]">
-                                                전송 여부 확인 중
+                                                전송 확인 중
                                             </span>
                                         )}
                                     </div>
