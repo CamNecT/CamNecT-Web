@@ -1,13 +1,13 @@
 import type { StompSubscription } from "@stomp/stompjs";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { StompChatResponse, StompMessageRequest, StompMessageResponse, StompPendingChatMessage } from "../api-types/stompApiTypes";
 import { isReadReceipt } from "../api-types/stompApiTypes";
 import { stompClient } from "../api/stompClient";
 import { useChatStore } from "../store/useChatStore";
-import { useQueryClient } from "@tanstack/react-query";
-import { useShallow } from "zustand/react/shallow";
-import type { ChatRoomDetailData } from "./useChatQuery";
 import type { ChatMessage } from "../types/coffee-chat/coffeeChatTypes";
+import type { ChatRoomDetailData } from "./useChatQuery";
 
 
 // 개별 채팅방 구독 및 메시지 송수신을 위한 훅
@@ -22,12 +22,16 @@ export const useStompChat = (roomId: string) => {
 
     const {
         addPendingMessage,
+        retryPendingMessage,
         markPendingMessagePublishFailed,
+        markRetryPendingMessagePublishFailed,
         removePendingMessage,
     } = useChatStore(
         useShallow((state) => ({
             addPendingMessage: state.addPendingMessage,
+            retryPendingMessage: state.retryPendingMessage,
             markPendingMessagePublishFailed: state.markPendingMessagePublishFailed,
+            markRetryPendingMessagePublishFailed: state.markRetryPendingMessagePublishFailed,
             removePendingMessage: state.removePendingMessage,
         }))
     );
@@ -60,8 +64,9 @@ export const useStompChat = (roomId: string) => {
         // 연결 여부와 관계없이 먼저 로컬 말풍선 생성
         addPendingMessage(pendingMessage);
 
-        // 오프라인 메시지는 로컬에만 남기고 전송 X
+        // 오프라인 메시지는 로컬에만 남기고 전송 X (즉시 failed처리)
         if (!canPublish) {
+            markPendingMessagePublishFailed(clientMessageId);
             return true;
         }
 
@@ -79,7 +84,54 @@ export const useStompChat = (roomId: string) => {
         return true; // 로컬 메시지 등록 완료
     }, [roomId, addPendingMessage, markPendingMessagePublishFailed]);
 
-    // 2. 채팅방 나가기 함수 - useCallback으로 메모이제이션 (없었을때의 안읽은 채팅뱃지 개수 문제)
+    // 2. 메시지 재전송 함수 구현
+    // unconfirmed / failed 상태의 메시지만 재전송 대상으로 한다.
+    const retryMessage = useCallback((clientMessageId: string): boolean => {
+
+        const target = useChatStore.getState().pendingMessages.
+            find((pending) => pending.clientMessageId === clientMessageId);
+
+        // 재전송 대상 판단
+        if (!target || (target.state !== 'failed' && target.state !== 'unconfirmed')) {
+            return false;
+        }
+
+        const lastAttemptAt = new Date().toISOString();
+
+        // 현재 온라인이고 STOMP 연결이 되어 있는지 확인
+        const canPublish = navigator.onLine && stompClient.connected;
+
+        const requestMessage: StompMessageRequest = {
+            clientMessageId,
+            roomId: Number(target.roomId),
+            content: target.content,
+        };
+
+        // 오프라인 메시지는 로컬에만 남기고 전송 X (기존 메시지 상태유지, 재시도 횟수 증가만 처리) -> markRetryPendingMessagePublishFailed에서 처리
+        if (!canPublish) {
+            markRetryPendingMessagePublishFailed(clientMessageId, lastAttemptAt);
+            return true;
+        }
+
+        try {
+            stompClient.publish({
+                destination: `/pub/chat/message`,
+                body: JSON.stringify(requestMessage),
+            });
+
+            // (메시지 발송 직후) unconfirmed / failed -> pending 상태 변경
+            retryPendingMessage(clientMessageId, lastAttemptAt);
+        } catch (error) {
+            // 연결 확인 직후 끊겨 publish 자체가 실패한 경우 미전송 상태로 보존
+            console.error("메시지 publish 실패:", error);
+            markRetryPendingMessagePublishFailed(clientMessageId, lastAttemptAt);
+        }
+        
+        return true; // 재전송 시도 처리 완료
+    }, [retryPendingMessage, markRetryPendingMessagePublishFailed]);
+    
+
+    // 3. 채팅방 나가기 함수 - useCallback으로 메모이제이션 (없었을때의 안읽은 채팅뱃지 개수 문제)
     const leaveChatRoom = useCallback(() => {
         if (stompClient.connected) {
             stompClient.publish({
@@ -184,5 +236,5 @@ export const useStompChat = (roomId: string) => {
         };
     }, [roomId, leaveChatRoom, removePendingMessage, queryClient]);
 
-    return { messages, sendMessage, setMessages, leaveChatRoom, isRoomSubscriptionReady };
+    return { messages, sendMessage, retryMessage, setMessages, leaveChatRoom, isRoomSubscriptionReady };
 };

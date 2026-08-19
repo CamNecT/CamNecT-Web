@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type {
-    StompPendingChatMessage, StompMessageAck, StompSocketError
+    StompMessageAck,
+    StompPendingChatMessage,
+    StompSocketError
 } from '../api-types/stompApiTypes';
 
 const PENDING_CONFIRM_TIMEOUT_MS = 15_000; // timeout 판별 기준
@@ -20,11 +22,13 @@ interface ChatState {
     setIsStompConnected: (isConnected: boolean) => void;
 
     addPendingMessage: (message: StompPendingChatMessage) => void;
-    markPendingMessagePublishFailed: (clientMessageId: string) => void; // publish 호출 자체가 실패한 경우
+    markPendingMessagePublishFailed: (clientMessageId: string) => void; // 최초 publish 호출이 실패한 경우 (오프라인)
+    markRetryPendingMessagePublishFailed: (clientMessageId: string, lastAttemptAt: string) => void; // 재전송 publish가 실패한 경우
     markPendingMessageSent: (ack: StompMessageAck) => void; // sent 처리 
     decideMarkExpiredPendingMessages: (now: number) => void; // 응답 대기 timeout 처리
     markPendingMessageFailed: (error: StompSocketError) => void; // failed 처리
     removePendingMessage: (clientMessageId: string) => void; // 메시지가 실제 채팅방에 추가된 후 제거
+    retryPendingMessage: (clientMessageId: string, lastAttemptAt: string) => void; // failed -> pending 로 변경 (재전송)
     removeFailedPendingMessage: (clientMessageId: string) => void; // 미전송이 확정된 메시지만 제거
     clearPendingMessages: () => void; // 로그아웃 시 초기화
 }
@@ -53,7 +57,7 @@ export const useChatStore = create<ChatState>((set) => ({
         startPendingMessageTimeoutWatcher();
     },
 
-    // 연결 경합으로 publish가 동기적으로 실패하면 미전송 실패 상태로 되돌린다.
+    // 연결 경합으로 publish가 동기적으로 실패하면 미전송 실패 상태로 되돌린다. (최초 전송용)
     markPendingMessagePublishFailed: (clientMessageId) => {
         set((state) => ({
             pendingMessages: state.pendingMessages.map((pending) =>
@@ -64,10 +68,40 @@ export const useChatStore = create<ChatState>((set) => ({
                         publishAttempted: false,
                         lastAttemptAt: null,
                         failureKind: 'offline',
+                        errorCode: undefined
                     }
                     : pending
             ),
         }));
+    },
+
+    // 재전송 시도 시 publish가 동기적으로 실패하면 미전송 실패 상태로 되돌린다. (재전송용)
+    // 기존 unconfirmed / failed 상태 유지 
+    markRetryPendingMessagePublishFailed: (clientMessageId, lastAttemptAt) => {
+
+        set((state) => {
+            const target = state.pendingMessages.find(
+                (pending) => pending.clientMessageId === clientMessageId
+            );
+            
+            if (!target || (target.state !== 'failed' && target.state !== 'unconfirmed')) {
+                return state;
+            }
+
+            return {
+                pendingMessages: state.pendingMessages.map((pending) =>
+                    pending.clientMessageId === clientMessageId
+                        ? {
+                            ...pending,
+                            retryCount: pending.retryCount + 1,
+                            lastAttemptAt: lastAttemptAt,
+                            failureKind: 'offline',
+                            errorCode: undefined
+                        }
+                        : pending
+                )
+            }
+        });
     },
 
     // ACK 수신 후 sent로 변경
@@ -124,7 +158,7 @@ export const useChatStore = create<ChatState>((set) => ({
         });
     },
 
-    // 오류 시 삭제하지 않고 failed로 변경 
+    // 오류 시 삭제하지 않고 failed로 변경
     markPendingMessageFailed: (error) => {
         // 메시지 전송과 연결된 오류가 아니면 pending 메시지를 변경하지 않음
         if (
@@ -132,12 +166,29 @@ export const useChatStore = create<ChatState>((set) => ({
             !error.clientMessageId
         ) {
             return;
-        }               
+        }
+
+        // 50000은 서버 내부 오류라 어느 단계에서 발생했는지 알 수 없다.
+        // 커밋 이후(브로드캐스트·ACK 발행) 단계에서 터졌다면 DB에는 메시지가 남아 있으므로
+        // failed로 확정하면 실제로 저장된 메시지를 사용자가 지우게 된다.
+        // 나머지 코드(40000/48003/48005/48006/48302/48402/48903)는 저장 시도 전 단계에서
+        // 검증·조회로 거절되므로 저장되지 않은 것이 확실하다.
+        // todo 백엔드 확인 필요: 50000이 커밋 이후 단계에서도 발생할 수 있는가?
+        //   - "커밋 전에만 발생한다"는 답을 받으면 아래 분기를 제거하고 전부 failed로 되돌릴 것
+        //   - 재전송 기능 구현 시 unconfirmed에도 '재전송'은 열어줄 것 (삭제만 막으면 됨)
+        //     같은 clientMessageId로 재전송하면 서버가 duplicate로 처리하므로 중복 저장되지 않음
+        const isUnsureFailure = error.code === 50000;
 
         set((state) => ({
             pendingMessages: state.pendingMessages.map(
                 (pending) => pending.clientMessageId === error.clientMessageId
-                    ? { ...pending, state: 'failed', failureKind: 'server', errorCode: error.code}
+                    ? {
+                        ...pending,
+                        // unconfirmed면 removeFailedPendingMessage의 가드에 막혀 삭제되지 않는다
+                        state: isUnsureFailure ? 'unconfirmed' as const : 'failed' as const,
+                        failureKind: 'server' as const,
+                        errorCode: error.code,
+                    }
                     : pending
             ),
         }));
@@ -150,6 +201,38 @@ export const useChatStore = create<ChatState>((set) => ({
                 (pending) => pending.clientMessageId !== clientMessageId
             )
         }))
+    },
+
+    // publish 실패된 메시지 재전송
+    retryPendingMessage: (clientMessageId, lastAttemptAt) => {
+        set((state) => {
+            const target = state.pendingMessages.find(
+                (pending) => pending.clientMessageId === clientMessageId
+            );
+            
+            if (!target || (target.state !== 'failed' && target.state !== 'unconfirmed')) {
+                return state;
+            }
+
+            return {
+                pendingMessages: state.pendingMessages.map(
+                    (pending) => pending.clientMessageId === clientMessageId
+                        ? {
+                            ...pending,
+                            state: 'pending' as const,
+                            retryCount: pending.retryCount + 1,
+                            publishAttempted: true,
+                            failureKind: undefined,
+                            errorCode: undefined,
+                            lastAttemptAt: lastAttemptAt,
+                        }
+                        : pending
+                )
+            }
+        });
+
+        // 재시도 후 타임아웃 재시작
+        startPendingMessageTimeoutWatcher();
     },
 
     // publish하지 않았거나 서버가 SEND_MESSAGE 오류로 거절한 메시지만 로컬 대기 목록에서 제거
