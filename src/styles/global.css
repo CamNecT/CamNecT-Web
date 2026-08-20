@@ -414,3 +414,23 @@ body.hide-scrollbar::-webkit-scrollbar {
     40% { content: '..'; }
     60%, 100% { content: '...'; }
 }
+
+@layer base {
+    /* user-select: none은 해당 요소를 텍스트 선택 범위에서 제외한다. */
+    /* 비텍스트 UI만 선택에서 제외하며, 일반 텍스트 복사를 위해 선택자를 *로 확대하지 말 것. */
+    /* TODO(도메인별): 모바일에서 선택 범위가 레이아웃 전체로 번지는 화면은 상위 컨테이너에 select-none, 복사할 텍스트에 select-text를 적용한다. */
+    img,
+    svg,
+    video,
+    canvas,
+    button,
+    [role="button"] {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    /* WebKit/Chromium 이미지 드래그 차단. Firefox 대응이 필요하면 draggable={false}를 별도 적용한다. */
+    img {
+        -webkit-user-drag: none;
+    }
+}

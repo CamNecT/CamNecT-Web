@@ -479,7 +479,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 )}
 
                 {/* 메시지 리스트 영역 */}
-                <div className="flex flex-col mt-[40px] px-[25px]">
+                <div className="flex flex-col mt-[40px] px-[25px] select-none">
                     {localMessages.map((msg, index) => {
                         const isMe = String(msg.senderId) === myId;
                         const clientMessageId = msg.clientMessageId; // 삭제 식별용 아이디
@@ -555,7 +555,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                 <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
                                                     ${isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'}
                                                     ${isPending || isUnconfirmed ? 'opacity-40' : ''}`}>
-                                                        {msg.content}
+                                                    <span className="select-text">{msg.content}</span>
                                                 </div>
 
                                                 {/* 전송 실패 메시지 */}
