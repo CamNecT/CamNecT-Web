@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { StompChatResponse, StompMessageRequest, StompMessageResponse, StompPendingChatMessage } from "../api-types/stompApiTypes";
 import { isReadReceipt } from "../api-types/stompApiTypes";
-import { stompClient } from "../api/stompClient";
+import { isStompEnabled, stompClient } from "../api/stompClient";
 import { useChatStore } from "../store/useChatStore";
 import type { ChatMessage } from "../types/coffee-chat/coffeeChatTypes";
 import type { ChatRoomDetailData } from "./useChatQuery";
@@ -17,7 +17,10 @@ export const useStompChat = (roomId: string) => {
     // 모든 실시간 메시지들 (수신 / 발신)
     const [messages, setMessages] = useState<StompMessageResponse[]>([]);
     // PWA/FCM 직접 진입 시 현재 방 구독이 생성되기 전까지 채팅 화면 렌더링을 보류
-    const [isRoomSubscriptionReady, setIsRoomSubscriptionReady] = useState(false);
+    
+    // [개발 서버를 모바일 LAN으로 접속한 경우] STOMP 없이 REST 데이터로 채팅방 UI만 확인한다.
+    // 이 환경에서는 실시간 수신·ACK·읽음·실제 전송/재전송을 테스트할 수 없다.
+    const [isRoomSubscriptionReady, setIsRoomSubscriptionReady] = useState(!isStompEnabled);
 
     const {
         addPendingMessage,
@@ -141,6 +144,9 @@ export const useStompChat = (roomId: string) => {
 
     // 특정 채팅방 구독 (수신) 및 클린업
     useEffect(() => {
+        // 모바일 LAN UI 테스트에서는 STOMP 구독과 관련 이벤트 등록을 생략한다.
+        if (!isStompEnabled) return;
+
         let subscription: StompSubscription | null = null; // 구독 객체
 
         // 특정 roomId 구독 함수
