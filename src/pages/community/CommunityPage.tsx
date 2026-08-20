@@ -84,10 +84,8 @@ export const CommunityPage = () => {
   const userId = useAuthStore((state) => state.user?.id);
   const { mapTagNamesToIds } = useTagList();
   // 탭 선택 및 검색 UI 상태
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    const stored = sessionStorage.getItem('communityActiveTab');
-    return stored ?? tabItems[0].id;
-  });
+  // 커뮤니티에 새로 진입할 때는 이전 선택과 관계없이 항상 전체 탭에서 시작한다.
+  const [activeTab, setActiveTab] = useState<string>(tabItems[0].id);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -313,11 +311,6 @@ export const CommunityPage = () => {
     () => waitingQuestionsFromApi.filter((post) => post.answers === 0),
     [waitingQuestionsFromApi],
   );
-
-  // 탭/검색/정렬 변경 시 데이터 로딩
-  useEffect(() => {
-    sessionStorage.setItem('communityActiveTab', activeTab);
-  }, [activeTab]);
 
   useEffect(() => {
     document.body.classList.add('hide-scrollbar');

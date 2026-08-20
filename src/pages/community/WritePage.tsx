@@ -158,12 +158,12 @@ export const WritePage = () => {
         title.length <= MAX_TITLE_LENGTH &&
         content.length <= MAX_CONTENT_LENGTH &&
         existingAttachments.length + newAttachments.length <= MAX_ATTACHMENTS;
+    // 게시판은 탭에서 기본 선택될 수 있으므로, 사용자가 직접 작성·첨부한 값만 취소 경고 대상으로 본다.
     const hasDraftContent =
         title.trim().length > 0 ||
         content.trim().length > 0 ||
         existingAttachments.length > 0 ||
         newAttachments.length > 0 ||
-        Boolean(boardType) ||
         selectedTags.length > 0;
 
     // 제출 직전에는 입력 UI 제약과 별개로 공백-only, 중복 태그, 첨부 개수를 다시 검증한다.
