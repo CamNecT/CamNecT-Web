@@ -1,4 +1,5 @@
 import FilterIcon from './FilterIcon';
+import Icon from './Icon';
 
 type FilterHeaderProps = {
   activeFilters: string[];
@@ -21,22 +22,7 @@ const FilterHeader = ({ activeFilters, onOpenFilter, onRemoveFilter }: FilterHea
             className='flex h-[25px] items-center gap-[5px] rounded-[5px] border border-[var(--ColorGray2,#A1A1A1)] bg-[var(--ColorGray1,#ECECEC)] px-[8px] py-0'
           >
             <span className='text-m-12 text-gray-750'>{filter}</span>
-            <svg
-              width='12'
-              height='12'
-              viewBox='0 0 12 12'
-              fill='none'
-              xmlns='http://www.w3.org/2000/svg'
-              aria-hidden
-            >
-              <path
-                d='M3 9L9 3M3 3L9 9'
-                stroke='#A1A1A1'
-                strokeWidth='1'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-            </svg>
+            <Icon name='x' size={12} color='#A1A1A1' />
           </button>
         ))}
       </div>

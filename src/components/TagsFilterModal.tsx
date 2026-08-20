@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import BottomSheetModal from './BottomSheetModal/BottomSheetModal';
+import Icon from './Icon';
 
 type TagItem = {
   id: string;
@@ -195,21 +196,7 @@ const TagsFilterModalContent = ({
                   className='flex h-[30px] items-center justify-center gap-[3px] rounded-[5px] border border-primary bg-green-50 px-[15px] py-[5px] text-m-14-hn text-primary'
                 >
                   {tag}
-                  <svg
-                    width='16'
-                    height='16'
-                    viewBox='0 0 16 16'
-                    className='block shrink-0'
-                    onClick={() => removeSelectedTag(tag)}
-                  >
-                    <path
-                      d='M4 12L12 4M4 4L12 12'
-                      stroke='#00C56C'
-                      strokeWidth='1.5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                  </svg>
+                  <Icon name='x' size={16} color='#00A14B' onClick={() => removeSelectedTag(tag)} />
                 </button>
               ))}
           </div>
@@ -218,21 +205,7 @@ const TagsFilterModalContent = ({
         <section className='flex min-h-0 w-full flex-1 flex-col px-[25px] pt-[20px]'>
           <section className='w-full'>
             <div className='relative'>
-              <svg
-                width='18'
-                height='18'
-                viewBox='0 0 20 20'
-                fill='none'
-                className='absolute left-[19px] top-[50%] translate-y-[-50%]'
-              >
-                <path
-                  d='M18.7508 18.7508L13.5538 13.5538M13.5538 13.5538C14.9604 12.1472 15.7506 10.2395 15.7506 8.25028C15.7506 6.26108 14.9604 4.35336 13.5538 2.94678C12.1472 1.54021 10.2395 0.75 8.25028 0.75C6.26108 0.75 4.35336 1.54021 2.94678 2.94678C1.54021 4.35336 0.75 6.26108 0.75 8.25028C0.75 10.2395 1.54021 12.1472 2.94678 13.5538C4.35336 14.9604 6.26108 15.7506 8.25028 15.7506C10.2395 15.7506 12.1472 14.9604 13.5538 13.5538Z'
-                  stroke='#646464'
-                  strokeWidth='1.5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                />
-              </svg>
+              <Icon name='search' size={16} color='#A1A1A1' className='absolute left-[19px] top-[12px]' />
               <input
                 type='text'
                 name='searchTags'
