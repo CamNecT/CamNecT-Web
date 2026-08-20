@@ -717,8 +717,9 @@ const CommunityPostPage = () => {
       }
     >
       {selectedPost && !detailError ? (
+        // 이미지·프로필까지 드래그 선택되는 것을 막고, 실제 콘텐츠 텍스트에서만 선택을 다시 허용한다.
         <main
-          className='flex w-full justify-center bg-white'
+          className='flex w-full select-none justify-center bg-white'
           style={{ paddingBottom: 'calc(90px + env(safe-area-inset-bottom))' }}
         >
           <div className='flex w-full max-w-[720px] flex-col sm:px-[25px]'>
@@ -740,7 +741,7 @@ const CommunityPostPage = () => {
                 </div>
               )}
               <div className='flex flex-col gap-[13px]'>
-                <div className='text-[24px] font-bold leading-[130%] text-black'>
+                <div className='select-text text-[24px] font-bold leading-[130%] text-black'>
                   {selectedPost.title}
                 </div>
                 <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
@@ -848,7 +849,7 @@ const CommunityPostPage = () => {
                 </div>
               ) : (
                 <>
-                  <div className='text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] whitespace-pre-wrap'>
+                  <div className='select-text whitespace-pre-wrap text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)]'>
                     {selectedPost.content}
                   </div>
                   {selectedPost.attachments && selectedPost.attachments.length > 0 ? (

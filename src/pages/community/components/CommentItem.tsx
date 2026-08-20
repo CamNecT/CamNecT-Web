@@ -85,7 +85,7 @@ const CommentItem = ({
           >
             {isReply ? <Icon name='reply' className='h-6 w-6 shrink-0' /> : null}
             <div className='flex flex-col gap-[10px]'>
-              <div className='text-[16px] leading-[160%] text-[var(--ColorGray2,#A1A1A1)]'>
+              <div className='select-text text-[16px] leading-[160%] text-[var(--ColorGray2,#A1A1A1)]'>
                 {comment.content}
               </div>
               {!isReply ? (
@@ -154,10 +154,10 @@ const CommentItem = ({
                 onChange={(event) => onEditingChange(event.target.value)}
                 rows={1}
                 maxLength={5000}
-                className='mt-[5px] min-h-[24px] w-full resize-none rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] bg-white p-[10px] text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] focus:outline-none'
+                className='mt-[5px] min-h-[24px] w-full select-text resize-none rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] bg-white p-[10px] text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] focus:outline-none'
               />
             ) : (
-              <div className='mt-[5px] whitespace-pre-wrap text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)]'>
+              <div className='mt-[5px] select-text whitespace-pre-wrap text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)]'>
                 {comment.content}
               </div>
             )}
