@@ -297,9 +297,9 @@ export const useChatRoomClose = () => {
                 userId: Number(user?.id),
                 roomId: Number(variables.roomId)
             }),
-        onSuccess: () => {
-            // 채팅 목록 최신화
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+        onSuccess: (_data, { roomId }) => {
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] }); // 채팅 목록 최신화
+            queryClient.invalidateQueries({ queryKey: ['chatRoom', roomId] }); // 현재 채팅방 최신화
         }
     });
 };
@@ -315,9 +315,9 @@ export const useChatRoomExit = () => {
                 userId: Number(user?.id),
                 roomId: Number(variables.roomId)
             }),
-        onSuccess: () => {
-            // 채팅 목록 최신화
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+        onSuccess: (_data, { roomId }) => {
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] }); // 채팅 목록 최신화
+            queryClient.removeQueries({ queryKey: ['chatRoom', roomId], exact: true }); // 현재 채팅방 캐시 삭제
         }
     });
 };

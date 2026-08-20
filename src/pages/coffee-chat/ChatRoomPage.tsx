@@ -319,7 +319,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 endChat({ roomId }, {
                     onSuccess: () => {
                         setLocalIsTerminated(true);
-                        queryClient.invalidateQueries({ queryKey: ['chatRoom', roomId] });
                         setConfirmPopUpConfig(null);
                     }
                 });
