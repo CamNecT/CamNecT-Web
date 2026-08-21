@@ -36,7 +36,7 @@ export default function ImageEditModal({ isOpen, onClose, onSelect, onDelete }: 
                     className="flex items-center gap-[15px] pl-[10px] py-[15px]"
                     type="button"
                 >
-                    <Icon name="trash" className="w-[20px] h-[20px] block shrink-0" />
+                    <Icon name="trash" className="block h-[20px] w-[20px] shrink-0 text-red" />
                     <span className="text-R-16 text-red">사진 삭제</span>
                 </button>
 

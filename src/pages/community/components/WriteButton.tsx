@@ -5,10 +5,11 @@ import PressableMotion from '../../../components/PressableMotion';
 type WriteButtonProps = {
   onClick?: () => void;
   hasBottomNav?: boolean;
+  boardType?: '정보' | '질문';
 };
 
 // 글쓰기 페이지로 이동하는 고정 CTA 버튼
-const WriteButton = ({ onClick, hasBottomNav = false }: WriteButtonProps) => {
+const WriteButton = ({ onClick, hasBottomNav = false, boardType }: WriteButtonProps) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -16,7 +17,7 @@ const WriteButton = ({ onClick, hasBottomNav = false }: WriteButtonProps) => {
       onClick();
       return;
     }
-    navigate('/community/write');
+    navigate('/community/write', { state: { boardType } });
   };
 
   return (

@@ -9,7 +9,6 @@ type CommentItemProps = {
   isAdopted: boolean;
   adoptedCommentId?: string;
   showAdoptButton: boolean;
-  isInfoPost: boolean;
   isHighlighted: boolean;
   isEditing: boolean;
   editingContent: string;
@@ -30,7 +29,6 @@ const CommentItem = ({
   isAdopted,
   adoptedCommentId,
   showAdoptButton,
-  isInfoPost,
   isHighlighted,
   isEditing,
   editingContent,
@@ -54,15 +52,16 @@ const CommentItem = ({
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [editingContent, isEditing]);
 
-  if (isQuestionPost && isReply) return null;
   // 채택된 댓글 표시 여부 계산
   const isAdoptedComment = isQuestionPost && isAdopted && adoptedCommentId === comment.id;
-  const isDeletedComment = comment.content === '삭제된 댓글입니다.';
+  // 삭제 여부를 본문 문구로 추측하지 않고 author=null을 변환한 명시적 상태로 판단한다.
+  const isDeletedComment = Boolean(comment.isDeleted);
   const replyItems =
-    !isQuestionPost && comment.replies && comment.replies.length > 0
+    comment.replies && comment.replies.length > 0
       ? comment.replies.map((reply) => renderReply(reply))
       : null;
   if (isDeletedComment) {
+    // 삭제된 루트 스레드에도 새 대댓글 작성이 허용되므로 답글 버튼과 기존 답글은 유지한다.
     return (
       <Fragment>
         <div
@@ -85,8 +84,19 @@ const CommentItem = ({
           }}
           >
             {isReply ? <Icon name='reply' className='h-6 w-6 shrink-0' /> : null}
-            <div className='text-[16px] leading-[160%] text-[var(--ColorGray2,#A1A1A1)]'>
-              {comment.content}
+            <div className='flex flex-col gap-[10px]'>
+              <div className='select-text text-[16px] leading-[160%] text-[var(--ColorGray2,#A1A1A1)]'>
+                {comment.content}
+              </div>
+              {!isReply ? (
+                <button
+                  type='button'
+                  className='w-fit text-m-12 text-[var(--ColorGray2,#A1A1A1)]'
+                  onClick={() => onReplyClick(comment)}
+                >
+                  답글 달기
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -143,10 +153,11 @@ const CommentItem = ({
                 value={editingContent}
                 onChange={(event) => onEditingChange(event.target.value)}
                 rows={1}
-                className='mt-[5px] min-h-[24px] w-full resize-none rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] bg-white p-[10px] text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] focus:outline-none'
+                maxLength={5000}
+                className='mt-[5px] min-h-[24px] w-full select-text resize-none rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] bg-white p-[10px] text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] focus:outline-none'
               />
             ) : (
-              <div className='mt-[5px] whitespace-pre-wrap text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)]'>
+              <div className='mt-[5px] select-text whitespace-pre-wrap text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)]'>
                 {comment.content}
               </div>
             )}
@@ -200,7 +211,7 @@ const CommentItem = ({
               ) : (
                 <>
                   <div className='flex items-center gap-[10px]'>
-                    {isInfoPost && !isReply ? (
+                    {!isReply ? (
                       <button
                         type='button'
                         className={`text-m-12 ${

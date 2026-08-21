@@ -2,7 +2,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import Icon, {type IconName} from '../../components/Icon';
 import PressableMotion from '../../components/PressableMotion';
 import { useNavigate } from 'react-router-dom';
-import { isStandalone } from '../../utils/isStandalone';
 
 type LeftAction = {
   icon?: IconName;
@@ -21,14 +20,14 @@ export const EditHeader = ({ title, rightElement, leftAction }: EditHeaderProps)
   const navigate = useNavigate();
   const handleLeftClick =  leftAction?.onClick ?? (() => navigate(-1));
   const leftLabel = leftAction?.ariaLabel ?? "취소";
-  // PWA(홈 화면 설치)는 원래 값(10)이 이미 잘 맞아서 유지, 브라우저 탭은 Figma 스펙(15) 적용
-  const headerPaddingTop = isStandalone() ? 10 : 15;
   return (
     <header
       //고정 헤더.
-      className='sticky left-0 right-0 top-0 z-50 inline-flex w-full items-center bg-white px-[25px] py-[10px] [container-type:inline-size]'
+      className='sticky left-0 right-0 top-0 z-50 inline-flex w-full items-center bg-white px-[25px] py-0 [container-type:inline-size]'
       style={{
-        paddingTop: `calc(${headerPaddingTop}px + env(safe-area-inset-top, 0px))`,
+        height: 'calc(50px + env(safe-area-inset-top, 0px))',
+        minHeight: 'calc(50px + env(safe-area-inset-top, 0px))',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
       role='banner'
     >

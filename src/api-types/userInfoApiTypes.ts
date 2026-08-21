@@ -172,16 +172,18 @@ export interface CommunityPostItem {
   bookmarkCount: number;
   acceptedBadge?: boolean;
   tags: string[];
+  // 내 글/북마크 목록에서도 익명 게시글 작성자는 null로 내려올 수 있다.
   author: {
     userId: number;
     name: string;
     profileImageUrl: string | null;
     studentNo: string;
     majorName: string;
-  };
+  } | null;
   thumbnailUrl?: string | null;
   accessType?: "FREE" | "POINT_REQUIRED";
-  accessStatus?: "GRANTED" | "LOCKED";
+  // 커뮤니티 본 목록과 동일한 실제 열람 상태를 재사용한다.
+  accessStatus?: import("./communityApiTypes").CommunityAccessStatus;
 }
 
 // 대외활동

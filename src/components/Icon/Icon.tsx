@@ -1,4 +1,5 @@
 import type { CSSProperties, MouseEvent } from "react";
+import { twMerge } from "tailwind-merge";
 import {
   activeIconMap,
   defaultBlackIconMap,
@@ -43,6 +44,12 @@ const getDefaultColor = (name: IconName, active?: boolean) => {
     return "";
   }
 
+  // 삭제를 의미하는 휴지통은 호출부 누락과 관계없이 위험 동작 색상을 기본으로 사용한다.
+  // 필요한 화면에서는 className/color로 다른 색상을 전달하면 twMerge와 inline style이 우선한다.
+  if (name === "trash") {
+    return "text-red";
+  }
+
   if (defaultBlackIconMap[name]) {
     return "text-black";
   }
@@ -84,9 +91,13 @@ const Icon = ({
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center [&_svg]:block [&_svg]:h-full [&_svg]:w-full ${
-        onClick ? "cursor-pointer active:scale-95 active:brightness-95 transition" : ""
-      } ${defaultColorClass} ${className}`}
+      // 기본 색상과 호출부의 text-* 색상이 충돌하면 호출부 className이 항상 우선한다.
+      className={twMerge(
+        "inline-flex shrink-0 items-center justify-center [&_svg]:block [&_svg]:h-full [&_svg]:w-full",
+        onClick ? "cursor-pointer active:scale-95 active:brightness-95 transition" : "",
+        defaultColorClass,
+        className,
+      )}
       style={{
         width: toCssSize(width ?? size),
         height: toCssSize(height ?? size),

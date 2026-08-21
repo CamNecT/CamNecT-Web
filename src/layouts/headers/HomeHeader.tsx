@@ -54,9 +54,12 @@ export const HomeHeader = ({
       style={{
         ...(useSafeArea
           ? {
-              paddingTop: 'calc(15px + env(safe-area-inset-top, 0px))',
+              height: 'calc(50px + env(safe-area-inset-top, 0px))',
+              minHeight: 'calc(50px + env(safe-area-inset-top, 0px))',
+              paddingTop: 'env(safe-area-inset-top, 0px)',
+              paddingBottom: 0,
             }
-          : null),
+          : { height: '50px', minHeight: '50px', paddingTop: 0, paddingBottom: 0 }),
         ...style,
       }}
       role='banner'
