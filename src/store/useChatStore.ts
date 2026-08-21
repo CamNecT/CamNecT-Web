@@ -4,6 +4,7 @@ import type {
     StompPendingChatMessage,
     StompSocketError
 } from '../api-types/stompApiTypes';
+import { DEFINITELY_UNSENT_ERROR_CODES } from '../constants/serverErrors/stompErrors';
 
 const PENDING_CONFIRM_TIMEOUT_MS = 15_000; // timeout 판별 기준
 const PENDING_TIMEOUT_CHECK_INTERVAL_MS = 1_000; // timeout 검사주기
@@ -168,16 +169,8 @@ export const useChatStore = create<ChatState>((set) => ({
             return;
         }
 
-        // 50000은 서버 내부 오류라 어느 단계에서 발생했는지 알 수 없다.
-        // 커밋 이후(브로드캐스트·ACK 발행) 단계에서 터졌다면 DB에는 메시지가 남아 있으므로
-        // failed로 확정하면 실제로 저장된 메시지를 사용자가 지우게 된다.
-        // 나머지 코드(40000/48003/48005/48006/48302/48402/48903)는 저장 시도 전 단계에서
-        // 검증·조회로 거절되므로 저장되지 않은 것이 확실하다.
-        // todo 백엔드 확인 필요: 50000이 커밋 이후 단계에서도 발생할 수 있는가?
-        //   - "커밋 전에만 발생한다"는 답을 받으면 아래 분기를 제거하고 전부 failed로 되돌릴 것
-        //   - 재전송 기능 구현 시 unconfirmed에도 '재전송'은 열어줄 것 (삭제만 막으면 됨)
-        //     같은 clientMessageId로 재전송하면 서버가 duplicate로 처리하므로 중복 저장되지 않음
-        const isUnsureFailure = error.code === 50000;
+        // 확정 미저장 목록에 없는 코드는 DB 저장 여부를 알 수 없으므로 미확정으로 둔다 (판단 근거는 stompErrors.ts 참고)
+        const isUnsureFailure = !DEFINITELY_UNSENT_ERROR_CODES.has(error.code);
 
         set((state) => ({
             pendingMessages: state.pendingMessages.map(

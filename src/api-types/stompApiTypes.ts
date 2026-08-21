@@ -7,7 +7,7 @@ export interface StompMessageAck {
     messageId: number; // 서버(DB)에 저장된 메시지 ID
     roomId: number; // 채팅방 ID
     clientMessageId: string; // 프론트에서 요청 시 사용한 UUID
-    duplicate: boolean; // 기존에 저장된 메시지이면 true
+    duplicate: boolean; // 같은 UUID·같은 내용 재전송으로 기존 메시지 기준 ACK이면 true
 }
 
 // 2. STOMP 오류가 발생한 작업 구분값
