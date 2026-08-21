@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon';
 import { Tabs, type TabItem } from '../../components/Tabs';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
@@ -21,6 +21,9 @@ const tabItems: TabItem[] = [
   { id: 'info', label: '정보' },
   { id: 'question', label: '질문' },
 ];
+
+const isCommunityTab = (tab: string | null): tab is string =>
+  tabItems.some((item) => item.id === tab);
 
 type CommunityListState = {
   items: CommunityPostItem[];
@@ -84,8 +87,25 @@ export const CommunityPage = () => {
   const userId = useAuthStore((state) => state.user?.id);
   const { mapTagNamesToIds } = useTagList();
   // 탭 선택 및 검색 UI 상태
-  // 커뮤니티에 새로 진입할 때는 이전 선택과 관계없이 항상 전체 탭에서 시작한다.
-  const [activeTab, setActiveTab] = useState<string>(tabItems[0].id);
+  // 선택한 탭을 URL에 남겨 글쓰기 등에서 뒤로 돌아올 때 유지하고, 파라미터 없는 새 진입은 전체 탭에서 시작한다.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab = isCommunityTab(tabParam) ? tabParam : tabItems[0].id;
+  const setActiveTab = useCallback(
+    (id: string) => {
+      if (!isCommunityTab(id)) return;
+      // 탭 전환은 히스토리에 쌓지 않고 교체해, 뒤로가기 한 번으로 커뮤니티를 벗어나게 한다.
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('tab', id);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
