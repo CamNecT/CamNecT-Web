@@ -3,13 +3,12 @@ import type {
   CommunityPostDetailResponse,
   CommunityPostItem,
 } from "../api-types/communityApiTypes";
-import { loggedInUserMajor } from "../mock/community";
 import type { CommentItem, CommunityPostDetail, InfoPost, QuestionPost } from "../types/community";
 
 const buildAuthor = () => ({
   id: "unknown",
-  name: "익명",
-  major: loggedInUserMajor,
+  name: "알 수 없음",
+  major: "",
   studentId: "",
 });
 
@@ -23,6 +22,7 @@ const sliceStudentNo = (studentNo?: string | null) => {
 const mapCommentAuthorFromApi = (comment: CommunityPostCommentResponse) => {
   const fallback = buildAuthor();
   if (!comment.author) {
+    // 삭제 댓글은 프로필을 숨기되 운영 식별용 userId는 화면 모델에 보존한다.
     return { ...fallback, id: String(comment.userId) };
   }
   return {
@@ -37,7 +37,6 @@ const mapCommentAuthorFromApi = (comment: CommunityPostCommentResponse) => {
 };
 
 const mapAuthorFromApi = (post: CommunityPostItem) => {
-  if (!post.author) return buildAuthor();
   return {
     id: String(post.author.userId),
     name: post.author.name,
@@ -62,6 +61,8 @@ export const mapToInfoPost = (post: CommunityPostItem): InfoPost => ({
   saveCount: post.bookmarkCount,
   comments: post.commentCount,
   createdAt: post.createdAt,
+  accessStatus: post.accessStatus ?? "GRANTED",
+  requiredPoints: post.requiredPoints,
 });
 
 export const mapToQuestionPost = (post: CommunityPostItem): QuestionPost => ({
@@ -76,9 +77,9 @@ export const mapToQuestionPost = (post: CommunityPostItem): QuestionPost => ({
   answers: post.answerCount,
   isAdopted: post.acceptedBadge ?? post.accepted ?? false,
   createdAt: post.createdAt,
-  accessStatus: post.accessStatus ?? "LOCKED",
+  accessStatus: post.accessStatus ?? "NEED_PURCHASE",
   accessType: post.accessType,
-  requiredPoints: post.requiredPoints ?? 100,
+  requiredPoints: post.requiredPoints ?? 0,
   myPoints: post.myPoints ?? 0,
 });
 
@@ -101,12 +102,12 @@ export const mapToCommunityPostDetail = (
   myPoints: post.myPoints,
   tagIds: post.tagIds,
   author: {
-    id: post.author ? String(post.author.userId) : String(post.authorId),
-    name: post.author?.name ?? "익명",
-    major: post.author?.majorName ?? loggedInUserMajor,
-    studentId: sliceStudentNo(post.author?.studentNo),
-    yearLevel: post.author?.yearLevel,
-    profileImageUrl: post.author?.profileImageUrl,
+    id: String(post.author.userId),
+    name: post.author.name,
+    major: post.author.majorName,
+    studentId: sliceStudentNo(post.author.studentNo),
+    yearLevel: post.author.yearLevel,
+    profileImageUrl: post.author.profileImageUrl,
   },
   content: post.content,
   categories: mapTagIdToName
@@ -136,16 +137,19 @@ export const mapFlatCommentsToTree = (
   const nodes = new Map<number, CommentItem>();
   const roots: CommentItem[] = [];
 
+  // 서버가 루트와 대댓글을 한 배열로 주므로 먼저 모든 노드를 만들어 순서 의존성을 없앤다.
   comments.forEach((comment) => {
     nodes.set(comment.commentId, {
       id: String(comment.commentId),
       author: mapCommentAuthorFromApi(comment),
       content: comment.content,
       createdAt: comment.createdAt,
+      isDeleted: comment.author === null,
       replies: [],
     });
   });
 
+  // parentCommentId가 없으면 루트, 있으면 해당 루트 스레드의 replies로 묶는다.
   comments.forEach((comment) => {
     const node = nodes.get(comment.commentId);
     if (!node) return;

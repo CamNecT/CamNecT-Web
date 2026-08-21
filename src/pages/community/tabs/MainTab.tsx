@@ -9,10 +9,16 @@ type MainTabProps = {
   tagName: string;
   recommendedPosts: InfoPost[];
   unansweredQuestions: QuestionPost[];
+  onViewWaitingQuestions: () => void;
 };
 
 // 메인 탭: 해시태그 히어로 + 추천 게시글 + 미답변 질문 목록
-const MainTab = ({ tagName, recommendedPosts, unansweredQuestions }: MainTabProps) => {
+const MainTab = ({
+  tagName,
+  recommendedPosts,
+  unansweredQuestions,
+  onViewWaitingQuestions,
+}: MainTabProps) => {
   return (
     <div>
       {/* 상단 히어로 영역: 전공 해시태그 + 안내 문구 + 캐러셀 */}
@@ -52,14 +58,20 @@ const MainTab = ({ tagName, recommendedPosts, unansweredQuestions }: MainTabProp
 
       {/* 답변 대기 질문 섹션 */}
       <section className='flex flex-col bg-white' style={{ padding: '30px 25px', gap: '20px' }}>
-        <div className='flex items-center' style={{ gap: '5px' }}>
+        <button
+          type='button'
+          onClick={onViewWaitingQuestions}
+          className='flex items-center text-left'
+          style={{ gap: '5px' }}
+          aria-label='채택 전 질문 전체 보기'
+        >
           <div className='text-sb-20' style={{ color: 'var(--ColorBlack, #202023)' }}>
             답변을 기다리는 질문들
           </div>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M8.25 4.5L15.75 12L8.25 19.5" stroke="#646464" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </div>
+        </button>
 
         {/* TODO: 미답변 질문 리스트 API 연결 */}
         {unansweredQuestions.length > 0 ? (

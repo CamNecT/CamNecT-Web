@@ -17,6 +17,8 @@ type BottomChatProps = {
   disabled?: boolean;
   replyTargetName?: string;
   focusToken?: number;
+  // 댓글 API 제한을 입력 단계에서도 동일하게 적용하기 위한 최대 길이이다.
+  maxLength?: number;
 };
 
 export const BottomChat = ({
@@ -32,6 +34,7 @@ export const BottomChat = ({
   disabled = false,
   replyTargetName,
   focusToken,
+  maxLength,
 }: BottomChatProps) => {
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -113,6 +116,7 @@ export const BottomChat = ({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               rows={1}
+              maxLength={maxLength}
               className='min-h-[40px] max-h-[120px] min-w-0 flex-1 resize-none bg-transparent px-[clamp(12px,3.5vw,15px)] py-[10px] text-[16px] text-[var(--ColorBlack,#202023)] placeholder:text-[16px] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-[var(--ColorGray2,#A1A1A1)]'
             />
             {hasContent ? (
