@@ -472,7 +472,7 @@ export const FindPwForm = ({isPasswordResetStep, onCodeVerified}: FindPwFormProp
                             error={errorsPw.password?.message}
                             rightIcon={
                                 <Icon
-                                    name={showPassword ? "eyeOpen" : "eyeClosed"}
+                                    name={showPassword ? "visible" : "visible_off"}
                                     className={showPassword ? "w-[24px] h-[24px]" : "w-[22px] h-[20px]"}
                                 />
                             }

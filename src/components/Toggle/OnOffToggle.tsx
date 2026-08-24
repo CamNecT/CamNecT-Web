@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ButtonHTMLAttributes, CSSProperties } from 'react';
+import PressableMotion from '../PressableMotion';
 
 type Size = number | string;
 
@@ -67,7 +68,9 @@ const OnOffToggle = ({
   };
 
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='soft'
       type='button'
       aria-pressed={isOn}
       onClick={handleClick}
@@ -76,7 +79,7 @@ const OnOffToggle = ({
       {...props}
     >
       <span style={knobStyle} />
-    </button>
+    </PressableMotion>
   );
 };
 

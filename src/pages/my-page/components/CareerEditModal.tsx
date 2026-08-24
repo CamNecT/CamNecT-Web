@@ -451,7 +451,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.startYear}년</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                                 className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showStartYearDropdown && (
@@ -487,7 +487,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.startMonth}월</span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                                 className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartMonthDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showStartMonthDropdown && (
@@ -530,7 +530,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                             <span className="text-r-16-hn text-gray-750">
                                                 {formData.endYear ? `${formData.endYear}년` : '현재'}
                                             </span>
-                                            <Icon name="toggleDown" 
+                                            <Icon name="arrow_down" 
                                                 className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showEndYearDropdown && (
@@ -578,7 +578,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                                 className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                             >
                                                 <span className="text-r-16-hn text-gray-750">{formData.endMonth}월</span>
-                                                <Icon name="toggleDown" 
+                                                <Icon name="arrow_down" 
                                                     className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndMonthDropdown ? 'rotate-180' : ''}`}/>
                                             </button>
                                             {showEndMonthDropdown && (

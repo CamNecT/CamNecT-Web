@@ -12,7 +12,15 @@ type CommunityPostProps = {
 };
 
 export const CommunityPost = ({post}: CommunityPostProps) => {
+    // accessStatus가 GRANTED가 아니면 보호된 미리보기와 썸네일을 렌더링하지 않는다.
     const isLocked = post.accessStatus !== 'GRANTED';
+    // 익명 응답(author=null)은 가짜 프로필 대신 익명 텍스트만 표시한다.
+    const authorName = post.author?.name ?? '익명';
+    const lockedMessage = post.accessStatus === 'LOGIN_REQUIRED'
+        ? '로그인 후 열람 가능'
+        : post.accessStatus === 'INSUFFICIENT_POINTS'
+            ? '포인트가 부족합니다'
+            : '구매 후 열람 가능';
     if (post.boardCode === "INFO") {
         return (
             <Link key={post.postId} to={`/community/post/${post.postId}`} className='block'>
@@ -34,23 +42,31 @@ export const CommunityPost = ({post}: CommunityPostProps) => {
                         <div className='flex' style={{ gap: '12px' }}>
                             <div className='flex flex-1 flex-col' style={{ gap: '5px' }}>
                                 <div className='flex items-center gap-[6px]'>
-                                    <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
-                                    <span className='text-r-12 text-gray-750'>
-                                    · {post.author.majorName}
-                                    {post.author.studentNo
-                                        ? ` ${post.author.studentNo.slice(2, 4)}학번`
-                                        : ''}
-                                    </span>
+                                    <span className='text-sb-14 text-gray-900'>{authorName}</span>
+                                    {post.author ? (
+                                        <span className='text-r-12 text-gray-750'>
+                                        · {post.author.majorName}
+                                        {post.author.studentNo
+                                            ? ` ${post.author.studentNo.slice(2, 4)}학번`
+                                            : ''}
+                                        </span>
+                                    ) : null}
                                 </div>
 
                                 <div className='text-sb-16-hn leading-[150%] text-gray-900'>{post.title}</div>
 
-                                <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>
-                                    {post.preview}
-                                </div>
+                                {isLocked ? (
+                                    <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
+                                        {lockedMessage}
+                                    </div>
+                                ) : (
+                                    <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>
+                                        {post.preview}
+                                    </div>
+                                )}
                             </div>
 
-                            {post.thumbnailUrl && (
+                            {!isLocked && post.thumbnailUrl && (
                                 <div className='h-[70px] w-[70px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--ColorGray1,#D5D5D5)]'>
                                 <img
                                     src={post.thumbnailUrl}
@@ -67,7 +83,7 @@ export const CommunityPost = ({post}: CommunityPostProps) => {
 
                         <div className='flex items-center gap-[10px] text-r-12 text-gray-650'>
                             <span className='flex items-center gap-[4px]'>
-                                <Icon name='like' className='h-[12px] w-[12px]' />
+                                <Icon name='thumbs_up_stroke' className='h-[12px] w-[12px]' />
                                 {post.likeCount}
                             </span>
                             <span className='flex items-center gap-[4px]'>
@@ -75,7 +91,7 @@ export const CommunityPost = ({post}: CommunityPostProps) => {
                                 {post.commentCount}
                             </span>
                             <span className='flex items-center gap-[4px]'>
-                                <Icon name='save' className='h-[12px] w-[12px]' />
+                                <Icon name='bookmark_stroke' className='h-[12px] w-[12px]' />
                                 {post.bookmarkCount}
                             </span>
                             <span>{formatTimeAgo(post.createdAt)}</span>
@@ -114,20 +130,22 @@ export const CommunityPost = ({post}: CommunityPostProps) => {
                     <div className='flex' style={{ gap: '12px' }}>
                         <div className='flex flex-1 flex-col' style={{ gap: '7px' }}>
                             <div className='flex items-center gap-[6px]'>
-                                <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
-                                <span className='text-r-12 text-gray-750'>
-                                    · {post.author.majorName}
-                                    {post.author.studentNo
-                                    ? ` ${post.author.studentNo.slice(2, 4)}학번`
-                                    : ''}
-                                </span>
+                                <span className='text-sb-14 text-gray-900'>{authorName}</span>
+                                {post.author ? (
+                                    <span className='text-r-12 text-gray-750'>
+                                        · {post.author.majorName}
+                                        {post.author.studentNo
+                                        ? ` ${post.author.studentNo.slice(2, 4)}학번`
+                                        : ''}
+                                    </span>
+                                ) : null}
                             </div>
 
                             <div className='text-sb-16-hn leading-[150%] text-gray-900'>{post.title}</div>
 
                             {isLocked ? (
                             <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
-                            
+                                {lockedMessage}
                             </div>
                             ) : (
                             <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>

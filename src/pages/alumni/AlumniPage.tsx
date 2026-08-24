@@ -189,7 +189,7 @@ export const AlumniSearchPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className='py-[9px]'><Icon name='more' className='h-6 w-6' /></div> 
+                  <div className='py-[9px]'><Icon name='arrow_right' className='h-6 w-6' /></div> 
                 </section>
 
                 {/* 2그룹: 카테고리와 소개글 */}

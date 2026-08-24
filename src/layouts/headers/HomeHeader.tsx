@@ -1,5 +1,6 @@
 import Badge from '../../components/Badge';
 import Icon from '../../components/Icon';
+import PressableMotion from '../../components/PressableMotion';
 import { useNavigate } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 
@@ -47,32 +48,41 @@ export const HomeHeader = ({
     <header
       className={`${sticky ? 'sticky left-0 right-0 top-0 z-50' : 'relative'} mx-auto flex w-full max-w-[430px] items-center justify-between px-[25px] py-[15px] ${
         isOnPrimary
-          ? 'bg-primary text-white [&_path]:fill-white [&_path]:stroke-white'
+          ? 'bg-primary text-white'
           : 'bg-white'
       } ${className}`}
       style={{
         ...(useSafeArea
           ? {
-              paddingTop: 'calc(15px + env(safe-area-inset-top, 0px))',
+              height: 'calc(50px + env(safe-area-inset-top, 0px))',
+              minHeight: 'calc(50px + env(safe-area-inset-top, 0px))',
+              paddingTop: 'env(safe-area-inset-top, 0px)',
+              paddingBottom: 0,
             }
-          : null),
+          : { height: '50px', minHeight: '50px', paddingTop: 0, paddingBottom: 0 }),
         ...style,
       }}
       role='banner'
       aria-label='홈 헤더'
     >
-      <span role='img' aria-label='캠넥트 로고' className={isOnPrimary ? 'text-white' : 'text-primary'}>
+      <span
+        role='img'
+        aria-label='캠넥트 로고'
+        className={isOnPrimary ? 'text-white [&_path]:fill-white [&_path]:stroke-white' : 'text-primary'}
+      >
         <Logo />
       </span>
-      <button
+      <PressableMotion
+        as='button'
+        intensity='soft'
         type='button'
         aria-label='알림'
         className='relative inline-flex'
         onClick={() => navigate('/home/notices')}
       >
-        <Icon name='alarm' />
+        <Icon name='bell_notification' style={{ color: 'var(--ColorWhite,#FFF)' }} />
         {showBadge ? <Badge /> : null}
-      </button>
+      </PressableMotion>
     </header>
   );
 };

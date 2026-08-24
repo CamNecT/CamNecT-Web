@@ -13,14 +13,14 @@ export interface AdminBottomNavProps {
 
 const navList: AdminBottomNavProps[] = [
     {
-        icon: "adminApproval",
-        activeIcon: "adminApprovalActive",
+        icon: "Navigation_approve_stroke",
+        activeIcon: "Navigation_approve_fill",
         label: "인증서 요청 승인",
         path: "/admin/school-verification"
     },
     {
-        icon: "adminActivityRegistration",
-        activeIcon: "adminActivityRegistrationActive",
+        icon: "Navigation_activities_write_stroke",
+        activeIcon: "Navigation_activities_write_fill",
         label: "대외활동 글쓰기",
         path: "/admin/post"
     }

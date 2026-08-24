@@ -13,7 +13,6 @@ import type {
   PostReactionParams,
   CommunityPostDetailResponse,
   GetCommunityPostDetailParams,
-  CommunityPostCommentResponse,
   CreateCommunityCommentBody,
   CreateCommunityCommentParams,
   CreateCommunityCommentResult,
@@ -33,14 +32,20 @@ import type {
   UpdateCommunityPostResult,
   CommunityUploadPresignRequest,
   CommunityUploadPresignResponse,
+  CommunityCommentCursorPage,
 } from "../api-types/communityApiTypes";
 
 const DEFAULT_TAB = "ALL";
 const DEFAULT_SORT = "RECOMMENDED";
 const DEFAULT_SIZE = 20;
 
-export const getCommunityPosts = async (data: GetCommunityPostsParams = {}) => {
+export const getCommunityPosts = async (
+  data: GetCommunityPostsParams,
+  // 검색 조건이 바뀌면 호출부에서 이전 요청을 실제로 취소할 수 있도록 signal을 전달한다.
+  options?: { signal?: AbortSignal },
+) => {
   const {
+    userId,
     tab,
     sort,
     size,
@@ -51,6 +56,7 @@ export const getCommunityPosts = async (data: GetCommunityPostsParams = {}) => {
   } = data;
 
   const queryParams: GetCommunityPostsParams = {
+    userId,
     tab: tab ?? DEFAULT_TAB,
     sort: sort ?? DEFAULT_SORT,
     size: size ?? DEFAULT_SIZE,
@@ -62,12 +68,12 @@ export const getCommunityPosts = async (data: GetCommunityPostsParams = {}) => {
 
   const response = await communityAxiosInstance.get<ApiResponse<CursorPage<CommunityPostItem>>>(
     "/api/community/posts",
-    { params: queryParams }
+    { params: queryParams, signal: options?.signal }
   );
   return response.data;
 };
 
-export const getCommunityHome = async (data: GetCommunityHomeParams = {}) => {
+export const getCommunityHome = async (data: GetCommunityHomeParams) => {
   const response = await communityAxiosInstance.get<ApiResponse<CommunityHomeData>>(
     "/api/community/home",
     { params: data }
@@ -76,10 +82,15 @@ export const getCommunityHome = async (data: GetCommunityHomeParams = {}) => {
   return response.data;
 };
 
-export const createCommunityPost = async (data: { body: CreateCommunityPostBody }) => {
+export const createCommunityPost = async (data: {
+  // 운영 API가 작성자 식별용 userId 쿼리를 요구하므로 본문과 분리해 전달한다.
+  params: { userId: number | string };
+  body: CreateCommunityPostBody;
+}) => {
   const response = await communityAxiosInstance.post<ApiResponse<CreateCommunityPostResult>>(
     "/api/community/posts",
-    data.body
+    data.body,
+    { params: data.params },
   );
 
   return response.data;
@@ -123,9 +134,14 @@ export const getCommunityPostDetail = async (data: {
   return response.data;
 };
 
-export const getCommunityPostComments = async (postId: number | string) => {
-  const response = await communityAxiosInstance.get<ApiResponse<CommunityPostCommentResponse[]>>(
-    `/api/community/posts/${postId}/comments`
+export const getCommunityPostComments = async (data: {
+  postId: number | string;
+  params?: { cursorId?: number; size?: number };
+}) => {
+  // 댓글은 전체 배열이 아니라 루트 스레드 기준 커서 페이지로 조회한다.
+  const response = await communityAxiosInstance.get<ApiResponse<CommunityCommentCursorPage>>(
+    `/api/community/posts/${data.postId}/comments`,
+    { params: data.params },
   );
 
   return response.data;

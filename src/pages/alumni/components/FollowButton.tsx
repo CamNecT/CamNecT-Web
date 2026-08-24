@@ -1,3 +1,5 @@
+import PressableMotion from '../../../components/PressableMotion';
+
 type FollowButtonProps = {
   isFollowing: boolean;
   isPending?: boolean;
@@ -6,7 +8,9 @@ type FollowButtonProps = {
 
 const FollowButton = ({ isFollowing, isPending = false, onClick }: FollowButtonProps) => {
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='soft'
       type='button'
       onClick={onClick}
       disabled={isPending}
@@ -54,7 +58,7 @@ const FollowButton = ({ isFollowing, isPending = false, onClick }: FollowButtonP
       >
         {isFollowing ? '팔로잉' : '팔로우'}
       </span>
-    </button>
+    </PressableMotion>
   );
 };
 

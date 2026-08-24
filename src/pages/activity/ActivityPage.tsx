@@ -61,7 +61,7 @@ export const ActivityPage = () => {
                   }}
                   aria-label='검색 닫기'
                 >
-                  <Icon name='search' className='h-[28px] w-[28px]' />
+                  <Icon name='search' className='h-[28px] w-[28px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
                 </button>
                 <input
                   type='text'

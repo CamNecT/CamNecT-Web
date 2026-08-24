@@ -1,3 +1,5 @@
+import PressableMotion from '../../../components/PressableMotion';
+
 type QuantitySelectorProps = {
   value: number;
   onDecrease: () => void;
@@ -12,7 +14,9 @@ export const QuantitySelector = ({
   return (
     // 수량 선택 컨테이너
     <div className='flex h-[52px] w-full items-center justify-between rounded-[5px] border border-[var(--ColorGray1,#ECECEC)] px-[15px]'>
-      <button
+      <PressableMotion
+        as='button'
+        intensity='soft'
         type='button'
         onClick={onDecrease}
         aria-label='수량 감소'
@@ -27,9 +31,11 @@ export const QuantitySelector = ({
             strokeLinejoin='round'
           />
         </svg>
-      </button>
+      </PressableMotion>
       <span className='text-m-16 text-[var(--ColorGray3,#646464)]'>{value}</span>
-      <button
+      <PressableMotion
+        as='button'
+        intensity='soft'
         type='button'
         onClick={onIncrease}
         aria-label='수량 증가'
@@ -44,7 +50,7 @@ export const QuantitySelector = ({
             strokeLinejoin='round'
           />
         </svg>
-      </button>
+      </PressableMotion>
     </div>
   );
 };
