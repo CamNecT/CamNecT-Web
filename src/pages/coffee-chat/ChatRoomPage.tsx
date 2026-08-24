@@ -59,10 +59,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         leftButtonText: string;
         onConfirm: () => void;
     } | null>(null);
-    const [localIsTerminated, setLocalIsTerminated] = useState(false);
 
-    // 종료 여부 (서버 데이터 우선, 없을 시 로컬 상태 사용)
-    const isTerminated = chatRoomData?.closed || localIsTerminated;
+    // 종료 여부 
+    const isTerminated = Boolean(chatRoomData?.closed);
     const opponentExited = chatRoomData?.opponentExited;
 
     // 전송 실패 메시지의 드롭다운: 열려 있는 메시지의 id (없으면 null)
@@ -298,7 +297,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             onConfirm: () => {
                 endChat({ roomId }, {
                     onSuccess: () => {
-                        setLocalIsTerminated(true);
                         setConfirmPopUpConfig(null);
                     }
                 });

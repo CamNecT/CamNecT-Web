@@ -22,9 +22,9 @@ export const stompClient = new Client({
     //     console.log('STOMP Debug:', str);
     // },
     reconnectDelay: 2000, 
-    // 4초간격으로 서버와 연결확인 
-    heartbeatIncoming: 4000,
-    heartbeatOutgoing: 4000,
+    // 10초간격으로 서버와 연결확인 
+    heartbeatIncoming: 10000,
+    heartbeatOutgoing: 10000,
     onWebSocketError: (event) => {
         console.error('WebSocket Error:', event);
     },

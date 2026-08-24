@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { StompChatResponse, StompMessageRequest, StompMessageResponse, StompPendingChatMessage } from "../api-types/stompApiTypes";
-import { isReadReceipt } from "../api-types/stompApiTypes";
+import { isEndReceipt, isReadReceipt } from "../api-types/stompApiTypes";
 import { isStompEnabled, stompClient } from "../api/stompClient";
 import { useChatStore } from "../store/useChatStore";
 import type { ChatMessage } from "../types/coffee-chat/coffeeChatTypes";
@@ -187,6 +187,21 @@ export const useStompChat = (roomId: string) => {
                         };
                     });
                     
+                    return;
+                }
+
+                // 채팅 종료 type 여부 -> 채팅 종료 처리 로직
+                if (isEndReceipt(data)) {
+                    
+                    // 둘 중 한명이 종료했을때 REST 캐시의 closed 프로퍼티를 true로 실시간 갱신
+                    queryClient.setQueryData(['chatRoom', roomId], (oldData: ChatRoomDetailData | undefined) => {
+                        if (!oldData) return oldData;
+                        return {
+                            ...oldData,
+                            closed: true
+                        };
+                    });
+
                     return;
                 }
 

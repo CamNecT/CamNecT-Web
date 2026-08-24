@@ -61,14 +61,20 @@ export interface StompReadReceiptResponse {
     type: 'READ'; // 일반 메시지와 읽음 이벤트를 구분하는 값
 }
 
-// 7. [발행] 메시지 보내기 (/pub/chat/message)
+// 7. [구독] 채팅방 종료 이벤트 (/sub/chat/room/{roomId})
+export interface StompChatRoomEndResponse {
+    type: 'ROOM_CLOSED'; 
+    roomId: number;
+}
+    
+// 8. [발행] 메시지 보내기 (/pub/chat/message)
 export interface StompMessageRequest {
     roomId: number; // 채팅방 ID
     content: string; // 메시지 내용, 공백 불가, 최대 16,000자
     clientMessageId: string; // 논리 메시지마다 한 번 생성하고 재전송 시 재사용하는 UUID v4
 }
 
-// 8. 클라이언트에서 관리하는 전송 대기 메시지 상태
+// 9. 클라이언트에서 관리하는 전송 대기 메시지 상태
 // unconfirmed: 제한 시간 안에 ACK/ERROR를 받지 못해 서버 저장 여부를 아직 확정할 수 없는 상태
 export type StompPendingState = 'pending' | 'unconfirmed' | 'sent' | 'failed';
 
@@ -91,8 +97,8 @@ export interface StompPendingChatMessage {
     errorCode?: number; // 전송 실패 시 서버 오류 코드
 }
 
-// 9. 같은 채팅방 구독 주소로 수신되는 일반 메시지와 읽음 이벤트의 Union Type
-export type StompChatResponse = StompMessageResponse | StompReadReceiptResponse;
+// 10. 같은 채팅방 구독 주소로 수신되는 일반 메시지와 읽음 이벤트의 Union Type
+export type StompChatResponse = StompMessageResponse | StompReadReceiptResponse | StompChatRoomEndResponse;
 
 // 타입 가드: 수신된 데이터가 '읽음 처리 데이터'인지 판단
 // (data is StompReadReceiptResponse) : Type predicate (해당 함수가 true면 호출부에서 StompReadReceiptResponse 타입으로 추론)
@@ -101,3 +107,7 @@ export const isReadReceipt = (data: StompChatResponse): data is StompReadReceipt
     // boolean 반환해야 type predicate 사용 가능
     return (data as StompReadReceiptResponse).type === 'READ';
 };
+
+export const isEndReceipt = (data: StompChatResponse): data is StompChatRoomEndResponse => {
+    return (data as StompChatRoomEndResponse).type === 'ROOM_CLOSED';
+}
