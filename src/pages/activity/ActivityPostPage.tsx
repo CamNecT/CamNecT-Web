@@ -15,6 +15,7 @@ import { getTags, getActivityDetail, deleteActivity, toggleActivityBookmark, clo
 import { mapDetailToActivityPost } from './utils/activityMapper';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import ImagePopUp from '../../components/ImagePopUp';
+import ReportModal from '../../components/report/ReportModal';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -120,7 +121,7 @@ const ActivityPostContent = ({
   const [isOptionOpen, setIsOptionOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
   const [isCloseRecruitPopupOpen, setIsCloseRecruitPopupOpen] = useState(false);
-  const [isReportPopupOpen, setIsReportPopupOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   
@@ -187,7 +188,7 @@ const ActivityPostContent = ({
         document.body.removeChild(textarea);
       }
     }
-    if (item.id === 'report-post') setIsReportPopupOpen(true);
+    if (item.id === 'report-post') setIsReportModalOpen(true);
     if (item.id === 'edit-post') navigate(`/activity/edit/${activityId}`, {replace:true});
     if (item.id === 'delete-post') setIsDeletePopupOpen(true);
     setIsOptionOpen(false);
@@ -393,12 +394,13 @@ const ActivityPostContent = ({
         onRightClick={() => setIsDeletePopupOpen(false)}
       />
 
-      <PopUp
-        isOpen={isReportPopupOpen}
-        type='confirm'
-        title='현재 제작 중이에요!'
-        content='유저분들이 더 즐겁게 소통할 수 있도록\n꼼꼼히 준비해서 돌아올게요!'
-        onClick={() => setIsReportPopupOpen(false)}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportedUserId={Number(selectedPost.author.id)}
+        reportedUserName={selectedPost.author.name}
+        reportedPostId={activityId}
+        postType="ACTIVITY"
       />
 
       <ImagePopUp

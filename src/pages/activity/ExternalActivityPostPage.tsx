@@ -18,11 +18,11 @@ import { mapDetailToActivityPost, mapRecruitmentItemToTeamRecruitPost } from './
 
 const REPLACE_IMAGE = replaceImg;
 
-type OptionId = 'copy-url' | 'report-post' | 'edit-post' | 'close-post';
+type OptionId = 'copy-url' | 'edit-post' | 'close-post';
 
 type OptionItem = {
     id: OptionId;
-    icon: 'edit' | 'close' | 'url' | 'report';
+    icon: 'edit' | 'close' | 'url';
     label: string;
 };
 
@@ -40,7 +40,6 @@ export const ExternalActivityPostPage = () => {
     const [isOptionOpen, setIsOptionOpen] = useState(false);
     const [isClosePopupOpen, setIsClosePopupOpen] = useState(false);
     const [isCloseAgainPopupOpen, setIsCloseAgainPopupOpen] = useState(false);
-    const [isReportPopupOpen, setIsReportPopupOpen] = useState(false);
 
   //상세 조회
   const {
@@ -133,7 +132,6 @@ export const ExternalActivityPostPage = () => {
       ]
     : [
         { id: 'copy-url', icon: 'url', label: 'URL 복사' },
-        { id: 'report-post', icon: 'report', label: '게시글 신고' },
       ];
 
   const handleOptionClick = async (item: OptionItem) => {
@@ -152,7 +150,6 @@ export const ExternalActivityPostPage = () => {
         document.body.removeChild(textarea);
       }
     }
-    if (item.id === 'report-post') setIsReportPopupOpen(true);
     if (item.id === 'edit-post') {
       if (selectedPost?.tab === 'external') navigate(`/admin/post/external/${activityId}`);
       else navigate(`/admin/post/job/${activityId}`);
@@ -397,7 +394,7 @@ export const ExternalActivityPostPage = () => {
 
 
         <BottomSheetModal isOpen={isOptionOpen} onClose={() => setIsOptionOpen(false)} height='auto'>
-            <div className='flex min-h-[200px] flex-col px-[clamp(16px,6vw,25px)] pt-[30px]'>
+            <div className='flex flex-col px-[clamp(16px,6vw,25px)] pt-[15px] pb-[25px]'>
             <div className='flex flex-col divide-y divide-[var(--ColorGray1,#ECECEC)]'>
                 {optionItems.map((item) => (
                 <button
@@ -436,13 +433,6 @@ export const ExternalActivityPostPage = () => {
             onClick={() => setIsCloseAgainPopupOpen(false)}
         />
 
-        <PopUp
-            isOpen={isReportPopupOpen}
-            type='confirm'
-            title='현재 제작 중이에요!'
-            content='유저분들이 더 즐겁게 소통할 수 있도록\n꼼꼼히 준비해서 돌아올게요!'
-            onClick={() => setIsReportPopupOpen(false)}
-        />
         </HeaderLayout>
     );
 };
