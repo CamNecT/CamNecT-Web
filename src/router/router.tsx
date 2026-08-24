@@ -100,7 +100,7 @@ export const router = createBrowserRouter([
                                         element: <AdminReportList />,
                                     },
                                     {
-                                        path: ":reportId",
+                                        path: ":caseId",
                                         element: <AdminReportDetail />,
                                     }
                                 ]
