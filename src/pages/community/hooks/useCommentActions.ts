@@ -18,11 +18,20 @@ import { generateId } from '../../../utils/uuid';
 
 type ReplyTarget = { id: string; name: string };
 
+// 줄바꿈과 탭은 댓글 본문에서 허용하되 서버가 거절하는 나머지 제어문자는 입력 단계에서 제거한다.
+const sanitizeCommentContent = (value: string) =>
+  Array.from(value)
+    .filter((character) => {
+      if (character === '\r' || character === '\n' || character === '\t') return true;
+      const code = character.charCodeAt(0);
+      return code > 31 && !(code >= 127 && code <= 159);
+    })
+    .join('');
+
 type UseCommentActionsParams = {
   currentUser: CommentAuthor;
   initialComments?: CommentItem[];
   resetKey?: string;
-  isInfoPost: boolean;
   isLockedQuestion: boolean;
   isQuestionPost: boolean;
   isAdopted: boolean;
@@ -40,7 +49,6 @@ export const useCommentActions = ({
   currentUser,
   initialComments = [],
   resetKey,
-  isInfoPost,
   isLockedQuestion,
   isQuestionPost,
   isAdopted,
@@ -57,6 +65,10 @@ export const useCommentActions = ({
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const [replyFocusToken, setReplyFocusToken] = useState(0);
   const highlightTimerRef = useRef<number | null>(null);
+  const setSafeCommentContent = (value: string) =>
+    setCommentContent(sanitizeCommentContent(value));
+  const setSafeEditingCommentContent = (value: string) =>
+    setEditingCommentContent(sanitizeCommentContent(value));
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -95,7 +107,6 @@ export const useCommentActions = ({
   }, []);
 
   const handleReplyClick = (comment: CommentItem) => {
-    if (!isInfoPost) return;
     if (replyTarget?.id === comment.id) {
       setReplyTarget(null);
       setHighlightedCommentId(null);
@@ -110,11 +121,11 @@ export const useCommentActions = ({
   const handleSubmitComment = (event?: SyntheticEvent) => {
     event?.preventDefault();
     if (isLockedQuestion) return;
-    const trimmed = commentContent.trim();
-    if (!trimmed) return;
+    // 댓글과 대댓글 모두 동일한 서버 제한(공백-only 금지, 최대 5,000자)을 적용한다.
+    if (!commentContent.trim() || commentContent.length > 5000) return;
     if (onSubmitCommentApi) {
       onSubmitCommentApi({
-        content: trimmed,
+        content: commentContent,
         parentCommentId: replyTarget?.id ?? null,
       }).finally(() => {
         setCommentContent('');
@@ -126,7 +137,7 @@ export const useCommentActions = ({
     const newComment: CommentItem = {
       id: `comment-${generateId()}`,
       author: { ...currentUser },
-      content: trimmed,
+      content: commentContent,
       createdAt: formatCommentDate(now),
     };
     if (replyTarget) {
@@ -151,19 +162,22 @@ export const useCommentActions = ({
   };
 
   const handleSaveEdit = () => {
-    const trimmed = editingCommentContent.trim();
-    if (!editingCommentId || !trimmed) {
+    if (
+      !editingCommentId ||
+      !editingCommentContent.trim() ||
+      editingCommentContent.length > 5000
+    ) {
       handleCancelEdit();
       return;
     }
     if (onUpdateCommentApi) {
-      onUpdateCommentApi({ commentId: editingCommentId, content: trimmed }).finally(() => {
+      onUpdateCommentApi({ commentId: editingCommentId, content: editingCommentContent }).finally(() => {
         handleCancelEdit();
       });
       return;
     }
     setCommentList((prev) =>
-      updateCommentContent(prev, editingCommentId, trimmed),
+      updateCommentContent(prev, editingCommentId, editingCommentContent),
     );
     handleCancelEdit();
   };
@@ -208,11 +222,11 @@ export const useCommentActions = ({
     [],
   );
 
-  // 게시글 전환 시 댓글 상태 초기화
+  // 게시글 전환 시에만 작성/편집 초안을 초기화한다.
+  // 댓글 다음 페이지가 붙어 initialComments가 바뀌는 경우에는 사용자가 쓰던 초안을 보존한다.
   useEffect(() => {
     if (!resetKey) return;
     const resetTimer = window.setTimeout(() => {
-      setCommentList(initialComments);
       setCommentContent('');
       setEditingCommentId(null);
       setEditingCommentContent('');
@@ -221,17 +235,17 @@ export const useCommentActions = ({
       setReplyFocusToken(0);
     }, 0);
     return () => window.clearTimeout(resetTimer);
-  }, [initialComments, resetKey]);
+  }, [resetKey]);
 
   return {
     commentContent,
-    setCommentContent,
+    setCommentContent: setSafeCommentContent,
     commentList,
     commentCount,
     sortedComments,
     editingCommentId,
     editingCommentContent,
-    setEditingCommentContent,
+    setEditingCommentContent: setSafeEditingCommentContent,
     highlightedCommentId,
     replyTarget,
     replyFocusToken,

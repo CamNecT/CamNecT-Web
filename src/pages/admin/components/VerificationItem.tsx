@@ -44,7 +44,7 @@ export const VerificationItem = ({ item }: VerificationItemProps) => {
             <div className="flex items-center gap-3">
                 {/* 아바타 아이콘 */}
                 <div className="w-10 h-10 rounded-full bg-gray-150 flex items-center justify-center overflow-hidden">
-                    <Icon name="me" className="w-6 h-6 text-gray-400" />
+                    <Icon name="Navigation_mypage_stroke" className="w-6 h-6 text-gray-400" />
                 </div>
                 
                 {/* 유저 정보 */}

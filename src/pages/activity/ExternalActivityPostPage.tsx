@@ -22,7 +22,7 @@ type OptionId = 'copy-url' | 'edit-post' | 'close-post';
 
 type OptionItem = {
     id: OptionId;
-    icon: 'edit' | 'close' | 'url';
+    icon: 'writing' | 'close' | 'link';
     label: string;
 };
 
@@ -127,11 +127,11 @@ export const ExternalActivityPostPage = () => {
 
   const optionItems: OptionItem[] = isMine
     ? [
-        { id: 'edit-post', icon: 'edit', label: '게시글 수정' },
+        { id: 'edit-post', icon: 'writing', label: '게시글 수정' },
         { id: 'close-post', icon: 'close', label: '모집 중지하기' },
       ]
     : [
-        { id: 'copy-url', icon: 'url', label: 'URL 복사' },
+        { id: 'copy-url', icon: 'link', label: 'URL 복사' },
       ];
 
   const handleOptionClick = async (item: OptionItem) => {
@@ -214,7 +214,7 @@ export const ExternalActivityPostPage = () => {
           className='w-[150px] flex items-center justify-center gap-[7px] px-[15px] py-[10px] rounded-[3px] bg-primary text-white text-m-16-hn z-30 active:scale-95 active:brightness-95 transition'
           onClick={() => navigate(`/activity/${activityId}/recruit-write`)}
         >
-          <Icon name='edit' />
+          <Icon name='writing' />
           팀원 모집하기
         </button>
       </div>
@@ -243,8 +243,8 @@ export const ExternalActivityPostPage = () => {
                         top: 'env(safe-area-inset-top, 0px)',
                     }}
                 >
-                    <button type='button' onClick={() => navigate(-1)} aria-label='뒤로 가기' className='z-10'>
-                        <Icon name='mainBack'/>
+                    <button type='button' onClick={() => navigate(-1)} aria-label='뒤로 가기' className='z-10 flex items-center'>
+                        <Icon name='arrow_left'/>
                     </button>
                     <span className='absolute left-1/2 -translate-x-1/2 text-center text-sb-20 text-gray-900'>대외활동</span>
                     <div className='flex items-center gap-[10px] z-10'>
@@ -254,8 +254,8 @@ export const ExternalActivityPostPage = () => {
                         isActive={isBookmarkedView} 
                         onToggle={() => handleToggleBookmark()}
                         />
-                        <button type='button' onClick={() => setIsOptionOpen(true)} aria-label='게시글 옵션 열기'>
-                            <Icon name='option'/>
+                        <button type='button' onClick={() => setIsOptionOpen(true)} aria-label='게시글 옵션 열기' className='flex items-center'>
+                            <Icon name='more_menu'/>
                         </button>
                     </div>
                 </header>
@@ -296,7 +296,7 @@ export const ExternalActivityPostPage = () => {
                             <span className='text-r-18 text-gray-750 pr-[5px]'>
                                 {selectedPost.organizer || '주최자 정보 없음'}
                             </span>
-                            <Icon name='bookmark' className='w-[15px] h-[15px]'/>
+                            <Icon name='bookmark_stroke' className='w-[15px] h-[15px]'/>
                             <span className='text-r-12 text-gray-650'>
                                 {selectedPost.saveCount}
                             </span>

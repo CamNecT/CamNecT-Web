@@ -68,7 +68,9 @@ const CoffeeChatBox = ({
                     {notificationItems.map((item) => (
                         <li key={item.id} className="px-[6px]">
                             {/* 항목 클릭은 요청 페이지 탭 진입용이며, 실제 쿼리 제거는 요청 페이지에서 처리합니다. */}
-                            <button
+                            <PressableMotion
+                                as="button"
+                                intensity="soft"
                                 type="button"
                                 onClick={item.onClick}
                                 className="flex w-full cursor-pointer items-center justify-between text-left"
@@ -83,8 +85,8 @@ const CoffeeChatBox = ({
                                         {item.description}
                                     </span>
                                 </span>
-                                <Icon name="more" className="h-6 w-6 shrink-0" />
-                            </button>
+                                <Icon name="arrow_right" className="h-6 w-6 shrink-0" />
+                            </PressableMotion>
                         </li>
                     ))}
                 </ul>

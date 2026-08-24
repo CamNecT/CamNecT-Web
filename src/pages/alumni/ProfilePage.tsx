@@ -291,7 +291,7 @@ const AlumniProfileContent = ({
             rightActions={
               isMine
                 ? []
-                : [{ icon: 'option', onClick: () => setIsOptionOpen(!isOptionOpen), ariaLabel: '프로필 옵션 열기' }]
+                : [{ icon: 'more_menu', onClick: () => setIsOptionOpen(!isOptionOpen), ariaLabel: '프로필 옵션 열기' }]
             }
           />
 

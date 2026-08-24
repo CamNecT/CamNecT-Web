@@ -8,6 +8,7 @@ import Badge from '../../components/Badge';
 import Card from '../../components/Card';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
+import PressableMotion from '../../components/PressableMotion';
 import { useFcmToken } from '../../hooks/useFcmNotification';
 import { FullLayout } from '../../layouts/FullLayout';
 import { Logo } from '../../layouts/headers/HomeHeader';
@@ -204,15 +205,17 @@ export const HomePage = () => {
                         >
                             <Logo />
                         </span>
-                        <button
+                        <PressableMotion
+                            as="button"
+                            intensity="soft"
                             type="button"
                             aria-label="알림"
-                            className="relative inline-flex h-6 w-6 items-center justify-center text-white [&_path]:stroke-white"
+                            className="relative inline-flex h-6 w-6 items-center justify-center"
                             onClick={() => navigate('/home/notices')}
                         >
-                            <Icon name="alarm" />
+                            <Icon name="bell_notification" style={{ color: 'var(--ColorWhite,#FFF)' }} />
                             {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
-                        </button>
+                        </PressableMotion>
                     </div>
 
                     {/* 1-1: 사용자 인사 메시지 */}
@@ -249,7 +252,9 @@ export const HomePage = () => {
                 <section
                     className="flex w-full flex-col gap-[14px] bg-[var(--color-gray-100)] px-[25px] pt-[30px] pb-[35px]"
                 >
-                    <button
+                    <PressableMotion
+                        as="button"
+                        intensity="soft"
                         type="button"
                         className="flex w-fit items-center gap-[5px]"
                         onClick={() => navigate('/alumni')}
@@ -258,7 +263,7 @@ export const HomePage = () => {
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
                             <path d="M8.25 4.5L15.75 12L8.25 19.5" stroke="#646464" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                    </button>
+                    </PressableMotion>
 
                     <div className="flex w-full flex-col gap-[20px]">
                         <div className="flex w-full flex-col gap-[15px]">
@@ -291,7 +296,7 @@ export const HomePage = () => {
                                 <span className="flex items-center justify-center gap-[5px] text-m-14 text-gray-900 tracking-[-0.04em]">
                                     {recommendButtonText}
                                     {recommendButtonText === '더보기' ? (
-                                        <Icon name="toggleDown" />
+                                        <Icon name="arrow_down" />
                                     ) : null}
                                 </span>
                             </Card>

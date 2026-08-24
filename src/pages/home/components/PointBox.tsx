@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/Card';
-import PressableMotion from '../../../components/PressableMotion';
 
 type PointBoxProps = {
     points?: number;
@@ -13,11 +12,10 @@ const PointBox = ({ points = 0 }: PointBoxProps) => {
 
     return (
         //TODO: 쿠폰교환 페이지 라우터 연결
-        <PressableMotion className="flex-[181_181_0]">
-            <Card
+        <Card
                 width="100%"
                 height="135px"
-                className="relative flex flex-col justify-between cursor-pointer rounded-[15px] border-none bg-gray-900! px-[16px] py-[13px] overflow-hidden [container-type:inline-size]"
+                className="relative flex flex-[181_181_0] flex-col justify-between cursor-pointer rounded-[15px] border-none bg-gray-900! px-[16px] py-[13px] overflow-hidden [container-type:inline-size]"
                 onClick={() => navigate('/shop')}
             >
                 {/* 포인트/CTA 텍스트 */}
@@ -84,8 +82,7 @@ const PointBox = ({ points = 0 }: PointBoxProps) => {
                     </svg>
 
                 </div>
-            </Card>
-        </PressableMotion>
+        </Card>
     );
 };
 

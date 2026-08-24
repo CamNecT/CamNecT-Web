@@ -29,7 +29,7 @@ export default function PortfolioSection({
                     className="text-R-12-hn text-gray-650 flex items-center gap-[2px]"
                 >
                     전체보기
-                    <Icon name="more2" className="w-[10px] h-[10px] block shrink-0"/>
+                    <Icon name="arrow_right" className="w-[10px] h-[10px] block shrink-0"/>
                 </button>
             }
         >

@@ -16,7 +16,9 @@ type MainBoxProps = {
 
 // 메인 캐러셀에서 사용하는 요약 카드
 const MainBox = ({ post }: MainBoxProps) => {
-  const postImageUrl = post.postImageUrl ?? post.imageUrl;
+  // 보호된 본문과 썸네일은 GRANTED일 때만 카드에 노출한다.
+  const isGranted = post.accessStatus === 'GRANTED';
+  const postImageUrl = isGranted ? post.postImageUrl ?? post.imageUrl : undefined;
 
   return (
     <Link to={`/community/post/${post.id}`} className='block'>
@@ -46,12 +48,14 @@ const MainBox = ({ post }: MainBoxProps) => {
                 <div className='text-sb-14' style={{ color: 'var(--ColorBlack, #202023)' }}>
                   {post.author.name}
                 </div>
-                <div className='text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
-                  {post.author.major}
-                  {post.author.studentId
-                    ? ` ${post.author.studentId}학번`
-                    : ''}
-                </div>
+                {post.author.major ? (
+                  <div className='text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
+                    {post.author.major}
+                    {post.author.studentId
+                      ? ` ${post.author.studentId}학번`
+                      : ''}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -70,9 +74,19 @@ const MainBox = ({ post }: MainBoxProps) => {
                 >
                   {post.title}
                 </div>
-                <div className='line-clamp-2 whitespace-pre-wrap text-r-14' style={{ color: 'var(--ColorGray3, #646464)' }}>
-                  {post.content}
-                </div>
+                {isGranted ? (
+                  <div className='line-clamp-2 whitespace-pre-wrap text-r-14' style={{ color: 'var(--ColorGray3, #646464)' }}>
+                    {post.content}
+                  </div>
+                ) : (
+                  <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
+                    {post.accessStatus === 'LOGIN_REQUIRED'
+                      ? '로그인 후 열람 가능'
+                      : post.accessStatus === 'INSUFFICIENT_POINTS'
+                        ? '포인트가 부족합니다'
+                        : `${post.requiredPoints ?? 0} P`}
+                  </div>
+                )}
               </div>
               {postImageUrl && (
                 <img
@@ -94,7 +108,7 @@ const MainBox = ({ post }: MainBoxProps) => {
         <div className='flex items-center justify-between text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
           <div className='flex items-center' style={{ gap: '10px' }}>
             <span className='flex items-center gap-[4px]'>
-              <Icon name='like' className='h-[12px] w-[12px]' />
+              <Icon name='thumbs_up_stroke' className='h-[12px] w-[12px]' />
               {post.likes}
             </span>
             <span className='flex items-center gap-[4px]'>

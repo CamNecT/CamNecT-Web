@@ -287,7 +287,7 @@ const ReportModal = ({
                                         onClick={() => fileInputRef.current?.click()}
                                         className="flex w-full items-center p-[15px] gap-[15px] rounded-[5px] bg-gray-150"
                                     >
-                                        <Icon name="picture" />
+                                        <Icon name="image" />
                                         <span className="text-r-14-hn text-gray-650">
                                             이미지를 추가해주세요 (png, jpg, webp / 최대 {MAX_FILE_COUNT}장, 장당 {MAX_SIZE_MB}MB)
                                         </span>

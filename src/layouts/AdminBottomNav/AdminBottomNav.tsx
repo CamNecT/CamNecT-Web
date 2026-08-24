@@ -13,26 +13,26 @@ export interface AdminBottomNavProps {
 
 const navList: AdminBottomNavProps[] = [
     {
-        icon: "adminApproval",
-        activeIcon: "adminApprovalActive",
+        icon: "Navigation_approve_stroke",
+        activeIcon: "Navigation_approve_fill",
         label: "인증서 요청 승인",
         path: "/admin/school-verification"
     },
     {
-        icon: "adminReport",
-        activeIcon: "adminReportActive",
+        icon: "Navigation_report_stroke",
+        activeIcon: "Navigation_report_fill",
         label: "신고된 글",
         path: "/admin/reports"
     },
     {
-        icon: "adminActivityRegistration",
-        activeIcon: "adminActivityRegistrationActive",
+        icon: "Navigation_activities_write_stroke",
+        activeIcon: "Navigation_activities_write_fill",
         label: "대외활동 글쓰기",
         path: "/admin/post"
     },
     {
-        icon: "adminCommunity",
-        activeIcon: "adminCommunityActive",
+        icon: "Navigation_community_stroke",
+        activeIcon: "Navigation_community_fill",
         label: "커뮤니티",
         path: "/admin/community"
     }

@@ -7,6 +7,7 @@ import {
   getActivityThumbnailPresignUrl, getTags, updateActivity
 } from '../../api/activityApi';
 import BoardTypeToggle from '../../components/BoardTypeToggle';
+import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
 import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
@@ -407,7 +408,7 @@ export const ActivityWritePage = () => {
             onClick={handleCancelClick}
             className='flex items-center'
           >
-            <Icon name='cancel' />
+            <Icon name='x' />
           </button>
 
           <div className='flex items-center' style={{ gap: '13px' }}>
@@ -593,57 +594,35 @@ export const ActivityWritePage = () => {
       </div>
       </div>
 
-      {isBoardOpen && (
+      <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)} height='235px'>
         <div
-          className='fixed inset-0 z-50 flex items-end justify-center'
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.25)' }}
-          onClick={() => closeBoardSelector(true)}
+          className='flex h-full flex-col bg-[var(--Color_Gray_B,#FCFCFC)] px-[24px] pb-[56px]'
+          style={{ gap: '20px' }}
         >
-          <div
-            className='flex w-[clamp(320px,100vw,540px)] flex-col'
-            style={{
-              height: '235px',
-              padding: '10px 24px 56px',
-              borderRadius: '10px 10px 0 0',
-              background: 'var(--Color_Gray_B, #FCFCFC)',
-              boxShadow: '0 -1px 9.6px 0 rgba(32, 32, 35, 0.10)',
-              gap: '20px',
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className='flex justify-center'>
-              <svg xmlns='http://www.w3.org/2000/svg' width='78' height='5' viewBox='0 0 78 5' fill='none'>
-                <path d='M2.5 2.5H75.5' stroke='#A1A1A1' strokeWidth='5' strokeLinecap='round' />
-              </svg>
-            </div>
+          <span className='text-b-18' style={{ color: 'var(--ColorBlack, #202023)' }}>
+            게시판 선택
+          </span>
 
-            <div className='flex flex-col' style={{ gap: '20px' }}>
-              <span className='text-b-18' style={{ color: 'var(--ColorBlack, #202023)' }}>
-                게시판 선택
-              </span>
-
-              <div className='flex flex-col' style={{ gap: '20px' }}>
-                {boardTypes.map((type) => (
-                  <div
-                    key={type}
-                    className='flex items-center justify-between'
-                    style={{ padding: '0 12px' }}
-                  >
-                    <span className='text-m-16' style={{ color: 'var(--ColorGray3, #646464)' }}>
-                      {type}
-                    </span>
-                    <BoardTypeToggle
-                      label={type}
-                      selected={draftBoardType === type}
-                      onClick={() => setDraftBoardType(type)}
-                    />
-                  </div>
-                ))}
+          <div className='flex flex-col' style={{ gap: '20px' }}>
+            {boardTypes.map((type) => (
+              <div
+                key={type}
+                className='flex items-center justify-between'
+                style={{ padding: '0 12px' }}
+              >
+                <span className='text-m-16' style={{ color: 'var(--ColorGray3, #646464)' }}>
+                  {type}
+                </span>
+                <BoardTypeToggle
+                  label={type}
+                  selected={draftBoardType === type}
+                  onClick={() => setDraftBoardType(type)}
+                />
               </div>
-            </div>
+            ))}
           </div>
         </div>
-      )}
+      </BottomSheetModal>
 
       <PopUp
         isOpen={isConfirmOpen}

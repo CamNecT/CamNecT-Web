@@ -1,13 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/Icon';
+import PressableMotion from '../../../components/PressableMotion';
 
 type WriteButtonProps = {
   onClick?: () => void;
   hasBottomNav?: boolean;
+  boardType?: '정보' | '질문';
 };
 
 // 글쓰기 페이지로 이동하는 고정 CTA 버튼
-const WriteButton = ({ onClick, hasBottomNav = false }: WriteButtonProps) => {
+const WriteButton = ({ onClick, hasBottomNav = false, boardType }: WriteButtonProps) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -15,11 +17,13 @@ const WriteButton = ({ onClick, hasBottomNav = false }: WriteButtonProps) => {
       onClick();
       return;
     }
-    navigate('/community/write');
+    navigate('/community/write', { state: { boardType } });
   };
 
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='strong'
       type='button'
       onClick={handleClick}
       className='fixed inline-flex flex-col items-start'
@@ -33,12 +37,12 @@ const WriteButton = ({ onClick, hasBottomNav = false }: WriteButtonProps) => {
       }}
     >
       <span className='inline-flex items-center' style={{ gap: '7px' }}>
-        <Icon name='edit' style={{ color: 'var(--ColorWhite, #FFF)' }} />
+        <Icon name='writing' style={{ color: 'var(--ColorWhite, #FFF)' }} />
         <span className='text-b-16-hn' style={{ color: 'var(--ColorWhite, #FFF)' }}>
           글쓰기
         </span>
       </span>
-    </button>
+    </PressableMotion>
   );
 };
 

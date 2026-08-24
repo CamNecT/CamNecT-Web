@@ -235,7 +235,7 @@ export const MypageEditPage = () => {
                                     className="h-[56px] w-[56px] rounded-full"
                                 />
                                     <div className="absolute top-0 h-[56px] w-[56px] rounded-full bg-gray-900/60"></div>
-                                    <Icon name="cameraWhite" className="absolute top-[16px] left-[16px] block shrink-0" />
+                                    <Icon name="camera" className="absolute top-[16px] left-[16px] block shrink-0" />
                                 </button>
                                 
                                 <div className="flex flex-col flex-1 gap-[6px]">
@@ -254,7 +254,7 @@ export const MypageEditPage = () => {
                                         <button onClick={() => openModal('tags')}
                                         className="text-R-12-hn text-gray-650 flex items-center gap-[2px]">
                                             수정하기
-                                            <Icon name="more2" className="w-[10px] h-[10px] block shrink-0"/>
+                                            <Icon name="arrow_right" className="w-[10px] h-[10px] block shrink-0"/>
                                         </button>
                                     </div>
                                     <div className="w-full flex flex-wrap gap-[5px] pl-[4px]">
@@ -274,7 +274,7 @@ export const MypageEditPage = () => {
                                         <button onClick={() => openModal('intro')}
                                         className="text-R-12-hn text-gray-650 flex items-center gap-[2px]">
                                             수정하기
-                                            <Icon name="more2" className="w-[10px] h-[10px] block shrink-0"/>
+                                            <Icon name="arrow_right" className="w-[10px] h-[10px] block shrink-0"/>
                                         </button>
                                     </div>
                                     <div className="w-full flex text-R-14 text-gray-750 leading-[1.5] pl-[4px] line-clamp-3 whitespace-pre-line break-keep [overflow-wrap:anywhere]">

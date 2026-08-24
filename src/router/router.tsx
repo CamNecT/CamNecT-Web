@@ -29,6 +29,7 @@ import CommunityPostPage from "../pages/community/CommunityPostPage";
 import { WritePage } from "../pages/community/WritePage";
 import { HomePage } from "../pages/home/HomePage";
 import { NotificationPage } from "../pages/home/NotificationPage";
+import IconPreviewPage from "../pages/IconPreviewPage";
 import { MypageEditPage } from "../pages/my-page/MypageEditPage";
 import { FollowerPage } from "../pages/my-page/MypageFollowerPage";
 import { MypagePage } from "../pages/my-page/MypagePage";
@@ -75,6 +76,10 @@ export const router = createBrowserRouter([
                 children: [
                     { path: ":tab", element: <FindAccountPage /> },
                 ]
+            },
+            {
+                path: "icon-preview",
+                element: <IconPreviewPage />,
             },
 
             // 로그인 필수 페이지들 

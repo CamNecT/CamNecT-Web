@@ -23,7 +23,7 @@ type OptionId = 'copy-url' | 'report-post' | 'edit-post' | 'delete-post';
 
 type OptionItem = {
   id: OptionId;
-  icon: 'edit' | 'delete' | 'url' | 'report';
+  icon: 'writing' | 'trash' | 'link' | 'report';
   label: string;
 };
 
@@ -160,15 +160,15 @@ const ActivityPostContent = ({
 
   const optionItems: OptionItem[] = isAdmin
   ? [
-      { id: 'delete-post', icon: 'delete', label: '게시글 삭제' },
+      { id: 'delete-post', icon: 'trash', label: '게시글 삭제' },
     ]
     : isMine
       ? [
-          { id: 'edit-post', icon: 'edit', label: '게시글 수정' },
-          { id: 'delete-post', icon: 'delete', label: '게시글 삭제' },
+          { id: 'edit-post', icon: 'writing', label: '게시글 수정' },
+          { id: 'delete-post', icon: 'trash', label: '게시글 삭제' },
         ]
       : [
-          { id: 'copy-url', icon: 'url', label: 'URL 복사' },
+          { id: 'copy-url', icon: 'link', label: 'URL 복사' },
           { id: 'report-post', icon: 'report', label: '게시글 신고' },
         ];
 
@@ -204,7 +204,7 @@ const ActivityPostContent = ({
           title='대외활동'
           leftAction={{onClick: () => navigate(-1)}}
           rightActions={[
-            { icon: 'option', onClick: () => setIsOptionOpen(true), ariaLabel: '게시글 옵션 열기' },
+            { icon: 'more_menu', onClick: () => setIsOptionOpen(true), ariaLabel: '게시글 옵션 열기' },
           ]}
         />
       }

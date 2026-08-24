@@ -1,3 +1,5 @@
+import PressableMotion from './PressableMotion';
+
 type BoardTypeToggleProps = {
   selected: boolean;
   onClick: () => void;
@@ -7,7 +9,9 @@ type BoardTypeToggleProps = {
 // 정렬/선택 상태를 보여주는 라디오형 토글
 const BoardTypeToggle = ({ selected, onClick, label }: BoardTypeToggleProps) => {
   return (
-    <button
+    <PressableMotion
+      as='button'
+      intensity='soft'
       type='button'
       aria-pressed={selected}
       aria-label={`${label} 선택`}
@@ -23,7 +27,7 @@ const BoardTypeToggle = ({ selected, onClick, label }: BoardTypeToggleProps) => 
           <circle cx='12' cy='12' r='11.5' stroke='#A1A1A1' />
         </svg>
       )}
-    </button>
+    </PressableMotion>
   );
 };
 

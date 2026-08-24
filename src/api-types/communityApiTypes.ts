@@ -2,6 +2,22 @@ export type Tab = "ALL" | "INFO" | "QUESTION";
 
 export type Sort = "RECOMMENDED" | "LATEST" | "LIKE" | "BOOKMARK";
 
+// 화면 잠금 여부는 accessType이 아니라 현재 사용자의 실제 열람 상태로 판단한다.
+export type CommunityAccessStatus =
+  | "GRANTED"
+  | "NEED_PURCHASE"
+  | "INSUFFICIENT_POINTS"
+  | "LOGIN_REQUIRED";
+
+export type CommunityAuthor = {
+  userId: number;
+  name: string;
+  profileImageUrl: string | null;
+  studentNo?: string;
+  majorName: string;
+  yearLevel: number;
+};
+
 export type CommunityPostItem = {
   postId: number;
   boardCode: "INFO" | "QUESTION";
@@ -16,16 +32,9 @@ export type CommunityPostItem = {
   acceptedBadge?: boolean;
   tags: string[];
   thumbnailUrl?: string | null;
-  author?: {
-    userId: number;
-    name: string;
-    profileImageUrl: string | null;
-    studentNo?: string;
-    majorName: string;
-    yearLevel: number;
-  };
+  author: CommunityAuthor;
   accessType?: "FREE" | "POINT_REQUIRED";
-  accessStatus?: "GRANTED" | "LOCKED";
+  accessStatus?: CommunityAccessStatus;
   requiredPoints?: number;
   myPoints?: number;
 };
@@ -44,6 +53,8 @@ export type ApiResponse<T> = {
 };
 
 export type GetCommunityPostsParams = {
+  // 운영 Swagger 기준 목록 조회에도 현재 사용자 ID가 필요하다.
+  userId: number | string;
   tab?: Tab;
   sort?: Sort;
   tagId?: number;
@@ -63,14 +74,15 @@ export type CommunityHomeData = {
 };
 
 export type GetCommunityHomeParams = {
-  interestTagId?: number;
+  userId: number | string;
 };
 
 export type CommunityAttachment = {
   fileKey: string;
   thumbnailKey?: string;
-  width: number;
-  height: number;
+  // 이미지일 때만 width와 height를 한 쌍으로 전달하고 PDF는 둘 다 생략한다.
+  width?: number;
+  height?: number;
   fileSize: number;
 };
 
@@ -99,7 +111,6 @@ export type CreateCommunityPostBody = {
   boardCode: "INFO" | "QUESTION";
   title: string;
   content: string;
-  anonymous: boolean;
   tagIds: number[];
   attachments: CommunityAttachment[];
   accessType?: "FREE" | "POINT_REQUIRED";
@@ -136,11 +147,11 @@ export type UpdateCommunityPostParams = {
 };
 
 export type UpdateCommunityPostBody = {
-  title: string;
-  content: string;
-  anonymous: boolean;
-  tagIds: number[];
-  attachments: CommunityAttachment[] | null;
+  // PATCH는 변경된 필드만 포함한다.
+  title?: string | null;
+  content?: string | null;
+  tagIds?: number[] | null;
+  attachments?: CommunityAttachment[] | null;
 };
 
 export type UpdateCommunityPostResult = string;
@@ -150,7 +161,6 @@ export type CommunityPostDetailResponse = {
   boardCode: "INFO" | "QUESTION";
   title: string;
   content: string;
-  anonymous: boolean;
   authorId: number;
   createdAt: string;
   bookmarked?: boolean;
@@ -163,21 +173,14 @@ export type CommunityPostDetailResponse = {
     height: number;
     fileSize: number;
   }[];
-  author?: {
-    userId: number;
-    name: string;
-    profileImageUrl: string | null;
-    studentNo?: string;
-    majorName: string;
-    yearLevel: number;
-  };
+  author: CommunityAuthor;
   viewCount: number;
   bookmarkCount: number;
   likeCount: number;
   likedByMe: boolean;
   acceptedCommentId: number | null;
   tagIds: number[];
-  accessStatus: "GRANTED" | "LOCKED";
+  accessStatus: CommunityAccessStatus;
   requiredPoints: number;
   myPoints: number;
 };
@@ -193,14 +196,22 @@ export type CommunityPostCommentResponse = {
   content: string;
   likeCount: number;
   createdAt: string;
-  author?: {
+  // 삭제 댓글은 신고·운영 이력을 위해 userId가 남아도 author는 null일 수 있다.
+  author: {
     userId: number;
     name: string;
     profileImageUrl?: string | null;
     studentNo?: string;
     majorName?: string;
     yearLevel?: number;
-  };
+  } | null;
+};
+
+export type CommunityCommentCursorPage = {
+  // size는 배열 길이가 아니라 한 페이지의 루트 댓글 스레드 수를 의미한다.
+  items: CommunityPostCommentResponse[];
+  nextCursorId: number | null;
+  hasNext: boolean;
 };
 
 export type CreateCommunityCommentParams = {
@@ -244,6 +255,18 @@ export type PurchasePostAccessParams = {
 
 export type PurchasePostAccessResult = {
   postId: number;
-  accessStatus: "GRANTED" | "LOCKED";
+  accessStatus: CommunityAccessStatus;
   remainingPoints: number;
+};
+
+export type ValidationFieldError = {
+  field: string;
+  message: string;
+};
+
+export type CommunityErrorResponse = {
+  status: number;
+  code: number;
+  message: string;
+  errors?: ValidationFieldError[];
 };

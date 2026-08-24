@@ -22,39 +22,37 @@ type QuestionTabProps = {
   posts: QuestionPost[];
   sortKey: SortKey;
   onSortChange: (next: SortKey) => void;
+  selectedTag: string | null;
+  onTagChange: (next: string | null) => void;
+  adoptionFilter: string | null;
+  onAdoptionFilterChange: (next: string | null) => void;
   isAdmin?: boolean;
 };
 
 // 질문 탭: 필터 + 정렬 + 질문글 리스트
-const QuestionTab = ({ posts, sortKey, onSortChange, isAdmin = false }: QuestionTabProps) => {
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+const QuestionTab = ({
+  posts,
+  sortKey,
+  onSortChange,
+  selectedTag,
+  onTagChange,
+  adoptionFilter,
+  onAdoptionFilterChange,
+  isAdmin = false,
+}: QuestionTabProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
+  const selectedTags = [selectedTag, adoptionFilter].filter(
+    (tag): tag is string => Boolean(tag),
+  );
 
-  // 태그/채택 상태 기준으로 목록 필터링
+  // 일반 태그는 서버에서 조회하고, 합의한 대로 채택 상태만 프론트에서 필터링한다.
   const filteredPosts = useMemo(() => {
-    if (selectedTags.length === 0) return posts;
-    const adoptionTags = ['채택 전', '채택 완료'];
-    const selectedAdoptionTags = selectedTags.filter((tag) => adoptionTags.includes(tag));
-    const selectedCategoryTags = selectedTags.filter(
-      (tag) => !adoptionTags.includes(tag),
+    if (!adoptionFilter) return posts;
+    return posts.filter((post) =>
+      adoptionFilter === '채택 완료' ? post.isAdopted : !post.isAdopted,
     );
-    return posts.filter((post) => {
-      const matchesCategory =
-        selectedCategoryTags.length === 0
-          ? true
-          : selectedCategoryTags.every((tag) => post.categories.includes(tag));
-      const matchesAdoption =
-        selectedAdoptionTags.length === 0
-          ? true
-          : selectedAdoptionTags.length === 2
-            ? true
-            : selectedAdoptionTags[0] === '채택 완료'
-              ? post.isAdopted
-              : !post.isAdopted;
-      return matchesCategory && matchesAdoption;
-    });
-  }, [posts, selectedTags]);
+  }, [adoptionFilter, posts]);
 
   return (
     <div className='flex flex-col bg-white' style={{ padding: '20px 25px', gap: '10px' }}>
@@ -64,9 +62,10 @@ const QuestionTab = ({ posts, sortKey, onSortChange, isAdmin = false }: Question
           <FilterHeader
             activeFilters={selectedTags}
             onOpenFilter={() => setIsFilterOpen(true)}
-            onRemoveFilter={(tag) =>
-              setSelectedTags((prev) => prev.filter((item) => item !== tag))
-            }
+            onRemoveFilter={(tag) => {
+              if (tag === adoptionFilter) onAdoptionFilterChange(null);
+              if (tag === selectedTag) onTagChange(null);
+            }}
           />
         </div>
         <SortSelector sortKey={sortKey} sortLabels={sortLabels} onChange={onSortChange} />
@@ -109,19 +108,25 @@ const QuestionTab = ({ posts, sortKey, onSortChange, isAdmin = false }: Question
                   <div className='flex flex-1 flex-col' style={{ gap: '7px' }}>
                     <div className='flex items-center gap-[6px]'>
                       <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
-                      <span className='text-r-12 text-gray-750'>
-                        · {post.author.major}
-                        {post.author.studentId
-                          ? ` ${post.author.studentId}학번`
-                          : ''}
-                      </span>
+                      {post.author.major ? (
+                        <span className='text-r-12 text-gray-750'>
+                          · {post.author.major}
+                          {post.author.studentId
+                            ? ` ${post.author.studentId}학번`
+                            : ''}
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className='text-sb-16-hn leading-[150%] text-gray-900'>{post.title}</div>
 
                     {isLocked ? (
                       <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
-                        {requiredPoints} P
+                        {post.accessStatus === 'LOGIN_REQUIRED'
+                          ? '로그인 후 열람 가능'
+                          : post.accessStatus === 'INSUFFICIENT_POINTS'
+                            ? '포인트가 부족합니다'
+                            : `${requiredPoints} P`}
                       </div>
                     ) : (
                       <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>
@@ -146,12 +151,15 @@ const QuestionTab = ({ posts, sortKey, onSortChange, isAdmin = false }: Question
         })}
       </div>
 
+      {/* 질문 목록은 채택 상태와 서버 조회용 일반 태그를 각각 하나씩만 조합한다. */}
       <TagsFilterModal
         isOpen={isFilterOpen}
         tags={selectedTags}
         onClose={() => setIsFilterOpen(false)}
         onSave={(next) => {
-          setSelectedTags(next);
+          const adoptionTags = ['채택 전', '채택 완료'];
+          onAdoptionFilterChange(next.find((tag) => adoptionTags.includes(tag)) ?? null);
+          onTagChange(next.find((tag) => !adoptionTags.includes(tag)) ?? null);
           setIsFilterOpen(false);
         }}
         categories={filterCategories}
@@ -166,9 +174,21 @@ const QuestionTab = ({ posts, sortKey, onSortChange, isAdmin = false }: Question
             ],
           },
         ]}
+        maxSelected={2}
+        selectionGroups={[
+          {
+            tagNames: ['채택 전', '채택 완료'],
+            maxSelected: 1,
+          },
+          {
+            tagNames: filterTags.map((tag) => tag.name),
+            maxSelected: 1,
+          },
+        ]}
+        selectionGuide='채택/일반 태그 각 1개'
       />
 
-      <WriteButton hasBottomNav={isAdmin}/>
+      <WriteButton boardType='질문' hasBottomNav={isAdmin} />
     </div>
   );
 };
