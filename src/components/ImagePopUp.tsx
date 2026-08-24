@@ -19,7 +19,7 @@ const ImagePopUp = ({ isOpen, imageUrl, onClose }: ImagePopUpProps) => {
         <div className='flex w-full max-h-[calc(100dvh-50px)] flex-col pb-[25px] rounded-[20px] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.16)]'>
           <div className='flex h-[44px] items-center justify-end px-[25px] py-[10px]'>
             <button type='button' aria-label='닫기' onClick={onClose}>
-              <Icon name='cancel' className='h-[24px] w-[24px]' />
+              <Icon name='x' className='h-[24px] w-[24px]' />
             </button>
           </div>
           <div className='flex items-center'>

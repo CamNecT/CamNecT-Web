@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode, KeyboardEvent } from 'react';
+import PressableMotion from './PressableMotion';
 
 type Size = number | string;
 
@@ -39,18 +40,22 @@ const Card = ({
         }
       : undefined);
 
+  const Component = isClickable ? PressableMotion : 'div';
+  const motionProps = isClickable ? { intensity: 'soft' as const } : {};
+
   return (
-    <div
+    <Component
       className={`bg-white border border-gray-150 rounded-[12px] opacity-100 ${className}`}
       style={{ width: cardWidth, height: cardHeight, ...style }}
       role={resolvedRole}
       tabIndex={resolvedTabIndex}
       onClick={onClick}
       onKeyDown={resolvedOnKeyDown}
+      {...motionProps}
       {...props}
     >
       {children}
-    </div>
+    </Component>
   );
 };
 

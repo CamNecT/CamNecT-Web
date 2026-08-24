@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { twMerge } from 'tailwind-merge';
 import { BUTTON_FONT, type ButtonFont } from '../constants/buttonFont';
+import PressableMotion from './PressableMotion';
 
 type ButtonWhiteProps = {
   label: string;
@@ -15,7 +16,9 @@ type ButtonWhiteProps = {
 //    twMerge가 색으로 오인해서 base의 text-primary를 지워버리기 때문. (안으로 옮기지 말 것)
 const ButtonWhite = ({ label, font = 'sb-18', className = '', disabled, ...props}: ButtonWhiteProps) => {
   return (
-    <button
+    <PressableMotion
+      as="button"
+      intensity="strong"
       disabled={disabled}
       className={`${twMerge(
         `max-w-[325px] w-full h-[50px] rounded-[25px] flex items-center justify-center rotate-0 transition
@@ -28,7 +31,7 @@ const ButtonWhite = ({ label, font = 'sb-18', className = '', disabled, ...props
       {...props}
     >
       {label}
-    </button>
+    </PressableMotion>
   );
 };
 

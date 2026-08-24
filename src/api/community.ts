@@ -1,4 +1,4 @@
-import { communityAxiosInstance } from "./communityAxiosInstance";
+import { axiosInstance } from "./axiosInstance";
 import type {
   ApiResponse,
   CommunityPostItem,
@@ -13,7 +13,6 @@ import type {
   PostReactionParams,
   CommunityPostDetailResponse,
   GetCommunityPostDetailParams,
-  CommunityPostCommentResponse,
   CreateCommunityCommentBody,
   CreateCommunityCommentParams,
   CreateCommunityCommentResult,
@@ -33,14 +32,20 @@ import type {
   UpdateCommunityPostResult,
   CommunityUploadPresignRequest,
   CommunityUploadPresignResponse,
+  CommunityCommentCursorPage,
 } from "../api-types/communityApiTypes";
 
 const DEFAULT_TAB = "ALL";
 const DEFAULT_SORT = "RECOMMENDED";
 const DEFAULT_SIZE = 20;
 
-export const getCommunityPosts = async (data: GetCommunityPostsParams = {}) => {
+export const getCommunityPosts = async (
+  data: GetCommunityPostsParams,
+  // 검색 조건이 바뀌면 호출부에서 이전 요청을 실제로 취소할 수 있도록 signal을 전달한다.
+  options?: { signal?: AbortSignal },
+) => {
   const {
+    userId,
     tab,
     sort,
     size,
@@ -51,6 +56,7 @@ export const getCommunityPosts = async (data: GetCommunityPostsParams = {}) => {
   } = data;
 
   const queryParams: GetCommunityPostsParams = {
+    userId,
     tab: tab ?? DEFAULT_TAB,
     sort: sort ?? DEFAULT_SORT,
     size: size ?? DEFAULT_SIZE,
@@ -60,15 +66,15 @@ export const getCommunityPosts = async (data: GetCommunityPostsParams = {}) => {
     ...(cursorValue !== undefined ? { cursorValue } : {}),
   };
 
-  const response = await communityAxiosInstance.get<ApiResponse<CursorPage<CommunityPostItem>>>(
+  const response = await axiosInstance.get<ApiResponse<CursorPage<CommunityPostItem>>>(
     "/api/community/posts",
-    { params: queryParams }
+    { params: queryParams, signal: options?.signal }
   );
   return response.data;
 };
 
-export const getCommunityHome = async (data: GetCommunityHomeParams = {}) => {
-  const response = await communityAxiosInstance.get<ApiResponse<CommunityHomeData>>(
+export const getCommunityHome = async (data: GetCommunityHomeParams) => {
+  const response = await axiosInstance.get<ApiResponse<CommunityHomeData>>(
     "/api/community/home",
     { params: data }
   );
@@ -76,10 +82,15 @@ export const getCommunityHome = async (data: GetCommunityHomeParams = {}) => {
   return response.data;
 };
 
-export const createCommunityPost = async (data: { body: CreateCommunityPostBody }) => {
-  const response = await communityAxiosInstance.post<ApiResponse<CreateCommunityPostResult>>(
+export const createCommunityPost = async (data: {
+  // 운영 API가 작성자 식별용 userId 쿼리를 요구하므로 본문과 분리해 전달한다.
+  params: { userId: number | string };
+  body: CreateCommunityPostBody;
+}) => {
+  const response = await axiosInstance.post<ApiResponse<CreateCommunityPostResult>>(
     "/api/community/posts",
-    data.body
+    data.body,
+    { params: data.params },
   );
 
   return response.data;
@@ -89,7 +100,7 @@ export const postCommunityLike = async (
   postId: number | string,
   params: PostReactionParams
  ) => {
-  const response = await communityAxiosInstance.post<ApiResponse<PostLikeResult>>(
+  const response = await axiosInstance.post<ApiResponse<PostLikeResult>>(
     `/api/community/posts/${postId}/likes`,
     null,
     { params }
@@ -102,7 +113,7 @@ export const postCommunityBookmark = async (
   postId: number | string,
   params: PostReactionParams
  ) => {
-  const response = await communityAxiosInstance.post<ApiResponse<PostBookmarkResult>>(
+  const response = await axiosInstance.post<ApiResponse<PostBookmarkResult>>(
     `/api/community/posts/${postId}/bookmarks`,
     null,
     { params }
@@ -115,7 +126,7 @@ export const getCommunityPostDetail = async (data: {
   postId: number | string;
   params: GetCommunityPostDetailParams;
 }) => {
-  const response = await communityAxiosInstance.get<ApiResponse<CommunityPostDetailResponse>>(
+  const response = await axiosInstance.get<ApiResponse<CommunityPostDetailResponse>>(
     `/api/community/posts/${data.postId}`,
     { params: data.params }
   );
@@ -123,9 +134,14 @@ export const getCommunityPostDetail = async (data: {
   return response.data;
 };
 
-export const getCommunityPostComments = async (postId: number | string) => {
-  const response = await communityAxiosInstance.get<ApiResponse<CommunityPostCommentResponse[]>>(
-    `/api/community/posts/${postId}/comments`
+export const getCommunityPostComments = async (data: {
+  postId: number | string;
+  params?: { cursorId?: number; size?: number };
+}) => {
+  // 댓글은 전체 배열이 아니라 루트 스레드 기준 커서 페이지로 조회한다.
+  const response = await axiosInstance.get<ApiResponse<CommunityCommentCursorPage>>(
+    `/api/community/posts/${data.postId}/comments`,
+    { params: data.params },
   );
 
   return response.data;
@@ -136,7 +152,7 @@ export const createCommunityComment = async (data: {
   params: CreateCommunityCommentParams;
   body: CreateCommunityCommentBody;
 }) => {
-  const response = await communityAxiosInstance.post<ApiResponse<CreateCommunityCommentResult>>(
+  const response = await axiosInstance.post<ApiResponse<CreateCommunityCommentResult>>(
     `/api/community/posts/${data.postId}/comments`,
     data.body,
     { params: data.params }
@@ -149,7 +165,7 @@ export const deleteCommunityComment = async (data: {
   commentId: number | string;
   params: DeleteCommunityCommentParams;
 }) => {
-  const response = await communityAxiosInstance.delete<ApiResponse<DeleteCommunityCommentResult>>(
+  const response = await axiosInstance.delete<ApiResponse<DeleteCommunityCommentResult>>(
     `/api/community/comments/${data.commentId}`,
     { params: data.params }
   );
@@ -162,7 +178,7 @@ export const updateCommunityComment = async (data: {
   params: UpdateCommunityCommentParams;
   body: UpdateCommunityCommentBody;
 }) => {
-  const response = await communityAxiosInstance.patch<ApiResponse<UpdateCommunityCommentResult>>(
+  const response = await axiosInstance.patch<ApiResponse<UpdateCommunityCommentResult>>(
     `/api/community/comments/${data.commentId}`,
     data.body,
     { params: data.params }
@@ -176,7 +192,7 @@ export const acceptCommunityComment = async (data: {
   commentId: number | string;
   params: AcceptCommunityCommentParams;
 }) => {
-  const response = await communityAxiosInstance.post<ApiResponse<AcceptCommunityCommentResult>>(
+  const response = await axiosInstance.post<ApiResponse<AcceptCommunityCommentResult>>(
     `/api/community/posts/${data.postId}/comments/${data.commentId}/accept`,
     null,
     { params: data.params }
@@ -189,7 +205,7 @@ export const purchaseCommunityPostAccess = async (data: {
   postId: number | string;
   params: PurchasePostAccessParams;
 }) => {
-  const response = await communityAxiosInstance.post<ApiResponse<PurchasePostAccessResult>>(
+  const response = await axiosInstance.post<ApiResponse<PurchasePostAccessResult>>(
     `/api/community/posts/${data.postId}/access/purchase`,
     null,
     { params: data.params }
@@ -202,7 +218,7 @@ export const deleteCommunityPost = async (data: {
   postId: number | string;
   params: DeleteCommunityPostParams;
 }) => {
-  const response = await communityAxiosInstance.delete<ApiResponse<DeleteCommunityPostResult>>(
+  const response = await axiosInstance.delete<ApiResponse<DeleteCommunityPostResult>>(
     `/api/community/posts/${data.postId}`,
     { params: data.params }
   );
@@ -215,7 +231,7 @@ export const updateCommunityPost = async (data: {
   params: UpdateCommunityPostParams;
   body: UpdateCommunityPostBody;
 }) => {
-  const response = await communityAxiosInstance.patch<ApiResponse<UpdateCommunityPostResult>>(
+  const response = await axiosInstance.patch<ApiResponse<UpdateCommunityPostResult>>(
     `/api/community/posts/${data.postId}`,
     data.body,
     { params: data.params }
@@ -228,7 +244,7 @@ export const postCommunityUploadPresign = async (data: {
   params: { userId: number | string };
   body: CommunityUploadPresignRequest;
 }) => {
-  const response = await communityAxiosInstance.post<ApiResponse<CommunityUploadPresignResponse>>(
+  const response = await axiosInstance.post<ApiResponse<CommunityUploadPresignResponse>>(
     "/api/community/posts/uploads/presign",
     data.body,
     { params: data.params },

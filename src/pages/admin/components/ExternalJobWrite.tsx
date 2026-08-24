@@ -480,7 +480,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                     <button type='button' onClick={() => setShowStartYearDropdown(!showStartYearDropdown)}
                                     className='w-full min-w-[113px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                         <span className='text-r-16-hn text-gray-750'>{startYear}년</span>
-                                        <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`} />
+                                        <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showStartYearDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -526,7 +526,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                     <button type='button' onClick={() => setShowStartMonthDropdown(!showStartMonthDropdown)}
                                     className='w-full min-w-[86px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                         <span className='text-r-16-hn text-gray-750'>{startMonth}월</span>
-                                        <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showStartMonthDropdown ? 'rotate-180' : ''}`} />
+                                        <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showStartMonthDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showStartMonthDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -564,7 +564,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                     <button type='button' onClick={() => setShowStartDayDropdown(!showStartDayDropdown)}
                                     className='w-full min-w-[89px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                         <span className='text-r-16-hn text-gray-750'>{startDay}일</span>
-                                        <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showStartDayDropdown ? 'rotate-180' : ''}`} />
+                                        <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showStartDayDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showStartDayDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -598,7 +598,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                     <button type='button' onClick={() => setShowEndYearDropdown(!showEndYearDropdown)}
                                     className='w-full min-w-[113px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                         <span className='text-r-16-hn text-gray-750'>{endYear}년</span>
-                                        <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`} />
+                                        <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showEndYearDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -621,7 +621,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                     <button type='button' onClick={() => setShowEndMonthDropdown(!showEndMonthDropdown)}
                                     className='w-full min-w-[86px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                         <span className='text-r-16-hn text-gray-750'>{endMonth}월</span>
-                                        <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showEndMonthDropdown ? 'rotate-180' : ''}`} />
+                                        <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showEndMonthDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showEndMonthDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -644,7 +644,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                     <button type='button' onClick={() => setShowEndDayDropdown(!showEndDayDropdown)}
                                     className='w-full min-w-[89px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                         <span className='text-r-16-hn text-gray-750'>{endDay}일</span>
-                                        <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showEndDayDropdown ? 'rotate-180' : ''}`} />
+                                        <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showEndDayDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showEndDayDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -670,7 +670,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                 <button type='button' onClick={() => setShowAnnounceYearDropdown(!showAnnounceYearDropdown)}
                                     className='w-full min-w-[113px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                     <span className='text-r-16-hn text-gray-750'>{announceYear}년</span>
-                                    <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showAnnounceYearDropdown ? 'rotate-180' : ''}`} />
+                                    <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showAnnounceYearDropdown ? 'rotate-180' : ''}`} />
                                 </button>
                                 {showAnnounceYearDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -693,7 +693,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                 <button type='button' onClick={() => setShowAnnounceMonthDropdown(!showAnnounceMonthDropdown)}
                                     className='w-full min-w-[86px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                     <span className='text-r-16-hn text-gray-750'>{announceMonth}월</span>
-                                    <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showAnnounceMonthDropdown ? 'rotate-180' : ''}`} />
+                                    <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showAnnounceMonthDropdown ? 'rotate-180' : ''}`} />
                                 </button>
                                 {showAnnounceMonthDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -716,7 +716,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                                 <button type='button' onClick={() => setShowAnnounceDayDropdown(!showAnnounceDayDropdown)}
                                     className='w-full min-w-[89px] h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none'>
                                     <span className='text-r-16-hn text-gray-750'>{announceDay}일</span>
-                                    <Icon name='toggleDown' className={`w-[24px] h-[24px] transition-transform ${showAnnounceDayDropdown ? 'rotate-180' : ''}`} />
+                                    <Icon name='arrow_down' className={`w-[24px] h-[24px] transition-transform ${showAnnounceDayDropdown ? 'rotate-180' : ''}`} />
                                 </button>
                                 {showAnnounceDayDropdown && (
                                     <div className='absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto mt-1'>
@@ -771,7 +771,7 @@ export const ExternalJobWrite = ({ type }: ExternalJobWritePageProps) => {
                         ) : (
                         <button type='button' className='w-full p-[15px] flex items-center justify-center rounded-[5px] bg-gray-150 gap-[10px]'
                             onClick={() => fileInputRef.current?.click()}>
-                            <Icon name='album'/>
+                            <Icon name='image'/>
                             <span className='text-r-16 text-gray-650 whitespace-pre-line'>{'대표이미지 추가\n(png, webp, jpeg)'}</span>
                         </button>
                         )}

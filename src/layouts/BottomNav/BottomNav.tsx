@@ -12,33 +12,33 @@ export interface BottomNavProps {
 
 const navList: BottomNavProps[] = [
     {
-        icon: "home",
-        activeIcon: "homeActive",
+        icon: "Navigation_home_stroke",
+        activeIcon: "Navigation_home_fill",
         label: "홈",
         path: "/home"
     },
     {
-        icon: "alumni",
-        activeIcon: "alumniActive",
+        icon: "Navigation_Alumni_search_stroke",
+        activeIcon: "Navigation_Alumni_search_fill",
         label: "동문 찾기",
         path: "/alumni"
     },
     {
-        icon: "chat",
-        activeIcon: "chatActive",
+        icon: "Navigation_coffee_chat_stroke",
+        activeIcon: "Navigation_coffee_chat_fill",
         label: "커피챗",
         path: "/chat",
         hasBadge: true
     },
     {
-        icon: "activity",
-        activeIcon: "activityActive",
+        icon: "Navigation_activities_stroke",
+        activeIcon: "Navigation_activities_fill",
         label: "대외활동",
         path: "/activity"
     },
     {
-        icon: "me",
-        activeIcon: "meActive",
+        icon: "Navigation_mypage_stroke",
+        activeIcon: "Navigation_mypage_fill",
         label: "마이 페이지",
         path: "/me"
     }

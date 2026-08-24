@@ -1,4 +1,5 @@
 import CategoryIcon from './CategoryIcon';
+import BottomSheetModal from './BottomSheetModal/BottomSheetModal';
 import Icon from './Icon';
 import { interestOptions, majorOptions } from '../mock/filterOptions';
 
@@ -27,15 +28,9 @@ const FilterModal = ({
   onCancel,
   onApply,
 }: FilterModalProps) => {
-  if (!isOpen) return null;
-
   return (
-    // 전체 화면 오버레이 + 하단 시트 정렬.
-    <div className='fixed inset-0 z-50 flex items-end justify-center bg-black/25'>
-      <div
-        className='relative flex h-[min(649px,86dvh)] w-[clamp(320px,100vw,540px)] rounded-t-[10px] bg-[var(--Color_Gray_B,#FCFCFC)] shadow-[0_-1px_9.6px_0_rgba(32,32,35,0.10)] [padding:clamp(24px,6cqw,38px)_clamp(18px,6cqw,25px)]'
-        onClick={(e) => e.stopPropagation()}
-      >
+    <BottomSheetModal isOpen={isOpen} onClose={onCancel} height='min(649px,86dvh)'>
+      <div className='relative flex h-full bg-[var(--Color_Gray_B,#FCFCFC)] [padding:clamp(14px,4cqw,28px)_clamp(18px,6cqw,25px)_clamp(24px,6cqw,38px)]'>
         {/* 닫기 아이콘: 드래프트 변경 취소 */}
         <button
           type='button'
@@ -43,7 +38,7 @@ const FilterModal = ({
           onClick={onCancel}
           className='absolute right-[25px] top-[25px]'
         >
-          <Icon name='cancel' />
+          <Icon name='x' />
         </button>
 
         {/* 적용 아이콘: 드래프트가 있을 때만 노출 */}
@@ -119,7 +114,7 @@ const FilterModal = ({
           </div>
         </div>
       </div>
-    </div>
+    </BottomSheetModal>
   );
 };
 

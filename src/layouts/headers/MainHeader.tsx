@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
+import PressableMotion from '../../components/PressableMotion';
 import { logout } from '../../api/profileApi';
 import { useAuthStore } from '../../store/useAuthStore';
-import { isStandalone } from '../../utils/isStandalone';
 
 type HeaderAction = {
   icon: IconName;
@@ -32,7 +32,6 @@ type MainHeaderProps = {
   showBadge?: boolean;
   isAdmin?: boolean;
   className?: string;
-  headerPaddingTop?: number;
 };
 
 export const MainHeader = ({
@@ -45,14 +44,10 @@ export const MainHeader = ({
   showBadge,
   isAdmin,
   className,
-  headerPaddingTop,
 }: MainHeaderProps) => {
   const navigate = useNavigate();
   const setLogout = useAuthStore((s) => s.setLogout);
   const authUserId = useAuthStore((s) => s.user?.id);
-  // PWA(홈 화면 설치)는 원래 값(10)이 이미 잘 맞아서 유지, 브라우저 탭은 Figma 스펙(15) 적용
-  const effectiveHeaderPaddingTop = headerPaddingTop ?? (isStandalone() ? 10 : 15);
-
   const handleLogout = async () => {
     try {
       const loginUserId = Number(authUserId);
@@ -70,34 +65,36 @@ export const MainHeader = ({
   const normalizedRightActions = rightActions ?? [];
   // 왼쪽 아이콘 기본 동작: 별도 전달이 없으면 mainBack + 뒤로가기(-1)
   // isAdmin인 경우 로그아웃 아이콘과 동작으로 고정
-  const leftIconName = isAdmin ? 'logOut' : (leftAction?.icon ?? 'mainBack');
+  const leftIconName = isAdmin ? 'logOut' : (leftAction?.icon ?? 'arrow_left');
   const leftClickHandler = isAdmin ? handleLogout : (leftAction?.onClick ?? (() => navigate(-1)));
   const leftLabel = isAdmin ? '로그아웃' : (leftAction?.ariaLabel ?? leftAriaLabel ?? '뒤로 가기');
 
   return (
     <header
-      className={twMerge('sticky left-0 right-0 top-0 z-50 inline-flex min-h-[48px] w-full items-center bg-white px-[25px] py-[10px] [container-type:inline-size]', className)}
+      className={twMerge('sticky left-0 right-0 top-0 z-50 inline-flex w-full items-center bg-white px-[25px] py-0 [container-type:inline-size]', className)}
       style={{
-        // top은 0을 유지해 배경이 노치까지 이어지게 하고, safe-area는 paddingTop에서만 더함
-        // (top에도 safe area 더하면 이중 계산되어 콘텐츠가 필요 이상으로 밀려남)
-        paddingTop: `calc(${effectiveHeaderPaddingTop}px + env(safe-area-inset-top, 0px))`,
+        // 노치 영역은 전체 높이에 별도로 더하고 실제 헤더 콘텐츠 영역은 항상 50px로 유지한다.
+        height: 'calc(50px + env(safe-area-inset-top, 0px))',
+        minHeight: 'calc(50px + env(safe-area-inset-top, 0px))',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
       role='banner'
     >
       <div className='flex w-[28px] items-center justify-start z-10'>
         {/* leftIcon="empty"를 받으면 좌측 아이콘 영역 자체를 숨김 */}
         {leftIcon !== 'empty' ? (
-          <button type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
+          <PressableMotion as='button' intensity='soft' type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
             <Icon
               name={leftIconName}
               style={{
                 width: 'clamp(24px, 7.467cqw, 28px)',
                 height: 'clamp(24px, 7.467cqw, 28px)',
+                color: leftIconName === 'arrow_left' ? 'var(--ColorBlack,#202023)' : undefined,
                 // 개별 아이콘 스타일을 덮어쓰고 싶을 때 leftAction.style로 전달
                 ...leftAction?.style,
               }}
             />
-          </button>
+          </PressableMotion>
         ) : null}
       </div>
       {/* 제목은 헤더 항상 가운데 정렬 */}
@@ -114,7 +111,9 @@ export const MainHeader = ({
         {/* 오른쪽 액션 아이콘들: 없으면 아무 것도 렌더하지 않음 */}
         {normalizedRightActions.length > 0
           ? normalizedRightActions.map((action, index) => (
-              <button
+              <PressableMotion
+                as='button'
+                intensity='soft'
                 key={action.icon}
                 type='button'
                 className='flex items-center justify-center'
@@ -127,6 +126,7 @@ export const MainHeader = ({
                     style={{
                       width: 'clamp(24px, 7.467cqw, 28px)',
                       height: 'clamp(24px, 7.467cqw, 28px)',
+                      color: action.icon === 'search' ? 'var(--ColorBlack,#202023)' : undefined,
                       // 개별 아이콘별 스타일 커스터마이징
                       ...action.style,
                     }}
@@ -134,7 +134,7 @@ export const MainHeader = ({
                   {/* 뱃지 조건부 렌더링 */}
                   {showBadge && index === 0 ? <Badge /> : null}
                 </span>
-              </button>
+              </PressableMotion>
             ))
           : null}
       </div>

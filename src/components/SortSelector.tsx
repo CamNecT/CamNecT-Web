@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import BottomSheetModal from './BottomSheetModal/BottomSheetModal';
 import BoardTypeToggle from './BoardTypeToggle';
+import PressableMotion from './PressableMotion';
 import Toggle from './Toggle/Toggle';
 
 type SortSelectorProps<SortKey extends string> = {
@@ -24,9 +25,9 @@ const SortSelector = <SortKey extends string>({
   return (
     <>
       <div className='flex items-center gap-[6px]'>
-        <button type='button' onClick={() => setIsOpen(true)} className={buttonClassName}>
+        <PressableMotion as='button' intensity='soft' type='button' onClick={() => setIsOpen(true)} className={buttonClassName}>
           {sortLabels[sortKey]}
-        </button>
+        </PressableMotion>
         <Toggle width={20} height={20} toggled={isOpen} onToggle={(next) => setIsOpen(next)} />
       </div>
 
@@ -39,7 +40,9 @@ const SortSelector = <SortKey extends string>({
           <div className='flex flex-col gap-[20px] px-[7px]'>
             {sortKeys.map((key) => (
               <div key={key} className='flex items-center justify-between'>
-                <button
+                <PressableMotion
+                  as='button'
+                  intensity='soft'
                   type='button'
                   className='text-m-16 text-[var(--ColorGray3,#646464)]'
                   onClick={() => {
@@ -48,7 +51,7 @@ const SortSelector = <SortKey extends string>({
                   }}
                 >
                   {sortLabels[key]}
-                </button>
+                </PressableMotion>
                 <BoardTypeToggle
                   selected={sortKey === key}
                   onClick={() => {

@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import BottomSheetModal from './BottomSheetModal/BottomSheetModal';
+import Icon from './Icon';
 
 type TagItem = {
   id: string;
@@ -19,6 +20,11 @@ export type TagCategory = {
   tags: TagItem[];
 };
 
+type TagSelectionGroup = {
+  tagNames: string[];
+  maxSelected: number;
+};
+
 type TagsFilterModalProps = {
   isOpen: boolean;
   tags: string[];
@@ -28,6 +34,8 @@ type TagsFilterModalProps = {
   allTags: TagItem[];
   extraCategories?: TagCategory[];
   maxSelected?: number;
+  selectionGroups?: TagSelectionGroup[];
+  selectionGuide?: string;
   title?: string;
 };
 
@@ -40,6 +48,8 @@ const TagsFilterModal = ({
   allTags,
   extraCategories = [],
   maxSelected = 5,
+  selectionGroups = [],
+  selectionGuide,
 }: TagsFilterModalProps) => {
   const onCloseRef = useRef<() => void>(() => onClose);
   const handleBottomSheetClose = () => onCloseRef.current();
@@ -58,6 +68,8 @@ const TagsFilterModal = ({
         allTags={allTags}
         extraCategories={extraCategories}
         maxSelected={maxSelected}
+        selectionGroups={selectionGroups}
+        selectionGuide={selectionGuide}
         onCloseRef={onCloseRef}
       />
     </BottomSheetModal>
@@ -73,9 +85,10 @@ const TagsFilterModalContent = ({
   onClose,
   onSave,
   categories,
-  allTags,
   extraCategories = [],
   maxSelected = 5,
+  selectionGroups = [],
+  selectionGuide,
   onCloseRef,
 }: TagsFilterModalContentProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>(tags);
@@ -97,6 +110,24 @@ const TagsFilterModalContent = ({
     if (selectedTags.includes(tagName)) {
       setSelectedTags(selectedTags.filter((tag) => tag !== tagName));
       return;
+    }
+    const selectionGroup = selectionGroups.find((group) =>
+      group.tagNames.includes(tagName),
+    );
+    if (selectionGroup) {
+      const tagsInGroup = selectedTags.filter((tag) =>
+        selectionGroup.tagNames.includes(tag),
+      );
+      if (tagsInGroup.length >= selectionGroup.maxSelected) {
+        // 단일 선택 그룹은 새 항목을 누르면 기존 항목을 교체해 다시 해제할 필요가 없도록 한다.
+        if (selectionGroup.maxSelected === 1) {
+          setSelectedTags([
+            tagName,
+            ...selectedTags.filter((tag) => !selectionGroup.tagNames.includes(tag)),
+          ]);
+        }
+        return;
+      }
     }
     if (selectedTags.length >= maxSelected) return;
     setSelectedTags([tagName, ...selectedTags]);
@@ -120,6 +151,7 @@ const TagsFilterModalContent = ({
     }));
   }, [categories]);
 
+  // 표시할 카테고리 자체를 기준으로 검색하므로 전체 태그 배열을 별도 의존하지 않는다.
   const filteredCategories = useMemo(() => {
     if (!searchQuery) return dedupedCategories;
     return dedupedCategories
@@ -130,7 +162,7 @@ const TagsFilterModalContent = ({
         ),
       }))
       .filter((category) => category.tags.length > 0);
-  }, [allTags, dedupedCategories, searchQuery]);
+  }, [dedupedCategories, searchQuery]);
 
   const filteredExtraCategories = useMemo(() => {
     if (extraCategories.length === 0) return [];
@@ -152,7 +184,9 @@ const TagsFilterModalContent = ({
         <section className='flex w-full flex-col gap-[13px] border-b border-gray-150 px-[25px] pb-[20px] pt-[30px]'>
           <div className='flex items-center gap-[5px]'>
             <span className='text-sb-16-hn text-gray-900'>태그 선택</span>
-            <span className='text-r-12-hn text-gray-750'>(최대 {maxSelected}개)</span>
+            <span className='text-r-12-hn text-gray-750'>
+              ({selectionGuide ?? `최대 ${maxSelected}개`})
+            </span>
           </div>
           <div className='flex h-[30px] gap-[7px] overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
             {selectedTags.length !== 0 &&
@@ -162,21 +196,7 @@ const TagsFilterModalContent = ({
                   className='flex h-[30px] items-center justify-center gap-[3px] rounded-[5px] border border-primary bg-green-50 px-[15px] py-[5px] text-m-14-hn text-primary'
                 >
                   {tag}
-                  <svg
-                    width='16'
-                    height='16'
-                    viewBox='0 0 16 16'
-                    className='block shrink-0'
-                    onClick={() => removeSelectedTag(tag)}
-                  >
-                    <path
-                      d='M4 12L12 4M4 4L12 12'
-                      stroke='#00C56C'
-                      strokeWidth='1.5'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                  </svg>
+                  <Icon name='x' size={16} color='#00A14B' onClick={() => removeSelectedTag(tag)} />
                 </button>
               ))}
           </div>
@@ -185,21 +205,7 @@ const TagsFilterModalContent = ({
         <section className='flex min-h-0 w-full flex-1 flex-col px-[25px] pt-[20px]'>
           <section className='w-full'>
             <div className='relative'>
-              <svg
-                width='18'
-                height='18'
-                viewBox='0 0 20 20'
-                fill='none'
-                className='absolute left-[19px] top-[50%] translate-y-[-50%]'
-              >
-                <path
-                  d='M18.7508 18.7508L13.5538 13.5538M13.5538 13.5538C14.9604 12.1472 15.7506 10.2395 15.7506 8.25028C15.7506 6.26108 14.9604 4.35336 13.5538 2.94678C12.1472 1.54021 10.2395 0.75 8.25028 0.75C6.26108 0.75 4.35336 1.54021 2.94678 2.94678C1.54021 4.35336 0.75 6.26108 0.75 8.25028C0.75 10.2395 1.54021 12.1472 2.94678 13.5538C4.35336 14.9604 6.26108 15.7506 8.25028 15.7506C10.2395 15.7506 12.1472 14.9604 13.5538 13.5538Z'
-                  stroke='#646464'
-                  strokeWidth='1.5'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                />
-              </svg>
+              <Icon name='search' size={16} color='#A1A1A1' className='absolute left-[19px] top-[12px]' />
               <input
                 type='text'
                 name='searchTags'

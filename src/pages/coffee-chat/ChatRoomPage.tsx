@@ -65,7 +65,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     useEffect(() => {
         const handleOutsideAction = (event: MouseEvent | TouchEvent) => {
             const target = event.target as Node;
-            const isOptionButton = (target as HTMLElement).closest('[aria-label="option"]');
+            const isOptionButton = (target as HTMLElement).closest('[aria-label="채팅방 옵션 열기"]');
             
             if (menuRef.current && !menuRef.current.contains(target) && !isOptionButton) {
                 setIsMenuOpen(false);
@@ -298,7 +298,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             title={roomInfo?.name}
                             rightActions={[
                                 { icon: 'search', onClick: () => setIsSearching(true) },
-                                { icon: 'option', onClick: () => setIsMenuOpen(!isMenuOpen) }
+                                { icon: 'more_menu', onClick: () => setIsMenuOpen(!isMenuOpen), ariaLabel: '채팅방 옵션 열기' }
                             ]}
                         />
 
@@ -383,7 +383,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     >
                         <div className="flex items-center justify-center gap-[15px] w-full">
                             <div className="flex items-center w-[282px] h-[40px] px-[15px] py-[8px] bg-gray-150 rounded-[10px]">
-                                <Icon name="search" style={{ width: '20px', height: '20px' }} />
+                                <Icon name="search" style={{ width: '20px', height: '20px', color: 'var(--ColorBlack,#202023)' }} />
                                 <input 
                                     autoFocus
                                     type="text"

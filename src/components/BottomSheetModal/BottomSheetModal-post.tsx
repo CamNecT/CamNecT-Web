@@ -21,21 +21,21 @@ export type ActionItem = {
 const optionsMap: Record<ContentTarget, { mine: ActionItem[]; other: ActionItem[] }> = {
   post: {
     mine: [
-      { icon: 'edit', id: 'edit-post', label: '게시글 수정' },
-      { icon: 'delete', id: 'delete-post', label: '게시글 삭제' },
+      { icon: 'writing', id: 'edit-post', label: '게시글 수정' },
+      { icon: 'trash', id: 'delete-post', label: '게시글 삭제' },
     ],
     other: [
-      { icon: 'url', id: 'copy-url', label: 'URL 복사' },
+      { icon: 'link', id: 'copy-url', label: 'URL 복사' },
       { icon: 'report', id: 'report-post', label: '게시글 신고' },
     ],
   },
   comment: {
     mine: [
-      { icon: 'edit', id: 'edit-comment', label: '댓글 수정' },
-      { icon: 'delete', id: 'delete-comment', label: '댓글 삭제' },
+      { icon: 'writing', id: 'edit-comment', label: '댓글 수정' },
+      { icon: 'trash', id: 'delete-comment', label: '댓글 삭제' },
     ],
     other: [
-      { icon: 'profile', id: 'view-author-profile', label: '작성자 프로필 보기' },
+      { icon: 'account', id: 'view-author-profile', label: '작성자 프로필 보기' },
       { icon: 'report', id: 'report-comment', label: '댓글 신고' },
     ],
   },
