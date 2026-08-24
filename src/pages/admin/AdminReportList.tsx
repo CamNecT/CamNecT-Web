@@ -1,11 +1,16 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ReportStatus } from "../../api-types/reportApiTypes";
-import { getAdminReportList } from "../../api/reportApi";
+import { getAdminCaseList } from "../../api/reportApi";
 import PopUp from "../../components/Pop-up";
+import type { PopUpType } from "../../components/Pop-up";
+import { ADMIN_CASE_FETCH_ERROR_MESSAGES, REPORT_ERROR_CODES } from "../../constants/serverErrors/reportErrors";
 import { AdminFullLayout } from "../../layouts/AdminFullLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
+import { useAuthStore } from "../../store/useAuthStore";
+import { getServerErrorCode } from "../../utils/getServerErrorCode";
 import { REPORT_STATUS_TAB_LABEL } from "./utils/reportMapper";
 import { ReportItem } from "./components/ReportItem";
 
@@ -14,38 +19,60 @@ const PAGE_SIZE = 20;
 
 export const AdminReportList = () => {
     const navigate = useNavigate();
+    const authUser = useAuthStore((state) => state.user);
+    const adminId = authUser?.id ? Number(authUser.id) : null;
 
     const [currentStatus, setCurrentStatus] = useState<ReportStatus>('RECEIVED');
-
-    const [isErrorDismissed, setIsErrorDismissed] = useState(false);
+    const [errorPopupConfig, setErrorPopupConfig] = useState<{ type: PopUpType; title: string; content: string } | null>(null);
 
     const observerTarget = useRef<HTMLDivElement | null>(null);
 
     const handleTabChange = (status: ReportStatus) => {
         setCurrentStatus(status);
-        setIsErrorDismissed(false);
+        setErrorPopupConfig(null);
     };
 
     const {
         data,
         isLoading,
         isError,
+        error,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
     } = useInfiniteQuery({
-        queryKey: ['adminReportList', currentStatus],
+        queryKey: ['adminCaseList', currentStatus],
         queryFn: ({ pageParam }) =>
-            getAdminReportList({ status: currentStatus, page: pageParam, size: PAGE_SIZE }),
+            getAdminCaseList(adminId!, { status: currentStatus, page: pageParam, size: PAGE_SIZE }),
         initialPageParam: 0,
         getNextPageParam: (lastPage) =>
             lastPage.data.last ? undefined : lastPage.data.number + 1,
+        enabled: !!adminId,
     });
 
-    //페이지들을 하나의 배열로 평탄화
-    const reports = data?.pages.flatMap((page) => page.data.content) ?? [];
+    // 목록 조회 에러 -> 코드별 팝업 매핑
+    useEffect(() => {
+        if (!isError || !error) return;
 
-    //다음 페이지 요청
+        const axiosError = error as AxiosError;
+        const status = axiosError.response?.status;
+        const errorCode = getServerErrorCode(axiosError);
+
+        if (status === 403 && errorCode === REPORT_ERROR_CODES.common.forbiddenAdmin) {
+            setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.forbidden });
+            return;
+        }
+        if (status === 500) {
+            setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.internal });
+            return;
+        }
+        setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.fallback });
+    }, [isError, error]);
+
+    // 페이지들을 하나의 배열로
+    const cases = data?.pages.flatMap((page) => page.data.content) ?? [];
+
+    // 다음 페이지 요청
     useEffect(() => {
         const target = observerTarget.current;
         if (!target) return;
@@ -89,19 +116,19 @@ export const AdminReportList = () => {
                     ))}
                 </div>
 
-                {/* 큰 틀: 목록 섹션 */}
+                {/* 큰 틀: 목록 섹션 (case 단위) */}
                 <div className="flex-1 pb-10">
-                    {reports.length === 0 && !isLoading ? (
+                    {cases.length === 0 && !isLoading ? (
                         <div className="flex justify-center items-center h-40 text-gray-400 text-m-14">
                             해당 내역이 없습니다.
                         </div>
                     ) : (
                         <ul className="flex flex-col">
-                            {reports.map((report) => (
-                                <li key={report.reportId}>
+                            {cases.map((caseItem) => (
+                                <li key={caseItem.caseId}>
                                     <ReportItem
-                                        report={report}
-                                        onClick={() => navigate(`/admin/reports/${report.reportId}`)}
+                                        caseItem={caseItem}
+                                        onClick={() => navigate(`/admin/reports/${caseItem.caseId}`)}
                                     />
                                 </li>
                             ))}
@@ -119,7 +146,7 @@ export const AdminReportList = () => {
                 </div>
             </div>
 
-            {/* 로딩 팝업 (최초 로딩만) */}
+            {/* 로딩 팝업 */}
             <PopUp
                 isOpen={isLoading}
                 type="loading"
@@ -127,14 +154,16 @@ export const AdminReportList = () => {
             />
 
             {/* 에러 팝업 */}
-            <PopUp
-                isOpen={isError && !isErrorDismissed}
-                type="error"
-                title="오류 발생"
-                content="데이터를 불러오는 중 문제가 발생했습니다"
-                buttonText="닫기"
-                onClick={() => setIsErrorDismissed(true)}
-            />
+            {errorPopupConfig && (
+                <PopUp
+                    isOpen={true}
+                    type={errorPopupConfig.type}
+                    title={errorPopupConfig.title}
+                    content={errorPopupConfig.content}
+                    buttonText="닫기"
+                    onClick={() => setErrorPopupConfig(null)}
+                />
+            )}
         </AdminFullLayout>
     );
-};
+}
