@@ -331,7 +331,7 @@ export const AdminReportDetail = () => {
                                                 className="flex items-center justify-center px-[10px] py-[5px] gap-[7px] rounded-[4px] bg-green-50 text-r-12-hn text-primary"
                                             >
                                                 <span>evidence_{evidence.sortOrder + 1}</span>
-                                                <Icon name="search_add" size={20} className="text-primary" />
+                                                <Icon name="expand_more" size={20} className="text-primary" />
 
                                             </button>
                                         ))}

@@ -48,7 +48,7 @@ const figmaIconNames = [
   "image",
   "link",
   "search",
-  "search_add",
+    "expand_more",
   "report",
   "add",
   "camera",
