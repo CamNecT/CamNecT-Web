@@ -71,8 +71,7 @@ const ReportModal = ({
     const isSubmitEnabled =
         title.trim().length > 0 &&
         context.trim().length > 0 &&
-        selectedCategory !== null &&
-        evidencePreviews.length > 0;
+        selectedCategory !== null;
 
     const resetForm = () => {
         evidencePreviews.forEach((preview) => revokeUrl(preview.url));
@@ -179,8 +178,12 @@ const ReportModal = ({
             const errorCode = getServerErrorCode(axiosError);
 
             // 중복 신고: HTTP 409, 오류 코드 51901 (서버 판단에 그대로 위임)
-            if (status === 409) {
+            if (status === 409 && errorCode === REPORT_ERROR_CODES.reportCreate.duplicateReport) {
                 setIsDuplicateErrorOpen(true);
+                return;
+            }
+            if (status === 409 && errorCode === REPORT_ERROR_CODES.reportCreate.caseClosed) {
+                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.caseClosed });
                 return;
             }
             if (status === 400 && errorCode === REPORT_ERROR_CODES.common.invalidRequest) {
@@ -318,15 +321,7 @@ const ReportModal = ({
                                                         onClick={() => handleRemoveEvidence(preview.id)}
                                                         className="absolute -right-[6px] -top-[6px] flex h-[20px] w-[20px] items-center justify-center rounded-full bg-gray-750"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                                            <path
-                                                                d="M6 18L18 6M6 6L18 18"
-                                                                stroke="white"
-                                                                strokeWidth="2"
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                            />
-                                                        </svg>
+                                                        <Icon name="x" size={12} className="text-white" />
                                                     </button>
                                                 </div>
                                             ))}
