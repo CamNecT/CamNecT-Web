@@ -23,13 +23,13 @@ export const AdminReportList = () => {
     const adminId = authUser?.id ? Number(authUser.id) : null;
 
     const [currentStatus, setCurrentStatus] = useState<ReportStatus>('RECEIVED');
-    const [errorPopupConfig, setErrorPopupConfig] = useState<{ type: PopUpType; title: string; content: string } | null>(null);
+    const [isErrorPopupDismissed, setIsErrorPopupDismissed] = useState(false);
 
     const observerTarget = useRef<HTMLDivElement | null>(null);
 
     const handleTabChange = (status: ReportStatus) => {
         setCurrentStatus(status);
-        setErrorPopupConfig(null);
+        setIsErrorPopupDismissed(false);
     };
 
     const {
@@ -50,24 +50,22 @@ export const AdminReportList = () => {
         enabled: !!adminId,
     });
 
-    // 목록 조회 에러 -> 코드별 팝업 매핑
-    useEffect(() => {
-        if (!isError || !error) return;
+    // 조회 결과에서 팝업 내용을 파생해 effect 내부의 동기 setState를 피한다.
+    const errorPopupConfig: { type: PopUpType; title: string; content: string } | null = (() => {
+        if (!isError || !error || isErrorPopupDismissed) return null;
 
         const axiosError = error as AxiosError;
         const status = axiosError.response?.status;
         const errorCode = getServerErrorCode(axiosError);
 
         if (status === 403 && errorCode === REPORT_ERROR_CODES.common.forbiddenAdmin) {
-            setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.forbidden });
-            return;
+            return { type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.forbidden };
         }
         if (status === 500) {
-            setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.internal });
-            return;
+            return { type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.internal };
         }
-        setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.fallback });
-    }, [isError, error]);
+        return { type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.fallback };
+    })();
 
     // 페이지들을 하나의 배열로
     const cases = data?.pages.flatMap((page) => page.data.content) ?? [];
@@ -161,7 +159,7 @@ export const AdminReportList = () => {
                     title={errorPopupConfig.title}
                     content={errorPopupConfig.content}
                     buttonText="닫기"
-                    onClick={() => setErrorPopupConfig(null)}
+                    onClick={() => setIsErrorPopupDismissed(true)}
                 />
             )}
         </AdminFullLayout>

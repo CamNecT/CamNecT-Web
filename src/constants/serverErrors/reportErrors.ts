@@ -13,6 +13,7 @@ export const REPORT_ERROR_CODES = {
     reportCreate: {
         reportedUserNotFound: "44401", // 신고 대상 사용자를 찾을 수 없음
         duplicateReport: "51901", // 중복 신고 (HTTP 409)
+        caseClosed: "51902", // 이미 처리가 완료된 신고 대상 (HTTP 409)
     },
 
     // 관리자 신고 목록/상세/처리 API
@@ -35,6 +36,10 @@ export const REPORT_CREATE_ERROR_MESSAGES = {
     duplicateReport: {
         title: "이미 신고하셨습니다",
         content: "동일한 대상은 한 번만 신고할 수 있습니다.",
+    },
+    caseClosed: {
+        title: "신고할 수 없습니다",
+        content: "이미 처리가 완료된 신고 대상입니다.",
     },
     internal: {
         title: "신고 접수 실패",
