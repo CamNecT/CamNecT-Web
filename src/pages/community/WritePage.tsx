@@ -21,6 +21,7 @@ import type { CommunityPostDetail } from '../../types/community';
 import { mapToCommunityPostDetail } from '../../utils/communityMapper';
 import { mapToCommunityPost } from './utils/post';
 import { getFileName } from '../../utils/getFileName';
+import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
 
 // 프론트에서도 Community Bean Validation과 동일한 경계를 적용해 불필요한 업로드/요청을 막는다.
 const MAX_TITLE_LENGTH = 200;
@@ -107,6 +108,11 @@ export const WritePage = () => {
     const [isCancelWarningOpen, setIsCancelWarningOpen] = useState(false);
     const [errorPopUp, setErrorPopUp] = useState<{ title: string; content: string } | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const {
+        errorPopup: communityErrorPopup,
+        showCommunityError,
+        closeCommunityError,
+    } = useCommunityErrorPopup();
     type AttachmentItem = {
         id: string;
         file: File;
@@ -325,15 +331,16 @@ export const WritePage = () => {
                 if (!isActive) return;
                 setEditPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
             })
-            .catch(() => {
+            .catch((error) => {
                 if (!isActive) return;
                 setEditPost(mapToCommunityPost(postId));
+                showCommunityError(error, 'postEditLoad');
             });
 
         return () => {
             isActive = false;
         };
-    }, [isEditMode, postId, userId, mapTagIdToName]);
+    }, [isEditMode, postId, userId, mapTagIdToName, showCommunityError]);
 
     useEffect(() => {
         if (!isEditMode || !editPost || didInitEditRef.current) return;
@@ -584,10 +591,7 @@ export const WritePage = () => {
                 setFieldErrors({ attachments: '첨부파일 정보를 다시 확인해 주세요.' });
                 return;
             }
-            setErrorPopUp({
-                title: '게시글 저장 오류',
-                content: axiosError.response?.data?.message ?? '잠시 후 다시 시도해 주세요.',
-            });
+            showCommunityError(error, isEditMode ? 'postUpdate' : 'postCreate');
         } finally {
             setIsSubmitting(false);
             setIsConfirmOpen(false);
@@ -983,13 +987,16 @@ export const WritePage = () => {
                 onLeftClick={handleCancelConfirm}
                 onRightClick={handleCancelDismiss}
             />
-            {errorPopUp && (
+            {(communityErrorPopup ?? errorPopUp) && (
                 <PopUp
                     isOpen={true}
-                    type='confirm'
-                    title={errorPopUp.title}
-                    content={errorPopUp.content}
-                    onClick={() => setErrorPopUp(null)}
+                    type='error'
+                    title={(communityErrorPopup ?? errorPopUp)?.title}
+                    content={(communityErrorPopup ?? errorPopUp)?.content}
+                    onClick={() => {
+                        closeCommunityError();
+                        setErrorPopUp(null);
+                    }}
                 />
             )}
 

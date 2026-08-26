@@ -28,6 +28,9 @@ import { isEditOption, type OptionItemId } from './utils/option';
 import { formatPostDisplayDate } from './utils/post';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import { getFileName } from '../../utils/getFileName';
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
+import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
+import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
 import type {
   CommunityAccessStatus,
   CommunityErrorResponse,
@@ -68,6 +71,8 @@ const CommunityPostPage = () => {
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
+  const { errorPopup, showCommunityError, closeCommunityError } =
+    useCommunityErrorPopup();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('URL 복사가 완료되었습니다');
   const [accessStatusOverride, setAccessStatusOverride] = useState<
@@ -131,8 +136,9 @@ const CommunityPostPage = () => {
       setToastMessage('구매 성공! 이제 질문글을 열람할 수 있어요');
       openToast();
     },
-    onError: () => {
+    onError: (error) => {
       closePopUp();
+      showCommunityError(error, 'postPurchase');
     },
   });
 
@@ -197,12 +203,17 @@ const CommunityPostPage = () => {
         if (requestId !== commentRequestSeqRef.current) return;
         const axiosError = error as AxiosError<CommunityErrorResponse>;
         // 숨김·삭제 게시글의 댓글 조회 차단(43925)은 일반 빈 댓글과 구분해 안내한다.
-        setCommentAccessBlocked(axiosError.response?.data?.code === 43925);
+        const isPostAccessBlocked =
+          getServerErrorCode(axiosError) === COMMUNITY_ERROR_CODES.postUnavailable;
+        setCommentAccessBlocked(isPostAccessBlocked);
+        if (!isPostAccessBlocked) {
+          showCommunityError(error, 'commentList');
+        }
         if (!append) setCommentItemsFromApi([]);
       } finally {
         if (requestId === commentRequestSeqRef.current) setIsLoadingComments(false);
       }
-    }, [commentCursorId, hasNextComments, isLoadingComments, postId],
+    }, [commentCursorId, hasNextComments, isLoadingComments, postId, showCommunityError],
   );
 
   useEffect(() => {
@@ -260,17 +271,21 @@ const CommunityPostPage = () => {
       const numericUserId = Number(userId);
       if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericParentId = parentCommentId ? Number(parentCommentId) : null;
-      await createCommunityComment({
-        postId,
-        params: { userId: numericUserId },
-        body: {
-          content,
-          parentCommentId: Number.isInteger(numericParentId) && (numericParentId ?? 0) > 0
-            ? numericParentId
-            : null,
-        },
-      });
-      await refreshComments();
+      try {
+        await createCommunityComment({
+          postId,
+          params: { userId: numericUserId },
+          body: {
+            content,
+            parentCommentId: Number.isInteger(numericParentId) && (numericParentId ?? 0) > 0
+              ? numericParentId
+              : null,
+          },
+        });
+        await refreshComments();
+      } catch (error) {
+        showCommunityError(error, 'commentCreate');
+      }
     },
     onDeleteCommentApi: async (commentId) => {
       if (!userId) return;
@@ -278,12 +293,16 @@ const CommunityPostPage = () => {
       if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericCommentId = Number(commentId);
       if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
-      await deleteCommunityComment({
-        commentId: numericCommentId,
-        params: { userId: numericUserId },
-      });
-      if (postId) {
-        await refreshComments();
+      try {
+        await deleteCommunityComment({
+          commentId: numericCommentId,
+          params: { userId: numericUserId },
+        });
+        if (postId) {
+          await refreshComments();
+        }
+      } catch (error) {
+        showCommunityError(error, 'commentDelete');
       }
     },
     onUpdateCommentApi: async ({ commentId, content }) => {
@@ -292,13 +311,17 @@ const CommunityPostPage = () => {
       if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericCommentId = Number(commentId);
       if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
-      await updateCommunityComment({
-        commentId: numericCommentId,
-        params: { userId: numericUserId },
-        body: { content },
-      });
-      if (postId) {
-        await refreshComments();
+      try {
+        await updateCommunityComment({
+          commentId: numericCommentId,
+          params: { userId: numericUserId },
+          body: { content },
+        });
+        if (postId) {
+          await refreshComments();
+        }
+      } catch (error) {
+        showCommunityError(error, 'commentUpdate');
       }
     },
   });
@@ -317,7 +340,15 @@ const CommunityPostPage = () => {
     return () => window.cancelAnimationFrame(frameId);
   }, [highlightComment, searchParams, sortedComments.length]);
 
-  // 로딩 중에는 단일 PopUp만 노출
+  const communityErrorPopUpConfig: PopUpConfig | null = errorPopup
+    ? {
+        type: 'error',
+        ...errorPopup,
+        onClick: closeCommunityError,
+      }
+    : null;
+
+  // 로딩 중에는 단일 PopUp만 노출하고, 요청 실패 안내는 기존 확인 팝업보다 우선한다.
   const activePopUpConfig: PopUpConfig | null = isDetailLoading
     ? {
         type: 'loading',
@@ -339,7 +370,7 @@ const CommunityPostPage = () => {
             rightButtonText: '확인',
             onClick: () => navigate(-1),
           }
-    : popUpConfig;
+    : communityErrorPopUpConfig ?? popUpConfig;
 
   if (!selectedPost) {
     return (
@@ -424,6 +455,8 @@ const CommunityPostPage = () => {
           });
           refetchPost();
           await refreshComments();
+        } catch (error) {
+          showCommunityError(error, 'commentAccept');
         } finally {
           closePopUp();
         }
@@ -491,10 +524,12 @@ const CommunityPostPage = () => {
     } catch (error) {
       const axiosError = error as AxiosError<{ code?: number; message?: string }>;
       const status = axiosError.response?.status;
-      const code = axiosError.response?.data?.code;
-      if (status === 409 || code === 43927) {
+      const code = getServerErrorCode(axiosError);
+      if (status === 409 || code === COMMUNITY_ERROR_CODES.ownPostLikeUnavailable) {
         setToastMessage('본인의 글에 좋아요를 누를 수 없습니다.');
         openToast();
+      } else {
+        showCommunityError(error, 'like');
       }
       setIsLiked(prev.liked);
       setLikeCount(prev.count);
@@ -512,9 +547,10 @@ const CommunityPostPage = () => {
       const response = await postCommunityBookmark(selectedPost.id, { userId });
       setIsBookmarked(response.data.bookmarked);
       setBookmarkCount(response.data.bookmarkCount);
-    } catch {
+    } catch (error) {
       setIsBookmarked(prev.bookmarked);
       setBookmarkCount(prev.count);
+      showCommunityError(error, 'bookmark');
     } finally {
       setIsBookmarkLoading(false);
     }
@@ -589,6 +625,8 @@ const CommunityPostPage = () => {
               params: { userId: numericUserId },
             });
             navigate('/community', { replace: true });
+          } catch (error) {
+            showCommunityError(error, 'postDelete');
           } finally {
             closePopUp();
           }
