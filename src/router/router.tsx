@@ -8,9 +8,12 @@ import { RecruitWritePage } from "../pages/activity/RecruitWritePage";
 import { ActivityWritePage } from "../pages/activity/WritePage";
 import { AdminVerificationDetail } from "../pages/admin/AdminVerificationDetail";
 import { AdminVerificationList } from "../pages/admin/AdminVerificationList";
+import { AdminReportDetail } from "../pages/admin/AdminReportDetail";
+import { AdminReportList } from "../pages/admin/AdminReportList";
 import { AdminWritePage } from "../pages/admin/AdminWritePage";
 import { ExternalWritePage } from "../pages/admin/ExternalPostWritePage";
 import { JobWritePage } from "../pages/admin/JobPostWritePage";
+import { AdminCommunityPage } from "../pages/admin/AdminCommunityPage";
 import { AlumniSearchPage } from "../pages/alumni/AlumniPage";
 import { AlumniPortfolioDetailPage } from "../pages/alumni/portfolio/AlumniPortfolioDetailPage";
 import { AlumniPortfolioListPage } from "../pages/alumni/portfolio/AlumniPortfolioListPage";
@@ -95,6 +98,19 @@ export const router = createBrowserRouter([
                                 element: <AdminVerificationDetail />,
                             },
                             {
+                                path: "reports",
+                                children: [
+                                    {
+                                        index: true,
+                                        element: <AdminReportList />,
+                                    },
+                                    {
+                                        path: ":caseId",
+                                        element: <AdminReportDetail />,
+                                    }
+                                ]
+                            },
+                            {
                                 path:"post",
                                 children: [
                                     {
@@ -128,7 +144,11 @@ export const router = createBrowserRouter([
                                         ]
                                     }
                                 ]
-                            }
+                            },
+                            {
+                                path: "community",
+                                element: <AdminCommunityPage />,
+                            },
                         ]
                     },
                 
