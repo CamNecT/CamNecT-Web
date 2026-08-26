@@ -20,13 +20,14 @@ export const useSocketInitializer = () => {
         // 네트워크 단절·서버 종료·deactivate로 WebSocket이 닫히면 호출
         stompClient.onWebSocketClose = (event) => {
             useChatStore.getState().setIsStompConnected(false);
-            
-            // todo 배포전 제거 
-            console.log(
-                'STOMP WebSocket 종료:',
-                event.code,
-                event.reason
-            );
+
+            if (import.meta.env.DEV) {
+                console.log(
+                    'STOMP WebSocket 종료:',
+                    event.code,
+                    event.reason
+                );
+            }
         };
         
         if (!isStompEnabled) {
@@ -70,15 +71,18 @@ export const useSocketInitializer = () => {
                     });
                 }
 
-                // todo 배포 전 console.log 삭제
-                console.log("메시지 저장 성공 ACK:", ack);
+                if (import.meta.env.DEV) {
+                    console.log("메시지 저장 성공 ACK:", ack);
+                }
             });
 
             errorSubscription = stompClient.subscribe(`/user/queue/chat-errors`, (frame) => {
                 const error = JSON.parse(frame.body) as StompSocketError;
                 useChatStore.getState().markPendingMessageFailed(error);
 
-                console.log("메시지 저장 실패 ERROR:", error);
+                if (import.meta.env.DEV) {
+                    console.log("메시지 저장 실패 ERROR:", error);
+                }
             });
 
             roomsSubscription = stompClient.subscribe(`/sub/user/${user?.id}/rooms`, (frame) => {
@@ -101,7 +105,10 @@ export const useSocketInitializer = () => {
 
         // socket 연결 성공 후 실행될 단 하나의 마스터 핸들러
         stompClient.onConnect = (frame) => {
-            console.log("STOMP 연결 성공! 전역 구독 및 이벤트 발송");
+            if (import.meta.env.DEV) {
+                console.log("STOMP 연결 성공! 전역 구독 및 이벤트 발송");
+            }
+
             useChatStore.getState().setIsStompConnected(true);
             setUpGlobalSubscriptions();
             
@@ -111,7 +118,10 @@ export const useSocketInitializer = () => {
         
         // 소켓 연결 (if문으로 검사 이유?)
         if (!stompClient.active) {
-            console.log("소켓 활성화 명령");
+            if (import.meta.env.DEV) {
+                console.log("소켓 활성화 명령");
+            }
+
             stompClient.activate();
         }
 
@@ -127,7 +137,10 @@ export const useSocketInitializer = () => {
             // Page visibility API (Web API) : 브라우저 탭이 활성화 되었는지 감지 
             if (document.visibilityState === 'visible') {
                 if (!stompClient.active && isAuthenticated) {
-                    console.log("앱 복귀 감지: 소켓 재활성화 시도");
+                    if (import.meta.env.DEV) {
+                        console.log("앱 복귀 감지: 소켓 재활성화 시도");
+                    }
+
                     stompClient.activate();
                 }
             }
