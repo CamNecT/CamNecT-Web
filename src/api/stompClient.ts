@@ -53,7 +53,8 @@ stompClient.onStompError = (frame) => {
             .getState()
             .markPendingMessageFailed(error);
 
-        // 401 인증 오류 처리
+        // TODO: Refresh Token 도입 시 Access Token 재발급 후 connectHeaders를 갱신하고
+        // STOMP 재연결을 시도하며, 재발급 실패 시에만 로그아웃 처리
         if (error.status === 401) {
             void stompClient.deactivate();
             useAuthStore.getState().setLogout();
