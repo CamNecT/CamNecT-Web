@@ -8,8 +8,10 @@ import {
     sendCoffeeChatRequest,
     unfollowUser,
 } from '../../api/alumni';
+import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import Category from '../../components/Category';
 import PopUp from '../../components/Pop-up';
+import ReportModal from '../../components/report/ReportModal';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -135,6 +137,10 @@ const AlumniProfileContent = ({
   const canRequestCoffeeChat = profile.privacy.openToCoffeeChat;
   const [isCoffeeChatOpen, setIsCoffeeChatOpen] = useState(false);
   const hasOpenedCoffeeChatRef = useRef(false);
+  // 옵션 메뉴(점 3개) / 신고 모달 상태
+  const [isOptionOpen, setIsOptionOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   // mutation 상태가 반영되기 전 같은 tick에서 발생하는 연속 제출 차단
   const coffeeChatRequestPendingRef = useRef(false);
   // 커피챗 요청 전송 API pending 상태를 버튼 비활성화에 사용
@@ -153,6 +159,9 @@ const AlumniProfileContent = ({
     },
   });
 
+  // 본인 프로필 여부 (본인 프로필에서는 신고 옵션 자체를 노출하지 않음)
+  const isMine = String(loginUserId ?? '') === String(profile.userId);
+
   // 다른 프로필로 이동 시 로컬 상태를 초기화합니다.
   useEffect(() => {
     setIsFollowing(profile.isFollowing);
@@ -160,6 +169,8 @@ const AlumniProfileContent = ({
     setIsFollowPending(false);
     setPopUpConfig(null);
     setIsCoffeeChatOpen(false);
+    setIsOptionOpen(false);
+    setIsReportModalOpen(false);
     hasOpenedCoffeeChatRef.current = false;
   }, [profile.id, profile.isFollowing, profile.followerCount]);
 
@@ -169,6 +180,27 @@ const AlumniProfileContent = ({
     setIsCoffeeChatOpen(true);
     hasOpenedCoffeeChatRef.current = true;
   }, [shouldOpenCoffeeChat, enableCoffeeChatModal, canRequestCoffeeChat]);
+
+  // 옵션 메뉴 바깥 클릭/터치 시 닫기 (ChatRoomPage와 동일한 패턴)
+  useEffect(() => {
+    const handleOutsideAction = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      const isOptionButton = (target as HTMLElement).closest('[aria-label="프로필 옵션 열기"]');
+
+      if (menuRef.current && !menuRef.current.contains(target) && !isOptionButton) {
+        setIsOptionOpen(false);
+      }
+    };
+
+    if (isOptionOpen) {
+      document.addEventListener('mousedown', handleOutsideAction);
+      document.addEventListener('touchstart', handleOutsideAction);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideAction);
+      document.removeEventListener('touchstart', handleOutsideAction);
+    };
+  }, [isOptionOpen]);
 
   // 팔로우/언팔로우 토글: Optimistic 업데이트 + 실패 시 롤백.
   const handleFollowToggle = async () => {
@@ -253,7 +285,36 @@ const AlumniProfileContent = ({
   return (
     <HeaderLayout headerSlot=
       {
-        <MainHeader title='프로필' />
+        <div className='relative'>
+          <MainHeader
+            title='프로필'
+            rightActions={
+              isMine
+                ? []
+                : [{ icon: 'more_menu', onClick: () => setIsOptionOpen(!isOptionOpen), ariaLabel: '프로필 옵션 열기' }]
+            }
+          />
+
+          {/*더보기 메뉴 드롭다운*/}
+          {isOptionOpen && (
+            <div
+              ref={menuRef}
+              className='absolute right-[25px] top-[55px] z-[99] min-w-[160px] bg-white rounded-[10px] shadow-[0_4px_20px_0_rgba(0,0,0,0.1)] border border-gray-150 overflow-hidden flex flex-col items-start p-[15px_20px_15px_15px] gap-[10px]'
+            >
+              <button
+                type='button'
+                onClick={() => {
+                  setIsOptionOpen(false);
+                  setIsReportModalOpen(true);
+                }}
+                className='w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors'
+              >
+                <BottomSheetIcon name='report' className='w-[24px] h-[24px]' />
+                <span className='text-r-16 text-gray-750 tracking-[-0.64px]'>신고하기</span>
+              </button>
+            </div>
+          )}
+        </div>
       }>
       {/* 프로필 본문 영역 */}
       <div className='flex flex-col bg-white [gap:clamp(18px,6cqw,24px)]'>
@@ -504,6 +565,15 @@ const AlumniProfileContent = ({
           isSubmitting={coffeeChatRequestMutation.isPending}
         />
       )}
+
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportedUserId={Number(profile.userId)}
+        reportedUserName={profile.author.name}
+        reportedPostId={null}
+        postType="USER"
+      />
 
       {popUpConfig && (
         <PopUp
