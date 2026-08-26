@@ -61,6 +61,15 @@ export const useSocketInitializer = () => {
             ackSubscription = stompClient.subscribe(`/user/queue/chat-acks`, (frame) => {
                 const ack = JSON.parse(frame.body) as StompMessageAck;
                 useChatStore.getState().markPendingMessageSent(ack);
+
+                // 중복 재전송 ACK에는 읽음 정보가 없으므로 서버의 실제 메시지 상태를 다시 조회
+                if (ack.duplicate) {
+                    void queryClient.invalidateQueries({
+                        queryKey: ['chatRoom', String(ack.roomId)],
+                        exact: true,
+                    });
+                }
+
                 // todo 배포 전 console.log 삭제
                 console.log("메시지 저장 성공 ACK:", ack);
             });
