@@ -18,6 +18,8 @@ import type { ChatMessage } from "../../types/coffee-chat/coffeeChatTypes";
 import { formatFullDateWithDay, formatTime } from "../../utils/formatDate";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
 import { TypingArea } from "./components/TypingArea";
+import ReportModal from "../../components/report/ReportModal";
+import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -46,6 +48,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     
     // 메뉴 관련 상태
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isRecruitExpanded, setIsRecruitExpanded] = useState(false);
     const [confirmPopUpConfig, setConfirmPopUpConfig] = useState<{
         title: string;
@@ -289,6 +292,12 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         });
     }
 
+    //신고하기 함수
+    const handleReportChat = () => {
+        setIsMenuOpen(false);
+        setIsReportModalOpen(true);
+    }
+
     return (
         <HeaderLayout
             headerSlot={
@@ -370,6 +379,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                         <span className="text-r-16 text-[#FF3838] tracking-[-0.64px]">채팅 종료하기</span>
                                     </button>
                                 )}
+                                <div className="w-full h-[1px] bg-gray-150"/>
+                                {/*신고하기*/}
+                                <button
+                                    onClick={handleReportChat}
+                                    className="w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors"
+                                >
+                                    <BottomSheetIcon name="report" className="w-[24px] h-[24px]" />
+                                    <span className="text-r-16 text-gray-750 tracking-[-0.64px]">신고하기</span>
+                                </button>
                             </div>
                         )}
                     </div>
@@ -562,6 +580,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     leftButtonText={confirmPopUpConfig.leftButtonText}
                     onLeftClick={confirmPopUpConfig.onConfirm}
                     onRightClick={() => setConfirmPopUpConfig(null)}
+                />
+            )}
+
+            {roomInfo && (
+                <ReportModal
+                    isOpen={isReportModalOpen}
+                    onClose={() => setIsReportModalOpen(false)}
+                    reportedUserId={Number(roomInfo.id)}
+                    reportedUserName={roomInfo.name}
+                    reportedPostId={Number(roomId)}
+                    postType="CHAT"
                 />
             )}
 
