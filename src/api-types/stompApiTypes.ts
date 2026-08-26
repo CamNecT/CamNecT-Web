@@ -80,7 +80,7 @@ export type StompPendingState = 'pending' | 'unconfirmed' | 'sent' | 'failed';
 
 // 전송 상태를 확정하지 못한 원인 또는 전송 실패 원인
 // offline : publish에 실패 (오프라인 상황)
-// timeout : publish 성공 but 15초간 응답 X / server : 서버에서의 에러 응답
+// timeout : publish 성공 but 10초간 응답 X / server : 서버에서의 에러 응답
 export type StompPendingFailureKind = 'offline' | 'timeout' | 'server';
 
 export interface StompPendingChatMessage {

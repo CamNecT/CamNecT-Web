@@ -6,7 +6,7 @@ import type {
 } from '../api-types/stompApiTypes';
 import { DEFINITELY_UNSENT_ERROR_CODES } from '../constants/serverErrors/stompErrors';
 
-const PENDING_CONFIRM_TIMEOUT_MS = 15_000; // timeout 판별 기준
+const PENDING_CONFIRM_TIMEOUT_MS = 10_000; // timeout 판별 기준
 const PENDING_TIMEOUT_CHECK_INTERVAL_MS = 1_000; // timeout 검사주기
 
 // interval 중복 생성 방지
@@ -144,7 +144,7 @@ export const useChatStore = create<ChatState>((set) => ({
                 hasChanged = true;                    
                 // todo publish 후 응답이 끊긴 unconfirmed 메시지는 STOMP 재연결 시
                 // 채팅방 상세를 재조회하고 clientMessageId로 sent/failed 상태를 확정해야 함
-                // 발동 조건: publish 후 15초 동안 ACK/ERROR/채팅방 메시지를 모두 받지 못한 경우
+                // 발동 조건: publish 후 10초 동안 ACK/ERROR/채팅방 메시지를 모두 받지 못한 경우
                 // 발생 빈도: 정상 환경에서는 드물며, 전송 순간 네트워크 전환·단절 또는 서버 재시작 시 가능
                 // 보류 이유: 재연결 후 서버 채팅 내역과 동기화해야 하므로 현재 MVP 범위보다 복잡함
                 return {
