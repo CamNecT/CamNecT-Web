@@ -75,6 +75,9 @@ export const useStompChat = (roomId: string) => {
         try {
             stompClient.publish({
                 destination: `/pub/chat/message`,
+                headers: {
+                    clientMessageId,
+                },
                 body: JSON.stringify(requestMessage),
             });
         } catch (error) {
@@ -118,6 +121,9 @@ export const useStompChat = (roomId: string) => {
         try {
             stompClient.publish({
                 destination: `/pub/chat/message`,
+                headers: {
+                    clientMessageId,
+                },
                 body: JSON.stringify(requestMessage),
             });
 

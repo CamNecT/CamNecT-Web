@@ -7,10 +7,10 @@ export const STOMP_ERROR_CODES = {
     common: {
         invalidPayload: 40000, // 잘못된 Payload, 자동 재시도 금지
         internal: 50000, // 저장 여부 미확정인 일반 서버 오류, unconfirmed 상태에서 수동 재시도 제공
+        temporarilyUnavailable: 50310, // 일시적 서버 장애, 저장 여부 미확정 및 자동 재연결 대상
     },
 
     // 연결·인증 단계(CONNECT), 대부분 자동 재연결 중단 대상
-    // todo 현재 onStompError는 로그만 처리
     //   백엔드 요청 문서 3절 해결 후 재연결 중단·세션 정리·로그인 이동 분기 구현
     connection: {
         invalidToken: 40100, // JWT 만료·서명·claim 오류, 연결 종료 후 로그인 상태 갱신
