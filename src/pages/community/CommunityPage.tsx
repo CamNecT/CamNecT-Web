@@ -16,6 +16,10 @@ import { useTagList } from '../../hooks/useTagList';
 import type { AxiosError } from 'axios';
 import type { CommunityErrorResponse } from '../../api-types/communityApiTypes';
 
+type CommunityPageProps = {
+  isAdmin?: boolean;
+};
+
 const tabItems: TabItem[] = [
   { id: 'all', label: '전체' },
   { id: 'info', label: '정보' },
@@ -82,7 +86,7 @@ const mapSortKeyToApiSort = (sortKey: SortKey): Sort => {
 };
 
 
-export const CommunityPage = () => {
+export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.user?.id);
   const { mapTagNamesToIds } = useTagList();
@@ -464,6 +468,7 @@ export const CommunityPage = () => {
           onSortChange={setInfoSortKey}
           selectedTag={infoTag}
           onTagChange={setInfoTag}
+          isAdmin={isAdmin}
         />
       );
     if (activeTab === 'question')
@@ -476,6 +481,7 @@ export const CommunityPage = () => {
           onTagChange={setQuestionTag}
           adoptionFilter={questionAdoptionFilter}
           onAdoptionFilterChange={setQuestionAdoptionFilter}
+          isAdmin={isAdmin}
         />
       );
     return (
@@ -527,8 +533,15 @@ export const CommunityPage = () => {
             <MainHeader
               title='커뮤니티'
               leftAction={{
-                onClick: () => navigate('/home', { replace: true }),
-                ariaLabel: '홈으로 이동',
+                onClick: () => {
+                  if (isAdmin) {
+                    navigate(-1);
+                    return;
+                  }
+
+                  navigate('/home', { replace: true });
+                },
+                ariaLabel: isAdmin ? '이전 화면으로 이동' : '홈으로 이동',
               }}
               rightActions={
                 activeTab === 'all'
