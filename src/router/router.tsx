@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "../App";
+import { GlobalErrorFallback } from "../components/GlobalErrorFallback";
 import { ActivityPage } from "../pages/activity/ActivityPage";
 import ActivityPostPage from "../pages/activity/ActivityPostPage";
 import { ExternalActivityPostPage } from "../pages/activity/ExternalActivityPostPage";
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
     {
         path: "/",
         element: <App />, // 모든 화면을 감싸는 컴포넌트 (큰 틀)
+        errorElement: <GlobalErrorFallback />,
 
         // App의 Outlet 태그에 넣을 contents
         children: [
