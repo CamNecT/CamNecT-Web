@@ -31,9 +31,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const { user } = useAuthStore();
 
     // 전송 대기 메시지 리스트
-    const { pendingMessages, removeFailedPendingMessage } = useChatStore(
+    const { pendingMessages, removePendingMessage, removeFailedPendingMessage } = useChatStore(
         useShallow((state) => ({
             pendingMessages: state.pendingMessages,
+            removePendingMessage: state.removePendingMessage,
             removeFailedPendingMessage: state.removeFailedPendingMessage,
         }))
     );
@@ -83,6 +84,42 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         }
     }, [leaveChatRoom]);
+
+    // REST 채팅 내역에서 서버 저장이 확인된 메시지를 zustand / sessionStorage에서 제거
+    useEffect(() => {
+        const serverMessages = chatRoomData?.messages;
+
+        // 아직 REST 조회 결과가 없으면 대조하지 않음
+        if (!serverMessages) return;
+
+        // REST 정상 메시지들의 clientMessageId 목록
+        const serverClientMessageIds = new Set(
+            serverMessages
+                .map((message) => message.clientMessageId)
+                .filter(
+                    (clientMessageId): clientMessageId is string =>
+                        clientMessageId !== null
+                )
+        );
+
+        pendingMessages
+            .filter((pending) => pending.roomId === roomId) // 현재 채팅방 pending만 확인
+            .filter((pending) =>                            // REST에 같은 clientMessageId가 있는 pending만 선택
+                serverClientMessageIds.has(
+                    pending.clientMessageId
+                )
+            )
+            .forEach((pending) => {                         // 서버 저장이 확인됐으므로 로컬에서 실제 삭제
+                removePendingMessage(
+                    pending.clientMessageId
+                );
+            });
+    }, [
+        chatRoomData?.messages,
+        pendingMessages,
+        roomId,
+        removePendingMessage,
+    ]);
 
     // 초기 진입 시 깜빡임 방지를 위한 상태
     const [isReady, setIsReady] = useState(false);
