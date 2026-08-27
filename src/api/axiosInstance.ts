@@ -51,7 +51,8 @@ axiosInstance.interceptors.response.use(
     }
 );
 
-// 도메인 오류와 분리해 브라우저가 명확히 offline인 네트워크 실패만 전역 상태로 전달한다.
+// 공통 인스턴스에서 브라우저가 명확히 offline인 네트워크 실패만 전역 상태로 전달한다.
+// HTTP, timeout, 도메인 오류의 메시지와 UI는 결정하지 않고 각 호출부의 처리 책임을 유지한다.
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {

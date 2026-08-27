@@ -89,6 +89,7 @@ export const AlumniProfilePage = ({
   }
 
   if (isError) {
+    // 전역 offline에만 로컬 UI를 양보하고, 그 외 프로필 오류는 이 화면의 문맥으로 안내한다.
     if (shouldSkipLocalErrorUI(profileError, navigator.onLine)) return null;
 
     // 네트워크/서버 오류 시 안내 팝업.

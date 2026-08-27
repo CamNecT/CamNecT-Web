@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
 
+// 루트 route의 render/loader/action 오류가 일반 화면을 깨뜨릴 때 제공하는 최종 안전망이다.
+// fallback 자체의 실패를 피하기 위해 프로젝트 store, custom hook, API client에 의존하지 않는다.
 const ERROR_FALLBACK_CONTENT = {
   notFound: {
     title: '페이지를 찾을 수 없어요',

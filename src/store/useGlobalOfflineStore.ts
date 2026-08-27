@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+// App 전역 offline 팝업의 노출 여부만 공유하는 최소 상태다.
+// 실패한 요청이나 Axios 오류 원본은 저장하지 않아 도메인 오류 처리 책임을 가져오지 않는다.
 type GlobalOfflineState = {
   isOffline: boolean;
   setOffline: () => void;

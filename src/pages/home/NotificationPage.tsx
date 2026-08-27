@@ -506,6 +506,7 @@ export const NotificationPage = () => {
 
   const queryErrorConfig = useMemo(() => {
     if (isErrorDismissed) return null;
+    // 브라우저 offline은 App 전역 팝업이 담당하므로 알림 조회용 로컬 팝업과 중복시키지 않는다.
     if (shouldSkipLocalErrorUI(notificationError, navigator.onLine)) return null;
     const status = getErrorStatus(notificationError);
     return getErrorPopUpConfig(status);

@@ -82,6 +82,7 @@ export const AlumniPortfolioListPage = () => {
   }
 
   if (isError) {
+    // 전역 offline 팝업과의 중복만 막고, 그 외 목록 오류는 기존 로컬 fallback을 유지한다.
     if (shouldSkipLocalErrorUI(portfolioError, navigator.onLine)) return null;
 
     return (
