@@ -35,7 +35,7 @@ const Divider = () => {
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const setLogin = useAuthStore((state) => state.setLogin);
+  const setUserLogin = useAuthStore((state) => state.setUserLogin); // 회원가입 중 로그인도 포함
   const { handleRedirect } = useAuthRedirect(); // 리다이렉트 훅 추가
 
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +54,7 @@ export const LoginPage = () => {
       const { accessToken, userId, role, nextStep } = data;
       
       // 모든 로그인 성공 시 토큰과 유저 정보 저장 (AccessToken 필수)
-      setLogin(accessToken, {
+      setUserLogin(accessToken, {
         id: String(userId),
         role,
         nextStep

@@ -50,7 +50,7 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
         }))
     );
 
-    const setLogin = useAuthStore((state) => state.setLogin);
+    const setSignupLogin = useAuthStore((state) => state.setSignupLogin);
 
     // RHF로 폼 제어
     // resolver : zodResolver로 zod 규칙을 RHF에 연결 (다리 역할)
@@ -104,9 +104,9 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
     const emailVerifyMutation = useMutation({
         mutationFn: verifyEmailCode,
         onSuccess: (data) => {
-            // 서버에서 받은 tempToken을 accessToken으로 저장
+            // 서버에서 받은 tempToken을 signupToken으로 저장
             // 이후 학교 인증(presign) 등 인증 정보가 필요한 API 호출 시 자동으로 헤더에 포함됨
-            setLogin(data.tempToken, {
+            setSignupLogin(data.tempToken, {
                 id: String(data.userId),
                 role: 'USER',
                 nextStep: 'DOCUMENT_REQUIRED'
