@@ -15,6 +15,7 @@ import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import {
   notificationIconAssets,
   type NotificationItem,
@@ -505,6 +506,7 @@ export const NotificationPage = () => {
 
   const queryErrorConfig = useMemo(() => {
     if (isErrorDismissed) return null;
+    if (shouldSkipLocalErrorUI(notificationError, navigator.onLine)) return null;
     const status = getErrorStatus(notificationError);
     return getErrorPopUpConfig(status);
   }, [notificationError, isErrorDismissed]);
@@ -528,6 +530,7 @@ export const NotificationPage = () => {
         queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
       } catch (error) {
         markAsUnread(notification.id);
+        if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
         setPopUpConfig(getReadErrorPopUpConfig(getErrorStatus(error)));
         return;
       }
@@ -547,6 +550,7 @@ export const NotificationPage = () => {
         await validateNotificationDestination(destination, userIdParam as string | number);
       }
     } catch (error) {
+      if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
       setPopUpConfig(getNavigationErrorPopUpConfig(error, notification));
       return;
     }
@@ -575,7 +579,9 @@ export const NotificationPage = () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
     } catch (error) {
       setItems(previousItems);
-      setPopUpConfig(getReadErrorPopUpConfig(getErrorStatus(error), true));
+      if (!shouldSkipLocalErrorUI(error, navigator.onLine)) {
+        setPopUpConfig(getReadErrorPopUpConfig(getErrorStatus(error), true));
+      }
     } finally {
       setIsMarkingAllRead(false);
     }

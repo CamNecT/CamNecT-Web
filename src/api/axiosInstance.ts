@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "../store/useAuthStore";
-import { handleCommunityError } from "./interceptors/communityError";
+import { useGlobalOfflineStore } from "../store/useGlobalOfflineStore";
+import { getGlobalNetworkErrorType } from "../utils/getGlobalNetworkErrorType";
 
 // Axios 인스턴스 (API 모듈화)
 export const axiosInstance = axios.create({
@@ -50,8 +51,18 @@ axiosInstance.interceptors.response.use(
     }
 );
 
-// 공용 인증 처리가 끝난 뒤 커뮤니티 도메인 오류 안내를 적용한다.
+// 도메인 오류와 분리해 브라우저가 명확히 offline인 네트워크 실패만 전역 상태로 전달한다.
 axiosInstance.interceptors.response.use(
     (response) => response,
-    handleCommunityError,
+    (error) => {
+        const isOnline = typeof navigator === "undefined" || navigator.onLine;
+        const globalErrorType = getGlobalNetworkErrorType(error, isOnline);
+
+        if (globalErrorType === "offline") {
+            useGlobalOfflineStore.getState().setOffline();
+        }
+
+        // 전역 UI 표시 여부와 호출부의 실패 처리는 별개이므로 원본 rejection을 유지한다.
+        return Promise.reject(error);
+    }
 );

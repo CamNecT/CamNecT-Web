@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import PopUp from './components/Pop-up';
 import { ScrollToTop } from './components/ScrollToTop';
+import { GLOBAL_OFFLINE_POPUP_MESSAGE } from './constants/serverErrors/globalNetworkErrors';
 import { useUnreadCountQuery } from './hooks/useChatQuery';
+import { useGlobalNetworkStatus } from './hooks/useGlobalNetworkStatus';
 import { useSocketInitializer } from './hooks/useSocketInitializer';
 import { useAuthStore } from './store/useAuthStore';
+import { useGlobalOfflineStore } from './store/useGlobalOfflineStore';
 import './styles/global.css';
 
 function App() {
@@ -23,6 +27,20 @@ function App() {
 
   useSocketInitializer(); //todo 여기서부터 호출하는 이유?
   useUnreadCountQuery();
+  useGlobalNetworkStatus();
+  const isOffline = useGlobalOfflineStore((state) => state.isOffline);
+  const setOffline = useGlobalOfflineStore((state) => state.setOffline);
+  const clearOffline = useGlobalOfflineStore((state) => state.clearOffline);
+
+  const handleOfflineRecheck = () => {
+    // online 값은 서버 연결 성공을 보장하지 않으며, 브라우저가 offline인지 다시 확인하는 용도로만 사용한다.
+    if (navigator.onLine === false) {
+      setOffline();
+      return;
+    }
+
+    clearOffline();
+  };
 
   // 로그인 정보를 다 불러오기 전까지는 아무것도 보여주지 않습니다 (로그아웃 튕김 방지)
   if (!isLoaded) return null;
@@ -32,6 +50,14 @@ function App() {
     <div className="w-full max-w-[430px] mx-auto min-h-[100dvh] bg-white relative shadow-lg">
       <ScrollToTop/>
       <Outlet/>
+      <PopUp
+        isOpen={isOffline}
+        type="error"
+        title={GLOBAL_OFFLINE_POPUP_MESSAGE.title}
+        content={GLOBAL_OFFLINE_POPUP_MESSAGE.content}
+        buttonText={GLOBAL_OFFLINE_POPUP_MESSAGE.button}
+        onClick={handleOfflineRecheck}
+      />
     </div>
   );
 }

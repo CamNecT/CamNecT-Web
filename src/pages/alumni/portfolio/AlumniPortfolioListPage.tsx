@@ -8,6 +8,7 @@ import { EditHeader } from '../../../layouts/headers/EditHeader';
 import { useAuthStore } from '../../../store/useAuthStore';
 import FavoriteBadge from '../components/FavoriteBadge';
 import { formatDotDate } from '../../../utils/formatDate';
+import { shouldSkipLocalErrorUI } from '../../../utils/getGlobalNetworkErrorType';
 import replaceImg from "../../../assets/image/replaceImg.png"
 
 const REPLACE_IMAGE = replaceImg;
@@ -42,6 +43,7 @@ export const AlumniPortfolioListPage = () => {
     data: portfolioResponse,
     isLoading,
     isError,
+    error: portfolioError,
   } = useQuery({
     queryKey: ['alumniPortfolioList', portfolioUserId, loginUserIdValue],
     queryFn: () =>
@@ -80,6 +82,8 @@ export const AlumniPortfolioListPage = () => {
   }
 
   if (isError) {
+    if (shouldSkipLocalErrorUI(portfolioError, navigator.onLine)) return null;
+
     return (
       <PopUp
         type="error"
