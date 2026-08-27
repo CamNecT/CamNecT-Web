@@ -28,7 +28,7 @@ function App() {
   useSocketInitializer(); //todo 여기서부터 호출하는 이유?
   useUnreadCountQuery();
 
-  // App은 브라우저 연결 상태를 구독하고 전역 offline 팝업을 렌더링하는 UI 진입점만 담당한다.
+  // 브라우저 연결 상태를 구독하고 전역 offline 팝업을 렌더링하는 UI 진입점을 담당한다.
   // 구체적인 API 실패 문구와 재시도 정책은 각 도메인 호출부에서 결정한다.
   useGlobalNetworkStatus();
   const isOffline = useGlobalOfflineStore((state) => state.isOffline);
