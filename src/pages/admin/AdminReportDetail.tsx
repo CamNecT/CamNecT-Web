@@ -100,6 +100,9 @@ export const AdminReportDetail = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCaseDetail', parsedCaseId] });
             queryClient.invalidateQueries({ queryKey: ['adminCaseList'] });
+            queryClient.invalidateQueries({
+                queryKey: ['adminUserReportCount', caseDetail?.targetAuthor.userId],
+            });
             setIsApproveSheetOpen(false);
             setIsRejectSheetOpen(false);
             setSelectedDecidedCategory(null);

@@ -41,7 +41,7 @@ export const AdminReportList = () => {
         hasNextPage,
         isFetchingNextPage,
     } = useInfiniteQuery({
-        queryKey: ['adminCaseList', currentStatus],
+        queryKey: ['adminCaseList', adminId, currentStatus],
         queryFn: ({ pageParam }) =>
             getAdminCaseList(adminId!, { status: currentStatus, page: pageParam, size: PAGE_SIZE }),
         initialPageParam: 0,
@@ -87,6 +87,19 @@ export const AdminReportList = () => {
         observer.observe(target);
         return () => observer.disconnect();
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    if (!adminId) {
+        return (
+            <PopUp
+                type="error"
+                title="관리자 정보를 확인할 수 없습니다"
+                content="재로그인 후 다시 시도해주세요."
+                isOpen={true}
+                rightButtonText="확인"
+                onClick={() => navigate(-1)}
+            />
+        );
+    }
 
     return (
         <AdminFullLayout
