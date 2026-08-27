@@ -20,17 +20,18 @@ export function GlobalErrorFallback() {
     : ERROR_FALLBACK_CONTENT.unexpected;
 
   useEffect(() => {
-    if (import.meta.env.DEV) {
+    // 존재하지 않는 경로는 예상 가능한 라우팅 결과이므로 runtime 오류 로그에서 제외한다.
+    if (import.meta.env.DEV && !isNotFound) {
       console.error('[GlobalErrorBoundary]', error);
     }
-  }, [error]);
+  }, [error, isNotFound]);
 
   const handleReload = () => {
     window.location.reload();
   };
 
   const handleGoHome = () => {
-    window.location.assign('/');
+    window.location.assign(import.meta.env.BASE_URL);
   };
 
   return (
@@ -48,7 +49,7 @@ export function GlobalErrorFallback() {
           {!isNotFound && (
             <button
               type="button"
-              className="h-[50px] w-full rounded-[25px] bg-primary text-[16px] font-semibold text-white"
+              className="h-[50px] w-full rounded-[25px] bg-primary text-[16px] font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               onClick={handleReload}
             >
               새로고침
@@ -56,7 +57,7 @@ export function GlobalErrorFallback() {
           )}
           <button
             type="button"
-            className="h-[50px] w-full rounded-[25px] border border-primary bg-white text-[16px] font-semibold text-primary"
+            className="h-[50px] w-full rounded-[25px] border border-primary bg-white text-[16px] font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             onClick={handleGoHome}
           >
             홈으로 가기
