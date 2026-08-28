@@ -120,7 +120,11 @@ const CommunityPostPage = () => {
     selectedPost?.accessStatus ??
     (isPostMine ? 'GRANTED' : 'NEED_PURCHASE');
   const isLockedQuestion =
-    !isPostMine && accessStatus !== 'GRANTED';
+    isQuestionPost && !isPostMine && accessStatus !== 'GRANTED';
+  const canLoadComments =
+    selectedPost != null &&
+    String(selectedPost.id) === String(postId) &&
+    !isLockedQuestion;
   // 잠긴 질문글 포인트 구매 API를 mutation으로 관리해 요청 상태와 후처리를 한곳에 둡니다.
   const purchasePostAccessMutation = useMutation({
     mutationFn: (params: { postId: number | string; userId: number }) =>
@@ -163,7 +167,8 @@ const CommunityPostPage = () => {
 
   const loadComments = useCallback(
     async (append = false) => {
-      if (!postId || (append && isLoadingComments)) return;
+      // 댓글 권한은 게시글 상세의 accessStatus로 먼저 판단해 잠긴 질문글의 불필요한 403 요청을 막는다.
+      if (!postId || !canLoadComments || (append && isLoadingComments)) return;
       const numericPostId = Number(postId);
       if (!Number.isInteger(numericPostId) || numericPostId < 1) return;
       if (append && (!hasNextComments || commentCursorId == null)) return;
@@ -213,7 +218,7 @@ const CommunityPostPage = () => {
       } finally {
         if (requestId === commentRequestSeqRef.current) setIsLoadingComments(false);
       }
-    }, [commentCursorId, hasNextComments, isLoadingComments, postId, showCommunityError],
+    }, [canLoadComments, commentCursorId, hasNextComments, isLoadingComments, postId, showCommunityError],
   );
 
   useEffect(() => {
@@ -222,11 +227,14 @@ const CommunityPostPage = () => {
     setCommentCursorId(null);
     setHasNextComments(false);
     setCommentAccessBlocked(false);
+    // 상세 조회가 현재 게시글의 열람 권한을 확정한 뒤에만 댓글 첫 페이지를 요청한다.
+    // 구매 성공으로 잠금이 해제되면 canLoadComments가 true로 바뀌어 댓글을 자동으로 불러온다.
+    if (!canLoadComments) return;
     const timer = window.setTimeout(() => void loadComments(false), 0);
     return () => window.clearTimeout(timer);
-    // postId 변경 때만 첫 페이지를 새로 가져온다.
+    // loadComments의 커서 상태 변경으로 첫 페이지가 반복 호출되지 않도록 실행 조건만 의존한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
+  }, [canLoadComments, postId]);
 
   const commentListFromApi = useMemo(
     () => mapFlatCommentsToTree(commentItemsFromApi),
