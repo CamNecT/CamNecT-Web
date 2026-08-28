@@ -13,6 +13,7 @@ import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
 import TagsFilterModal from '../../components/TagsFilterModal';
+import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { useTagList } from '../../hooks/useTagList';
 import { EmptyLayout } from '../../layouts/EmptyLayout';
@@ -21,6 +22,7 @@ import type { CommunityPostDetail } from '../../types/community';
 import { mapToCommunityPostDetail } from '../../utils/communityMapper';
 import { mapToCommunityPost } from './utils/post';
 import { getFileName } from '../../utils/getFileName';
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
 
 // 프론트에서도 Community Bean Validation과 동일한 경계를 적용해 불필요한 업로드/요청을 막는다.
@@ -582,12 +584,15 @@ export const WritePage = () => {
                 }
                 return;
             }
-            const errorCode = axiosError.response?.data?.code;
-            if (errorCode === 43060) {
+            const errorCode = getServerErrorCode(axiosError);
+            if (errorCode === COMMUNITY_ERROR_CODES.invalidTag) {
                 setFieldErrors({ tagIds: '유효하지 않은 태그가 포함되어 있습니다.' });
                 return;
             }
-            if (errorCode === 49021 || errorCode === 49022) {
+            if (
+                errorCode === COMMUNITY_ERROR_CODES.invalidAttachmentMetadata ||
+                errorCode === COMMUNITY_ERROR_CODES.duplicateAttachmentKey
+            ) {
                 setFieldErrors({ attachments: '첨부파일 정보를 다시 확인해 주세요.' });
                 return;
             }

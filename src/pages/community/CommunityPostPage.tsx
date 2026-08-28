@@ -73,6 +73,10 @@ const CommunityPostPage = () => {
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
   const { errorPopup, showCommunityError, closeCommunityError } =
     useCommunityErrorPopup();
+  const handlePostDetailError = useCallback(
+    (error: unknown) => showCommunityError(error, 'postDetail'),
+    [showCommunityError],
+  );
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('URL 복사가 완료되었습니다');
   const [accessStatusOverride, setAccessStatusOverride] = useState<
@@ -109,10 +113,9 @@ const CommunityPostPage = () => {
     textCount,
     imageCount,
     likedByMe,
-    detailError,
     refetchPost,
     isLoading: isDetailLoading,
-  } = usePost({ postId });
+  } = usePost({ postId, onError: handlePostDetailError });
   // 실제 본문/썸네일 노출 여부는 게시글 정책(accessType)이 아니라
   // 현재 사용자의 열람 결과인 accessStatus만을 기준으로 판단한다.
   const accessStatus =
@@ -352,7 +355,11 @@ const CommunityPostPage = () => {
     ? {
         type: 'error',
         ...errorPopup,
-        onClick: closeCommunityError,
+        onClick: () => {
+          closeCommunityError();
+          // 상세 조회 자체가 실패한 경우 빈 상세 화면에 남지 않고 이전 진입 화면으로 복귀한다.
+          if (!selectedPost) navigate(-1);
+        },
       }
     : null;
 
@@ -370,15 +377,7 @@ const CommunityPostPage = () => {
           buttonText: '로그인하러 가기',
           onClick: () => navigate('/login', { replace: true }),
         }
-      : detailError
-        ? {
-            type: 'error',
-            title: '일시적 오류',
-            content: '잠시 후 다시 시도해주세요.',
-            rightButtonText: '확인',
-            onClick: () => navigate(-1),
-          }
-    : communityErrorPopUpConfig ?? popUpConfig;
+      : communityErrorPopUpConfig ?? popUpConfig;
 
   if (!selectedPost) {
     return (
@@ -531,9 +530,8 @@ const CommunityPostPage = () => {
       setLikeCount(response.data.likeCount);
     } catch (error) {
       const axiosError = error as AxiosError<{ code?: number; message?: string }>;
-      const status = axiosError.response?.status;
       const code = getServerErrorCode(axiosError);
-      if (status === 409 || code === COMMUNITY_ERROR_CODES.ownPostLikeUnavailable) {
+      if (code === COMMUNITY_ERROR_CODES.ownPostLikeUnavailable) {
         setToastMessage('본인의 글에 좋아요를 누를 수 없습니다.');
         openToast();
       } else {
@@ -762,7 +760,7 @@ const CommunityPostPage = () => {
         />
       }
     >
-      {selectedPost && !detailError ? (
+      {selectedPost ? (
         // 이미지·프로필까지 드래그 선택되는 것을 막고, 실제 콘텐츠 텍스트에서만 선택을 다시 허용한다.
         <main
           className='flex w-full select-none justify-center bg-white'
@@ -985,7 +983,7 @@ const CommunityPostPage = () => {
           </div>
         </main>
       ) : null}
-      {selectedPost && !detailError ? (
+      {selectedPost ? (
         <BottomChat
           likeCount={likeCount}
           isLiked={isLiked}

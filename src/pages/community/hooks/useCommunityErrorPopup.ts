@@ -1,5 +1,6 @@
-import axios, { type AxiosError } from 'axios';
+import axios from 'axios';
 import { useCallback, useState } from 'react';
+import type { CommunityErrorResponse } from '../../../api-types/communityApiTypes';
 import { getServerErrorCode } from '../../../utils/getServerErrorCode';
 import { shouldSkipLocalErrorUI } from '../../../utils/getGlobalNetworkErrorType';
 import {
@@ -24,8 +25,8 @@ export const useCommunityErrorPopup = () => {
       if (axios.isCancel(error)) return;
       if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
 
-      const axiosError = axios.isAxiosError(error)
-        ? (error as AxiosError)
+      const axiosError = axios.isAxiosError<CommunityErrorResponse>(error)
+        ? error
         : undefined;
       const errorCode = axiosError
         ? getServerErrorCode(axiosError)
@@ -36,6 +37,7 @@ export const useCommunityErrorPopup = () => {
           action,
           status: axiosError?.response?.status,
           errorCode,
+          isNetworkError: Boolean(axiosError && !axiosError.response),
         }),
       );
     },

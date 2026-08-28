@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AxiosError } from 'axios';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { getCommunityPostDetail } from '../../../api/community';
 import { mapToCommunityPostDetail } from '../../../utils/communityMapper';
@@ -8,16 +7,16 @@ import { useTagList } from '../../../hooks/useTagList';
 
 type UsePostParams = {
   postId?: string;
+  onError?: (error: unknown) => void;
 };
 
 // 게시글 선택 및 파생 상태 계산을 캡슐화
-export const usePost = ({ postId }: UsePostParams) => {
+export const usePost = ({ postId, onError }: UsePostParams) => {
   const userId = useAuthStore((state) => state.user?.id);
   const { mapTagIdToName } = useTagList();
   const [selectedPost, setSelectedPost] = useState<CommunityPostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [likedByMe, setLikedByMe] = useState(false);
-  const [detailError, setDetailError] = useState(false);
   // 동일 마운트 사이클에서 중복 호출을 방지하기 위한 플래그
   const isFetchingRef = useRef(false);
 
@@ -26,8 +25,8 @@ export const usePost = ({ postId }: UsePostParams) => {
     if (!postId) {
       setSelectedPost(null);
       setLikedByMe(false);
-      setDetailError(true);
       setIsLoading(false);
+      onError?.(new Error('게시글 ID가 없습니다.'));
       return;
     }
     // 모든 ID는 1 이상의 정수라는 API 계약을 만족할 때만 요청한다.
@@ -35,7 +34,6 @@ export const usePost = ({ postId }: UsePostParams) => {
     if (!Number.isInteger(numericUserId) || numericUserId < 1) {
       setSelectedPost(null);
       setLikedByMe(false);
-      setDetailError(false);
       setIsLoading(false);
       return;
     }
@@ -43,8 +41,8 @@ export const usePost = ({ postId }: UsePostParams) => {
     if (!Number.isInteger(numericPostId) || numericPostId < 1) {
       setSelectedPost(null);
       setLikedByMe(false);
-      setDetailError(true);
       setIsLoading(false);
+      onError?.(new Error('게시글 ID 형식이 올바르지 않습니다.'));
       return;
     }
     if (isFetchingRef.current) return;
@@ -58,19 +56,18 @@ export const usePost = ({ postId }: UsePostParams) => {
       .then((response) => {
         setSelectedPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
         setLikedByMe(Boolean(response.data.likedByMe));
-        setDetailError(false);
       })
-      .catch((error: AxiosError) => {
-        const status = error.response?.status;
-        setDetailError(status === 404 || Boolean(status));
+      .catch((error: unknown) => {
         setSelectedPost(null);
         setLikedByMe(false);
+        // 상세 오류 UI는 API hook에서 결정하지 않고 Community Post 호출부의 도메인 오류 hook에 위임한다.
+        onError?.(error);
       })
       .finally(() => {
         setIsLoading(false);
         isFetchingRef.current = false;
       });
-  }, [postId, userId, mapTagIdToName]);
+  }, [postId, userId, mapTagIdToName, onError]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -92,7 +89,6 @@ export const usePost = ({ postId }: UsePostParams) => {
       textCount: 0,
       imageCount: 0,
       likedByMe,
-      detailError,
       refetchPost,
       isLoading,
     };
@@ -123,7 +119,6 @@ export const usePost = ({ postId }: UsePostParams) => {
     textCount,
     imageCount,
     likedByMe,
-    detailError,
     refetchPost,
     isLoading,
   };
