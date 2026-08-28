@@ -73,39 +73,56 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange }: Inf
               </div>
 
               <div className='flex flex-col' style={{ gap: '7px' }}>
-                <div className='flex' style={{ gap: '12px' }}>
-                  <div className='flex flex-1 flex-col' style={{ gap: '5px' }}>
-                  <div className='flex items-center gap-[6px]'>
-                    <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
-                    {post.author.major ? (
-                      <span className='text-r-12 text-gray-750'>
-                        · {post.author.major}
-                        {post.author.studentId
-                          ? ` ${post.author.studentId}학번`
-                          : ''}
+                <div className='flex items-center gap-[6px]'>
+                  <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
+                  {post.author.major ? (
+                    <span className='text-r-12 text-gray-750'>
+                      · {post.author.major}
+                      {post.author.studentId
+                        ? ` ${post.author.studentId}학번`
+                        : ''}
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* 작성자 정보는 썸네일 위에 두고, 썸네일은 제목 시작선에 맞춘다. */}
+                <div className='flex gap-[12px]'>
+                  <div className='flex min-w-0 flex-1 flex-col gap-[5px]'>
+                    <div className='text-sb-16-hn leading-[150%] text-gray-900'>{post.title}</div>
+
+                    {isGranted ? (
+                      <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>
+                        {post.content}
+                      </div>
+                    ) : (
+                      <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
+                        {post.accessStatus === 'LOGIN_REQUIRED'
+                          ? '로그인 후 열람 가능'
+                          : post.accessStatus === 'INSUFFICIENT_POINTS'
+                            ? '포인트가 부족합니다'
+                            : `${post.requiredPoints ?? 0} P`}
+                      </div>
+                    )}
+
+                    <div className='mt-auto flex flex-wrap items-center gap-x-[10px] gap-y-[3px] text-r-12 text-gray-650'>
+                      <span className='flex items-center gap-[4px]'>
+                        <Icon name='thumbs_up_stroke' className='h-[12px] w-[12px]' />
+                        {post.likes}
                       </span>
-                    ) : null}
-                  </div>
-
-                  <div className='text-sb-16-hn leading-[150%] text-gray-900'>{post.title}</div>
-
-                  {isGranted ? (
-                    <div className='line-clamp-2 whitespace-pre-wrap text-r-16 text-gray-750'>
-                      {post.content}
+                      <span className='flex items-center gap-[4px]'>
+                        <Icon name='comment' className='h-[12px] w-[12px]' />
+                        {post.comments}
+                      </span>
+                      <span className='flex items-center gap-[4px]'>
+                        <Icon name='bookmark_stroke' className='h-[12px] w-[12px]' />
+                        {post.saveCount}
+                      </span>
+                      <span>{formatTimeAgo(post.createdAt)}</span>
                     </div>
-                  ) : (
-                    <div className='text-r-12 text-[var(--ColorMain,#00C56C)]'>
-                      {post.accessStatus === 'LOGIN_REQUIRED'
-                        ? '로그인 후 열람 가능'
-                        : post.accessStatus === 'INSUFFICIENT_POINTS'
-                          ? '포인트가 부족합니다'
-                          : `${post.requiredPoints ?? 0} P`}
-                    </div>
-                  )}
                   </div>
 
                   {isGranted && post.thumbnailUrl && (
-                    <div className='h-[70px] w-[70px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--ColorGray1,#D5D5D5)]'>
+                    <div className='h-[95px] w-[95px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--ColorGray1,#D5D5D5)]'>
                       <img
                         src={post.thumbnailUrl}
                         alt=''
@@ -113,22 +130,6 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange }: Inf
                       />
                     </div>
                   )}
-                </div>
-
-                <div className='flex items-center gap-[10px] text-r-12 text-gray-650'>
-                  <span className='flex items-center gap-[4px]'>
-                    <Icon name='thumbs_up_stroke' className='h-[12px] w-[12px]' />
-                    {post.likes}
-                  </span>
-                  <span className='flex items-center gap-[4px]'>
-                    <Icon name='comment' className='h-[12px] w-[12px]' />
-                    {post.comments}
-                  </span>
-                  <span className='flex items-center gap-[4px]'>
-                    <Icon name='bookmark_stroke' className='h-[12px] w-[12px]' />
-                    {post.saveCount}
-                  </span>
-                  <span>{formatTimeAgo(post.createdAt)}</span>
                 </div>
               </div>
             </article>

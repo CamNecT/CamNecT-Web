@@ -353,7 +353,12 @@ const CommunityPostPage = () => {
               ariaLabel: '이전 페이지로 이동',
             }}
             rightActions={[
-              { icon: 'more_menu', onClick: () => {}, ariaLabel: '게시글 옵션 열기' },
+              {
+                icon: 'more_menu',
+                onClick: () => {},
+                ariaLabel: '게시글 옵션 열기',
+                style: { color: 'var(--ColorBlack,#202023)' },
+              },
             ]}
           />
         }
@@ -711,7 +716,12 @@ const CommunityPostPage = () => {
             ariaLabel: '이전 페이지로 이동',
           }}
           rightActions={[
-            { icon: 'more_menu', onClick: handleOpenPostOptions, ariaLabel: '게시글 옵션 열기' },
+            {
+              icon: 'more_menu',
+              onClick: handleOpenPostOptions,
+              ariaLabel: '게시글 옵션 열기',
+              style: { color: 'var(--ColorBlack,#202023)' },
+            },
           ]}
         />
       }
