@@ -132,6 +132,8 @@ export default function EducationModal({ userId, educations, visibility, onClose
 
     const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
     const [schoolSearchQuery, setSchoolSearchQuery] = useState("");
+    const schoolInputRef = useRef<HTMLInputElement>(null);
+    const schoolSuggestionsRef = useRef<HTMLDivElement>(null);
 
     const filteredSchools = useMemo(() => {
         return searchInstitutionCampusMappings(schoolSearchQuery);
@@ -140,6 +142,23 @@ export default function EducationModal({ userId, educations, visibility, onClose
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    useEffect(() => {
+        if (!showSchoolSuggestions) return;
+
+        const handleOutsidePointerDown = (event: PointerEvent) => {
+            const target = event.target as Node;
+            const isInput = schoolInputRef.current?.contains(target);
+            const isSuggestion = schoolSuggestionsRef.current?.contains(target);
+
+            if (!isInput && !isSuggestion) {
+                setShowSchoolSuggestions(false);
+            }
+        };
+
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    }, [showSchoolSuggestions]);
 
     //변경사항 추적 (리스트 전체 추적)
     const hasListChanges: boolean = useMemo(() => {
@@ -515,6 +534,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                             <div className="flex flex-col gap-[10px] relative">
                                 <span className="text-sb-16-hn text-gray-900">학교 이름</span>
                                 <input
+                                    ref={schoolInputRef}
                                     type="text"
                                     value={schoolSearchQuery}
                                     onChange={(e) => {
@@ -535,7 +555,10 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                 />
 
                                 {showSchoolSuggestions && filteredSchools.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
+                                    <div
+                                        ref={schoolSuggestionsRef}
+                                        className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto"
+                                    >
                                         {filteredSchools.map((institution) => (
                                             <button
                                                 key={institution.campusId}
