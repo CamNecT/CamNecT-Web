@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import type { StompChatResponse, StompMessageRequest, StompMessageResponse, StompPendingChatMessage } from "../api-types/stompApiTypes";
 import { isEndReceipt, isReadReceipt } from "../api-types/stompApiTypes";
 import { isStompEnabled, stompClient } from "../api/stompClient";
+import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import type { ChatMessage } from "../types/coffee-chat/coffeeChatTypes";
 import type { ChatRoomDetailData } from "./useChatQuery";
@@ -13,6 +14,7 @@ import type { ChatRoomDetailData } from "./useChatQuery";
 // 개별 채팅방 구독 및 메시지 송수신을 위한 훅
 export const useStompChat = (roomId: string) => {
     const queryClient = useQueryClient();
+    const userId = useAuthStore((state) => state.user?.id);
 
     // 모든 실시간 메시지들 (수신 / 발신)
     const [messages, setMessages] = useState<StompMessageResponse[]>([]);
@@ -151,7 +153,7 @@ export const useStompChat = (roomId: string) => {
     // 특정 채팅방 구독 (수신) 및 클린업
     useEffect(() => {
         // 모바일 LAN UI 테스트에서는 STOMP 구독과 관련 이벤트 등록을 생략한다.
-        if (!isStompEnabled) return;
+        if (!isStompEnabled || !userId) return;
 
         let subscription: StompSubscription | null = null; // 구독 객체
 
@@ -178,7 +180,7 @@ export const useStompChat = (roomId: string) => {
 
                     // REST 기존 메시지 갱신
                     // setQueryData : 로컬 캐시 데이터를 업데이트 (updater 함수의 첫 인자는 oldData)
-                    queryClient.setQueryData(['chatRoom', roomId], (oldData: ChatRoomDetailData | undefined) => {
+                    queryClient.setQueryData(['chatRoom', userId, roomId], (oldData: ChatRoomDetailData | undefined) => {
                                             
                         // 캐시가 아직 없을 때(API 응답보다 읽음 영수증이 먼저 도착) 방어
                         // undefined를 반환하면 react-query가 캐시를 건드리지 않고 넘어감
@@ -200,7 +202,7 @@ export const useStompChat = (roomId: string) => {
                 if (isEndReceipt(data)) {
                     
                     // 둘 중 한명이 종료했을때 REST 캐시의 closed 프로퍼티를 true로 실시간 갱신
-                    queryClient.setQueryData(['chatRoom', roomId], (oldData: ChatRoomDetailData | undefined) => {
+                    queryClient.setQueryData(['chatRoom', userId, roomId], (oldData: ChatRoomDetailData | undefined) => {
                         if (!oldData) return oldData;
                         return {
                             ...oldData,
@@ -260,7 +262,7 @@ export const useStompChat = (roomId: string) => {
             window.removeEventListener('stomp-connected', handleStompConnected);
             leaveChatRoom();
         };
-    }, [roomId, leaveChatRoom, removePendingMessage, queryClient]);
+    }, [roomId, userId, leaveChatRoom, removePendingMessage, queryClient]);
 
     return { messages, sendMessage, retryMessage, setMessages, leaveChatRoom, isRoomSubscriptionReady };
 };

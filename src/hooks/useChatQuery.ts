@@ -37,18 +37,19 @@ export interface ChatRoomDetailData {
 // 1-1. 전체 안 읽은 메시지 개수 조회 전용 쿼리
 export const useUnreadCountQuery = () => {
     const { user, isAuthenticated } = useAuthStore();
+    const userId = user?.id;
 
     return useQuery({
-        queryKey: ['chatUnreadCount'],
+        queryKey: ['chatUnreadCount', userId],
         queryFn: async () => {
-            if (!user?.id) return 0;
+            if (!userId) return 0;
             const response = await viewChatRoomList({
-                userId: Number(user?.id)
+                userId: Number(userId)
             });
             const count = response.data.totalUnreadCount;
             return count;
         },
-        enabled: isAuthenticated && !!user?.id && user?.nextStep === 'HOME',
+        enabled: isAuthenticated && !!userId && user?.nextStep === 'HOME',
         staleTime: 1000 * 60, // 1분간 신선도 유지
     });
 };
@@ -56,14 +57,15 @@ export const useUnreadCountQuery = () => {
 // 1. 채팅방 목록 조회 API [GET] (/api/chat/rooms)
 export const useChatRooms = (type: ChatRoomListItemType) => {
     const { user } = useAuthStore(); // 1. 유저 정보 가져오기 
+    const userId = user?.id;
     const { setTotalUnreadCount } = useChatStore();
 
     return useQuery({
-        queryKey: ['chatRooms', user?.id, type], // 데이터 고유이름 (캐싱용)
+        queryKey: ['chatRooms', userId, type], // 데이터 고유이름 (캐싱용)
         queryFn: async () => {
 
             const response = await viewChatRoomList({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 type: type
             })
 
@@ -90,20 +92,21 @@ export const useChatRooms = (type: ChatRoomListItemType) => {
                 requestExists: response.data.requestExists
             };
         },
-        enabled: !!user?.id // 유저 ID가 있을 때만 실행
+        enabled: !!userId // 유저 ID가 있을 때만 실행
     });
 };
 
 // 2. 채팅방 조회 상세 API [GET] (/api/chat/room/{roomId})
 export const useChatRoom = (roomId: string) => {
     const { user } = useAuthStore(); // 1. 유저 정보 가져오기 
+    const userId = user?.id;
 
     return useQuery({
-        queryKey: ['chatRoom', roomId],
+        queryKey: ['chatRoom', userId, roomId],
         queryFn: async () => {
             
             const response = await viewChatRoomDetail({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 roomId: Number(roomId)
             });
 
@@ -149,7 +152,7 @@ export const useChatRoom = (roomId: string) => {
                 opponentExited: data.opponentExited,
             };
         },
-        enabled: !!roomId && !!user?.id
+        enabled: !!roomId && !!userId
     });
 };
 
@@ -157,15 +160,16 @@ export const useChatRoom = (roomId: string) => {
 export const useChatRequests = (type: ChatRoomListItemType) => {
 
     const { user } = useAuthStore();
+    const userId = user?.id;
 
     return useQuery<ChatRoomListItem[]>({
         // type이 바뀔때 마다 재요청
-        queryKey: ['chatRequests', user?.id, type],
+        queryKey: ['chatRequests', userId, type],
         queryFn: async () => { 
 
             // API 호출
             const response = await viewChatRequestList({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 type:type
             })
 
@@ -187,7 +191,7 @@ export const useChatRequests = (type: ChatRoomListItemType) => {
                 recruitmentId: room.recruitmentId,
             }));
         },
-        enabled: !!user?.id
+        enabled: !!userId
     });
 };
 
@@ -195,13 +199,14 @@ export const useChatRequests = (type: ChatRoomListItemType) => {
 export const useChatRequestRoom = (requestId: string) => {
 
     const { user } = useAuthStore();
+    const userId = user?.id;
 
     return useQuery({
-        queryKey: ['chatRequestRoom', requestId],
+        queryKey: ['chatRequestRoom', userId, requestId],
         queryFn: async () => {
 
             const response = await viewChatRequestDetail({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 requestId: Number(requestId)
             })
 
@@ -227,25 +232,26 @@ export const useChatRequestRoom = (requestId: string) => {
                 }
             };
         },
-        enabled: !!requestId
+        enabled: !!requestId && !!userId
     });
 };
 
 // 5. 커피챗 요청 수락/거절 API [POST] (/api/request/respond)
 export const useChatRequestRespond = () => {
     const { user } = useAuthStore();
+    const userId = user?.id;
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (variables: { requestId: number; isAccepted: boolean }) => 
             requestChatRespond({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 ...variables
             }),
         onSuccess: () => {
             // 요청 목록, 채팅 목록 최신화
-            queryClient.invalidateQueries({ queryKey: ['chatRequests'] });
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+            queryClient.invalidateQueries({ queryKey: ['chatRequests', userId] });
+            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] });
             queryClient.invalidateQueries({ queryKey: ['home'] });
         }
     });
@@ -254,17 +260,18 @@ export const useChatRequestRespond = () => {
 // 6. (게시글 별) 팀원 모집 전체 삭제 API [DELETE] (/api/request/all/team-recruit/{recruitmentId})
 export const useDeleteAllTeamRecruitRequest = () => {
     const { user } = useAuthStore();
+    const userId = user?.id;
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (variables: { recruitmentId: number }) => 
             deleteAllTeamRecruit({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 ...variables
             }),
         onSuccess: () => {
             // 요청 목록 최신화
-            queryClient.invalidateQueries({ queryKey: ['chatRequests'] });
+            queryClient.invalidateQueries({ queryKey: ['chatRequests', userId] });
         }
     });
 };
@@ -272,16 +279,17 @@ export const useDeleteAllTeamRecruitRequest = () => {
 // 7. 커피챗 요청 전체 삭제 API [DELETE] (/api/request/all/coffee-chat)
 export const useDeleteAllChatRequest = () => {
     const { user } = useAuthStore();
+    const userId = user?.id;
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: () => 
             deleteAllChatRequest({
-                userId: Number(user?.id)
+                userId: Number(userId)
             }),
         onSuccess: () => {
             // 요청 목록 최신화
-            queryClient.invalidateQueries({ queryKey: ['chatRequests'] });
+            queryClient.invalidateQueries({ queryKey: ['chatRequests', userId] });
         }
     });
 };
@@ -289,17 +297,18 @@ export const useDeleteAllChatRequest = () => {
 // 8. 채팅방 대화종료 API [PATCH] (/api/chat/room/{roomId}/close)
 export const useChatRoomClose = () => {
     const { user } = useAuthStore();
+    const userId = user?.id;
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (variables: { roomId: string }) =>
             requestChatRoomClose({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 roomId: Number(variables.roomId)
             }),
         onSuccess: (_data, { roomId }) => {
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] }); // 채팅 목록 최신화
-            queryClient.invalidateQueries({ queryKey: ['chatRoom', roomId] }); // 현재 채팅방 최신화
+            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] }); // 채팅 목록 최신화
+            queryClient.invalidateQueries({ queryKey: ['chatRoom', userId, roomId] }); // 현재 채팅방 최신화
         }
     });
 };
@@ -307,17 +316,18 @@ export const useChatRoomClose = () => {
 // 9. 채팅방 나가기 API [PATCH] (/api/chat/room/{roomId}/exit)
 export const useChatRoomExit = () => {
     const { user } = useAuthStore();
+    const userId = user?.id;
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (variables: { roomId: string }) =>
             requestChatRoomExit({
-                userId: Number(user?.id),
+                userId: Number(userId),
                 roomId: Number(variables.roomId)
             }),
         onSuccess: (_data, { roomId }) => {
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] }); // 채팅 목록 최신화
-            queryClient.removeQueries({ queryKey: ['chatRoom', roomId], exact: true }); // 현재 채팅방 캐시 삭제
+            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] }); // 채팅 목록 최신화
+            queryClient.removeQueries({ queryKey: ['chatRoom', userId, roomId], exact: true }); // 현재 채팅방 캐시 삭제
         }
     });
 };

@@ -29,6 +29,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const queryClient = useQueryClient();
 
     const { user } = useAuthStore();
+    const userId = user?.id;
 
     // 전송 대기 메시지 리스트
     const { pendingMessages, removePendingMessage, removeFailedPendingMessage } = useChatStore(
@@ -135,7 +136,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const requestInfo = chatRoomData?.requestInfo;
     const isTeamRecruit = requestInfo?.type === 'TEAM_RECRUIT';
 
-    const myId = String(user?.id);
+    const myId = String(userId);
 
     // 기존 채팅 내역 + 실시간 채팅 내역 병합 (pending 메시지)
     const allMessages = useMemo(() => {
@@ -277,9 +278,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 3. 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
     useEffect(() => {
         return () => {
-            queryClient.invalidateQueries({ queryKey: ['chatUnreadCount'] });
+            queryClient.invalidateQueries({ queryKey: ['chatUnreadCount', userId] });
         };
-    }, [queryClient]);
+    }, [queryClient, userId]);
 
     // 소켓이 준비되지 않은 상태에서 렌더링을 시도하면 STOMP 커넥션 에러가 발생할 수 있음
     if (!isRoomSubscriptionReady) {

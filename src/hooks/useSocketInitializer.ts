@@ -9,6 +9,7 @@ import { useChatStore } from "../store/useChatStore";
 // 로그인 / 로그아웃 시 소켓 연결/해제 (커피챗 실시간 수신을 위해)
 export const useSocketInitializer = () => {
     const { isAuthenticated, user, accessToken } = useAuthStore();
+    const userId = user?.id;
     const queryClient = useQueryClient();
 
     // 로그인 상태 바뀔 때만 수행
@@ -40,7 +41,7 @@ export const useSocketInitializer = () => {
         }
 
         // 로그아웃 체크 또는 가입 완료 전(HOME이 아닌 경우) 연결 방지
-        if (!isAuthenticated || !user?.id || user?.nextStep !== 'HOME') {
+        if (!isAuthenticated || !userId || user?.nextStep !== 'HOME') {
             useChatStore.getState().setIsStompConnected(false); // 소켓 연결 해제 상태로 업데이트
             useChatStore.getState().clearPendingMessages(); // 다른 사용자 세션으로 pending message 이전 방지
 
@@ -66,7 +67,7 @@ export const useSocketInitializer = () => {
                 // 중복 재전송 ACK에는 읽음 정보가 없으므로 서버의 실제 메시지 상태를 다시 조회
                 if (ack.duplicate) {
                     void queryClient.invalidateQueries({
-                        queryKey: ['chatRoom', String(ack.roomId)],
+                        queryKey: ['chatRoom', userId, String(ack.roomId)],
                         exact: true,
                     });
                 }
@@ -85,19 +86,19 @@ export const useSocketInitializer = () => {
                 }
             });
 
-            roomsSubscription = stompClient.subscribe(`/sub/user/${user?.id}/rooms`, (frame) => {
+            roomsSubscription = stompClient.subscribe(`/sub/user/${userId}/rooms`, (frame) => {
                 const roomsUpdate = JSON.parse(frame.body) as StompChatRoomListResponse ;
                 
                 // 채팅방 목록 API 갱신
                 queryClient.invalidateQueries({ 
-                    queryKey: ['chatRooms'], 
+                    queryKey: ['chatRooms', userId],
                     exact: false, 
                     refetchType: 'all' 
                 });
 
                 // 안읽은 메시지 개수 API 갱신
                 queryClient.setQueryData(
-                    ['chatUnreadCount'],
+                    ['chatUnreadCount', userId],
                     roomsUpdate.totalUnreadCount
                 );
             });
@@ -174,6 +175,6 @@ export const useSocketInitializer = () => {
                 stompClient.deactivate();
             }
         }
-    }, [isAuthenticated, user?.id, user?.nextStep, accessToken, queryClient])
+    }, [isAuthenticated, userId, user?.nextStep, accessToken, queryClient])
     
 }
