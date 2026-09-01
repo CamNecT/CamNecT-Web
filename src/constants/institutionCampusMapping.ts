@@ -314,6 +314,15 @@ export const findInstitutionMappingsByName = (institutionName: string) =>
 const normalizeSearchText = (value: string) =>
   value.toLocaleLowerCase().replace(/\s+/g, "");
 
+export const findInstitutionCampusMappingByFullName = (fullCampusName: string) => {
+  const normalizedFullCampusName = normalizeSearchText(fullCampusName.trim());
+  if (!normalizedFullCampusName) return undefined;
+
+  return INSTITUTION_CAMPUS_MAPPINGS.find(
+    (item) => normalizeSearchText(item.fullCampusName) === normalizedFullCampusName
+  );
+};
+
 export const searchInstitutionCampusMappings = (query: string, limit = 10) => {
   const normalizedQuery = normalizeSearchText(query.trim());
   if (!normalizedQuery) return [];
