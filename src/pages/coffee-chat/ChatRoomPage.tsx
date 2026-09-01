@@ -3,6 +3,8 @@ import dayjs from "dayjs";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
+// [모바일 LAN UI 테스트 전용] 필요할 때 아래 import를 활성화한다.
+// import { isStompEnabled } from "../../api/stompClient";
 import Icon from "../../components/Icon";
 import PopUp from "../../components/Pop-up";
 import Toggle from "../../components/Toggle/Toggle";
@@ -32,11 +34,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const userId = user?.id;
 
     // 전송 대기 메시지 리스트
-    const { pendingMessages, removePendingMessage, removeFailedPendingMessage } = useChatStore(
+    const {
+        pendingMessages,
+        removePendingMessage,
+        removeFailedPendingMessage,
+        isStompConnected,
+    } = useChatStore(
         useShallow((state) => ({
             pendingMessages: state.pendingMessages,
             removePendingMessage: state.removePendingMessage,
             removeFailedPendingMessage: state.removeFailedPendingMessage,
+            isStompConnected: state.isStompConnected,
         }))
     );
 
@@ -46,7 +54,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const { messages: socketMessages,
         sendMessage, retryMessage, leaveChatRoom,
-        isRoomSubscriptionReady} = useStompChat(roomId);
+        isRoomSubscriptionReady } = useStompChat(roomId);
 
     // 검색 관련 상태
     const [isSearching, setIsSearching] = useState(false);
@@ -126,10 +134,16 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [isReady, setIsReady] = useState(false);
 
     const isLoading = isRoomLoading;
+    // 실시간 채팅 기능 이용가능 여부
+    const isRealtimeReady = isStompConnected && isRoomSubscriptionReady;
+    // [모바일 LAN UI 테스트 전용]
+    // STOMP 없이 TypingArea와 로컬 실패 UI를 확인하려면 isStompEnabled를 import하고
+    // 아래 조건을 `isRealtimeReady || !isStompEnabled`로 임시 변경한다.
+    const canUseComposer = isRealtimeReady;
     const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited;
 
-    // 오프라인에서도 로컬 실패 메시지를 만들 수 있도록 연결 상태로 전송 버튼을 막지 않음
-    const isSendDisabled = isChatUnavailable;
+    // 전송 버튼 비활성화 조건 : 채팅방 사용 불가능 OR 실시간 채팅 준비 안됨
+    const isSendDisabled = isChatUnavailable || !canUseComposer;
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const roomInfo = chatRoomData?.partner;
@@ -253,7 +267,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // todo 1. 레이아웃 안정화 및 초기 스크롤
     useLayoutEffect(() => {
-        if (!isLoading && !isReady && isRoomSubscriptionReady) {
+        if (!isLoading && !isReady) {
             if (localMessages.length > 0) {
                 window.scrollTo(0, document.documentElement.scrollHeight);
                 requestAnimationFrame(() => {
@@ -266,14 +280,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 });
             }
         }
-    }, [isLoading, localMessages.length, isReady, isRoomSubscriptionReady]);
+    }, [isLoading, localMessages.length, isReady]);
 
     // 2. 메시지가 추가될 때 부드럽게 스크롤
     useEffect(() => {
-        if (isReady && localMessages.length > 0 && isRoomSubscriptionReady) {
+        if (isReady && localMessages.length > 0) {
             scrollToBottom();
         }
-    }, [localMessages.length, isReady, isRoomSubscriptionReady]);
+    }, [localMessages.length, isReady]);
 
     // 3. 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
     useEffect(() => {
@@ -282,28 +296,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         };
     }, [queryClient, userId]);
 
-    // 소켓이 준비되지 않은 상태에서 렌더링을 시도하면 STOMP 커넥션 에러가 발생할 수 있음
-    if (!isRoomSubscriptionReady) {
-        return (
-            <HeaderLayout headerSlot={<MainHeader title="연결 중..." />}>
-                <div className="flex h-[calc(100vh-100px)] items-center justify-center text-gray-400">
-                    채팅 서버에 연결하고 있습니다...
-                </div>
-            </HeaderLayout>
-        );
-    }
-
     // 메시지 전송 함수
     const handleSendMessage = (text: string): boolean => {
-        if (isChatUnavailable) return false;
+        if (isSendDisabled) return false;
 
         return sendMessage(text);
     }
 
     // 메시지 재전송 함수
     const handleRetryMessage = (clientMessageId: string): boolean => {
+        if (isSendDisabled) return false;
         setOpenFailedMenuId(null); // 메뉴 닫기
-        if (isChatUnavailable) return false;
 
         return retryMessage(clientMessageId);
     }
@@ -680,7 +683,42 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             </div>
 
             {/* 고정된 입력창 */}
-            {!isChatUnavailable && <TypingArea onSend={handleSendMessage} disabled = {isSendDisabled} />}
+            {!isChatUnavailable && (
+                canUseComposer ? (
+                    <TypingArea
+                        onSend={handleSendMessage}
+                        disabled={isSendDisabled}
+                    />
+                ) : (
+                    <div
+                        role="status"
+                        aria-live="polite"
+                        className="
+                            fixed bottom-0 left-1/2 z-50
+                            w-full max-w-[430px]
+                            -translate-x-1/2
+                            border-t border-gray-150
+                            bg-white
+                            px-[25px] pt-[12px]
+                            pb-[calc(20px+env(safe-area-inset-bottom))]
+                        "
+                    >
+                        <div
+                            className="
+                                flex min-h-[44px] flex-col
+                                items-center justify-center
+                                rounded-[10px] bg-gray-100
+                                px-[15px] py-[8px]
+                                text-center
+                            "
+                        >
+                            <span className="text-m-14 text-gray-750">
+                                연결 중에는 이전 대화만 확인할 수 있어요
+                            </span>
+                        </div>
+                    </div>
+                )
+            )}
 
             <PopUp isOpen={isLoading} type="loading" />
 

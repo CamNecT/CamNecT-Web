@@ -238,6 +238,12 @@ export const useStompChat = (roomId: string) => {
             });
 
             setIsRoomSubscriptionReady(true);
+
+            // 방 구독 후 연결 공백 동안 놓친 메시지를 REST 상세 재조회로 동기화
+            void queryClient.invalidateQueries({
+                queryKey: ['chatRoom', userId, roomId],
+                exact: true,
+            });
         };
 
         const handleStompConnected = () => {
