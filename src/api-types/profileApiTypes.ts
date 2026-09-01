@@ -12,8 +12,8 @@ export interface PortfolioProject {
 export interface Education {
   educationId: number;
   schoolName: string;
-  majorName: string;
-  degree: string;
+  campusId: number | null;
+  campusName: string | null;
   startDate: string; // "YYYY-MM-DD"
   endDate: string | null;
   status: EducationStatus;
