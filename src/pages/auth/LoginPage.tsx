@@ -51,10 +51,11 @@ export const LoginPage = () => {
 
     // data : 서버의 response (AxiosResponse)
     onSuccess: (data) => {
-      const { accessToken, userId, role, nextStep } = data;
+      const { accessToken, refreshToken, userId, role, nextStep } = data;
       
       // 모든 로그인 성공 시 토큰과 유저 정보 저장 (AccessToken 필수)
-      setUserLogin(accessToken, {
+      // refreshToken은 accessToken 만료 시 재발급(/api/auth/refresh)에 사용
+      setUserLogin(accessToken, refreshToken, {
         id: String(userId),
         role,
         nextStep

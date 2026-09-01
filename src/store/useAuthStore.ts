@@ -11,10 +11,11 @@ export type AuthUser = {
 
 export interface AuthState {
     accessToken: string | null;
+    refreshToken: string | null;
     signupToken: string | null;
     isAuthenticated: boolean;
     user: AuthUser | null;
-    setUserLogin: (accessToken: string, user: AuthUser) => void;
+    setUserLogin: (accessToken: string, refreshToken: string, user: AuthUser) => void;
     setSignupLogin: (signupToken: string, user: AuthUser) => void;
     setLogout: () => void;
     setUserId: (userId: string) => void;
@@ -28,24 +29,28 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             accessToken: null,
+            refreshToken: null, // accessToken 만료 시 재발급(/api/auth/refresh)에 사용
             signupToken: null, // 회원가입 이메일 인증 이후에 발급되는 임시토큰
             isAuthenticated: false,
             user: null,
             
-            setUserLogin: (accessToken, user) => set({
+            setUserLogin: (accessToken, refreshToken, user) => set({
                 accessToken,
+                refreshToken,
                 signupToken: null,
                 isAuthenticated: true,
                 user
             }),
             setSignupLogin: (signupToken, user) => set({
                 accessToken: null,
+                refreshToken: null,
                 signupToken,
                 isAuthenticated: false,
                 user
             }),
             setLogout: () => set({
                 accessToken: null,
+                refreshToken: null,
                 signupToken: null,
                 isAuthenticated: false,
                 user: null
