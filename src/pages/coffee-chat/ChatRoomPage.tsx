@@ -255,7 +255,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 내가 보낸 제일 마지막 메시지 인덱스 (읽음 표시용)
     const lastMyMessageIndex = useMemo(() => {
         for (let i = localMessages.length - 1; i >= 0; i--) {
-            if (String(localMessages[i].senderId) === myId) return i;
+            const message = localMessages[i];
+            
+            if (String(message.senderId) === myId && message.deliveryState === 'sent') {
+                return i;
+            }
         }
         return -1;
     }, [localMessages, myId]);
