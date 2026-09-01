@@ -27,6 +27,23 @@ export interface LoginResponse {
   nextStep: NextStepType;
 }
 
+// 토큰 재발급 DTO (/api/auth/refresh)
+export interface TokenRefreshRequest {
+  refreshToken: string;
+}
+
+export interface TokenRefreshResponse {
+  status: number;
+  message: string;
+  data: {
+    tokenType: string;
+    accessToken: string;
+    accessTokenExpiresInMs: number;
+    refreshToken: string;
+    refreshTokenExpiresInMs: number;
+  };
+}
+
 // 아이디 중복확인 DTO (/api/auth/{username}/available)
 export interface IdDuplicateCheckRequest {
   username: string;

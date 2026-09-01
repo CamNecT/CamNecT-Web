@@ -14,15 +14,27 @@ import type {
     ProfileOnboardingRequest, ProfileOnboardingResponse,
     SchoolVerificationPresignRequest, SchoolVerificationPresignResponse,
     SchoolVerificationUploadRequest, SchoolVerificationUploadResponse,
-    TagListResponse, VerificationCompleteRequest, VerificationCompleteResponse
+    TagListResponse, TokenRefreshRequest, TokenRefreshResponse,
+    VerificationCompleteRequest, VerificationCompleteResponse
 } from "../api-types/authApiTypes";
 import { axiosInstance } from "./axiosInstance";
 
 // 1. 로그인 API [POST] (/api/auth/login)
 export const login = async (data: LoginRequest) => {
 
-    const response = await axiosInstance.post<LoginResponse>("/api/auth/login", data);
+    const response = await axiosInstance.post<LoginResponse>("/api/auth/login", data, {
+        authMode: "none",
+    });
     return response.data; 
+}
+
+// 토큰 재발급 API [POST] (/api/auth/refresh)
+// Refresh Token Rotation을 사용하므로 호출부에서 응답의 두 토큰을 모두 교체해야 함
+export const refreshTokens = async (data: TokenRefreshRequest) => {
+    const response = await axiosInstance.post<TokenRefreshResponse>("/api/auth/refresh", data, {
+        authMode: "none",
+    });
+    return response.data;
 }
 
 // -------------------- 회원가입 단계 --------------------
@@ -30,56 +42,91 @@ export const login = async (data: LoginRequest) => {
 // 2. 아이디 중복확인 [GET] (/api/auth/{username}/available)
 export const checkIdDuplicate = async (data: IdDuplicateCheckRequest) => {
     
-    const response = await axiosInstance.get<IdDuplicateCheckResponse>(`/api/auth/${data.username}/available`);
+    const response = await axiosInstance.get<IdDuplicateCheckResponse>(`/api/auth/${data.username}/available`, {
+        authMode: "none",
+    });
     return response.data;
 }
 
 // 3. 이메일 인증 번호 요청 API [POST] (/api/auth/signup/email/send)
 export const requestEmailCode = async (data: EmailRequest) => {
     
-    const response = await axiosInstance.post<EmailResponse>("/api/auth/signup/email/send", data);
+    const response = await axiosInstance.post<EmailResponse>("/api/auth/signup/email/send", data, {
+        authMode: "none",
+    });
     return response.data;
 }
 
 // 4. 이메일 인증 번호 검증 API [POST] (/api/auth/signup/email/verify)
 export const verifyEmailCode = async (data: EmailVerificationRequest) => {
     
-    const response = await axiosInstance.post<EmailVerificationResponse>("/api/auth/signup/email/verify", data);
+    const response = await axiosInstance.post<EmailVerificationResponse>("/api/auth/signup/email/verify", data, {
+        authMode: "none",
+    });
     return response.data;
 }
 
 // 5. 학교 인증서 업로드용 presign 발급 API [POST] (/api/verification/documents/uploads/presign)
 export const requestSchoolVerificationPresign = async (data: SchoolVerificationPresignRequest) => {
     
-    const response = await axiosInstance.post<SchoolVerificationPresignResponse>("/api/verification/documents/uploads/presign", data);
+    const response = await axiosInstance.post<SchoolVerificationPresignResponse>("/api/verification/documents/uploads/presign", data, {
+        authMode: "signup",
+    });
     return response.data;
 }
 
 // 6. 학교 인증서 인증 요청 API [POST] (/api/verification/documents)
 export const requestSchoolVerification = async (data: SchoolVerificationUploadRequest) => {
     
-    const response = await axiosInstance.post<SchoolVerificationUploadResponse>("/api/verification/documents", data);
+    const response = await axiosInstance.post<SchoolVerificationUploadResponse>("/api/verification/documents", data, {
+        authMode: "signup",
+    });
     return response.data;
 }
 
-// 7. 프로필 이미지 업로드용 presign 발급 API [POST] (/api/profile/uploads/presign)
+const requestProfilePresignByAuthMode = async (
+    data: ProfileImagePresignRequest,
+    authMode: "access" | "signup",
+) => {
+    const response = await axiosInstance.post<ProfileImagePresignResponse>("/api/profile/uploads/presign", data, {
+        authMode,
+    });
+    return response.data;
+}
+
+// 7-1. 회원가입 프로필 이미지 업로드용 presign 발급 API [POST] (/api/profile/uploads/presign)
+export const requestSignupProfilePresign = async (data: ProfileImagePresignRequest) => {
+    return requestProfilePresignByAuthMode(data, "signup");
+}
+
+// 7-2. 마이페이지 프로필 이미지 업로드용 presign 발급 API [POST] (/api/profile/uploads/presign)
 export const requestProfilePresign = async (data: ProfileImagePresignRequest) => {
-    
-    const response = await axiosInstance.post<ProfileImagePresignResponse>("/api/profile/uploads/presign", data);
+    return requestProfilePresignByAuthMode(data, "access");
+}
+
+const requestTagListByAuthMode = async (authMode: "access" | "signup") => {
+    const response = await axiosInstance.get<TagListResponse>("/api/tags", {
+        authMode,
+    });
     return response.data;
 }
 
-// 8. 관심태그 리스트 조회 API [GET] (/api/tags)
+// 8-1. 회원가입 관심태그 리스트 조회 API [GET] (/api/tags)
+export const requestSignupTagList = async () => {
+    return requestTagListByAuthMode("signup");
+}
+
+// 8-2. 로그인 이후 관심태그 리스트 조회 API [GET] (/api/tags)
 export const requestTagList = async () => {
-    
-    const response = await axiosInstance.get<TagListResponse>("/api/tags");
-    return response.data;
+    return requestTagListByAuthMode("access");
 }
 
 // 9. 프로필 이미지, 자기소개, 관심태그 전송 API [POST] (/api/auth/onboarding)
 export const requestProfileOnboarding = async (data: ProfileOnboardingRequest) => {
     
-    const response = await axiosInstance.post<ProfileOnboardingResponse>("/api/auth/onboarding", data);
+    const response = await axiosInstance.post<ProfileOnboardingResponse>("/api/auth/onboarding", data, {
+        authMode: "signup",
+    });
     return response.data;
 }
 
@@ -129,28 +176,36 @@ export const requestAdminVerificationProcess = async (data: AdminVerificationPro
 // 14. 아이디 찾기 API [POST] (/api/auth/username/find)
 export const findId = async (data: FindIdRequest) => {
     
-    const response = await axiosInstance.post<FindIdResponse>("/api/auth/username/find", data);
+    const response = await axiosInstance.post<FindIdResponse>("/api/auth/username/find", data, {
+        authMode: "none",
+    });
     return response.data;
 }
 
 // 15. 비밀번호 찾기 이메일 전송 API [POST] (/api/auth/password/reset/email/send)
 export const findPasswordEmailReqeust = async (data: FindPasswordEmailRequest) => {
     
-    const response = await axiosInstance.post<FindPasswordEmailResponse>("/api/auth/password/reset/email/send", data);
+    const response = await axiosInstance.post<FindPasswordEmailResponse>("/api/auth/password/reset/email/send", data, {
+        authMode: "none",
+    });
     return response.data;
 }
 
 // 16. 비밀번호 찾기 이메일 인증 확인 API [POST] (/api/auth/password/reset/email/verify)
 export const findPasswordEmailVerifyRequest = async (data: FindPasswordEmailVerifyRequest) => {
     
-    const response = await axiosInstance.post<FindPasswordEmailVerifyResponse>("/api/auth/password/reset/email/verify", data);
+    const response = await axiosInstance.post<FindPasswordEmailVerifyResponse>("/api/auth/password/reset/email/verify", data, {
+        authMode: "none",
+    });
     return response.data;
 }
 
 // 17. 비밀번호 재설정 API [PATCH] (/api/auth/password/reset)
 export const findPasswordResetReqeust = async (data: FindPasswordResetRequest) => {
     
-    const response = await axiosInstance.patch("/api/auth/password/reset", data);
+    const response = await axiosInstance.patch("/api/auth/password/reset", data, {
+        authMode: "none",
+    });
     return response.data;
 }
 

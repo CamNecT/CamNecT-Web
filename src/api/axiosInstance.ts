@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useAuthStore } from "../store/useAuthStore";
 import { handleCommunityError } from "./interceptors/communityError";
 
@@ -15,11 +15,27 @@ export const axiosInstance = axios.create({
 // Request Interceptor (요청 직전에 수행하는 작업)
 axiosInstance.interceptors.request.use(
     (config) => {
-        const accessToken = useAuthStore.getState().accessToken;
+        const authMode = config.authMode ?? "access"; // 기본 : access
+        const { accessToken, signupToken } = useAuthStore.getState();
 
-        if (accessToken) {
-            // 로그인된 유저의 accessToken 붙이기
-            config.headers.Authorization = `Bearer ${accessToken}`;
+        const token = authMode === "signup" ? signupToken ?? accessToken // 회원가입 중 재 로그인 시 accessToken 사용
+            : authMode === "access" ? accessToken
+            : null; // token필요없는 API
+
+        if (authMode === "signup" && !token) {
+            throw new AxiosError(
+                "회원가입 인증 토큰이 없습니다.",
+                "ERR_SIGNUP_TOKEN_MISSING",
+                config,
+            );
+        }
+
+        if (token) {
+            // 요청의 인증 모드에 맞는 토큰 붙이기
+            config.headers.Authorization = `Bearer ${token}`;
+        } else {
+            // none 요청에는 기존 Authorization 값이 남지 않도록 제거
+            config.headers.delete("Authorization");
         }
 
         return config;
@@ -36,12 +52,14 @@ axiosInstance.interceptors.response.use(
     },
     (error) => {
         const status = error.response?.status;
+        const authMode = error.config?.authMode ?? "access";
         //비밀번호 변경 시의 401은 강제 로그아웃 안 되도록 예외처리
         const url = error.config?.url ?? "";
         const isPasswordChange = url.includes("/api/profile/password");
 
-        // Unauthorized (비 로그인 접근 or Token 오류)
-        if (status === 401 && !isPasswordChange) {
+        // access 요청의 Unauthorized만 정식 로그인 세션 만료로 처리
+        // signup/none 요청은 Refresh 대상이 아니므로 각 호출부에서 오류를 처리함
+        if (status === 401 && authMode === "access" && !isPasswordChange) {
             console.log("Unauthorized(401)");
             // 토큰 만료 시 강제 로그아웃
             useAuthStore.getState().setLogout();

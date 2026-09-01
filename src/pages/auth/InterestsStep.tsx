@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { requestProfileOnboarding, requestTagList } from "../../api/auth";
+import { requestProfileOnboarding, requestSignupTagList } from "../../api/auth";
 import Button from "../../components/Button";
 import ButtonWhite from "../../components/ButtonWhite";
 import PopUp from "../../components/Pop-up";
@@ -32,7 +32,7 @@ export const InterestsStep = ({ onNext }: InterestsStepProps) => {
     // 태그 불러오기 
     const {data: tagList, isLoading, isError} = useQuery({
         queryKey: ["tagList"],
-        queryFn: () => requestTagList(),
+        queryFn: () => requestSignupTagList(),
     });
 
     // 서버 데이터가 바뀔때만 API 통신 
