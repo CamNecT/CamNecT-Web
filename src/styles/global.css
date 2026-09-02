@@ -395,4 +395,42 @@ body.hide-scrollbar::-webkit-scrollbar {
         text-overflow: ellipsis;
         white-space: normal;
     }
+
+    /* 
+        [개념 및 성능 최적화 노트]
+        Pure CSS 기반 로딩 점 애니메이션 (. -> .. -> ...)
+        - React state 및 setInterval 사용 시 발생하는 0.5초 주기의 컴포넌트 전체 리렌더링 방지
+        - JavaScript(CPU) 연산 없이 브라우저 GPU 기반으로 자체 동작하여 메인 스레드 부하 제로화
+        - ::after 가상 요소를 활용하여 HTML 구조 변경 없이 텍스트 동적 렌더링
+    */
+    .animate-loading-dots::after {
+        content: '.';
+        animation: loadingDots 1.5s infinite steps(1);
+    }
+}
+
+@keyframes loadingDots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+@layer base {
+    /* user-select: none은 해당 요소를 텍스트 선택 범위에서 제외한다. */
+    /* 비텍스트 UI만 선택에서 제외하며, 일반 텍스트 복사를 위해 선택자를 *로 확대하지 말 것. */
+    /* TODO(도메인별): 모바일에서 선택 범위가 레이아웃 전체로 번지는 화면은 상위 컨테이너에 select-none, 복사할 텍스트에 select-text를 적용한다. */
+    img,
+    svg,
+    video,
+    canvas,
+    button,
+    [role="button"] {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    /* WebKit/Chromium 이미지 드래그 차단. Firefox 대응이 필요하면 draggable={false}를 별도 적용한다. */
+    img {
+        -webkit-user-drag: none;
+    }
 }
