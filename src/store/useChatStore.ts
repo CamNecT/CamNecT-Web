@@ -176,17 +176,27 @@ export const useChatStore = create<ChatState>()(
             const isUnsureFailure = !DEFINITELY_UNSENT_ERROR_CODES.has(error.code);
 
             set((state) => ({
-                pendingMessages: state.pendingMessages.map(
-                    (pending) => pending.clientMessageId === error.clientMessageId
-                        ? {
-                            ...pending,
-                            // unconfirmed면 removeFailedPendingMessage의 가드에 막혀 삭제되지 않는다
-                            state: isUnsureFailure ? 'unconfirmed' as const : 'failed' as const,
-                            failureKind: 'server' as const,
-                            errorCode: error.code,
-                        }
-                        : pending
-                ),
+                pendingMessages: state.pendingMessages.map((pending) => {
+                    if (pending.clientMessageId !== error.clientMessageId) {
+                        return pending;
+                    }
+
+                    // ACK 또는 서버 메시지 수신으로 저장이 확인된 상태는 종결
+                    // 같은 clientMessageId의 늦은 ERROR가 도착해도 무시
+                    if (pending.state === 'sent') {
+                        return pending;
+                    }
+
+                    return {
+                        ...pending,
+                        // unconfirmed면 removeFailedPendingMessage의 가드에 막혀 삭제되지 않는다
+                        state: isUnsureFailure
+                            ? 'unconfirmed' as const
+                            : 'failed' as const,
+                        failureKind: 'server' as const,
+                        errorCode: error.code,
+                    };
+                }),
             }));
         },
 
