@@ -20,7 +20,6 @@ import { EmptyLayout } from '../../layouts/EmptyLayout';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { CommunityPostDetail } from '../../types/community';
 import { mapToCommunityPostDetail } from '../../utils/communityMapper';
-import { mapToCommunityPost } from './utils/post';
 import { getFileName } from '../../utils/getFileName';
 import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
@@ -80,6 +79,7 @@ export const WritePage = () => {
     const { filterCategories, filterTags, mapTagNamesToIds, mapTagIdToName, mapTagIdsToNames } = useTagList();
 
     const [editPost, setEditPost] = useState<CommunityPostDetail | null>(null);
+    const [hasEditLoadError, setHasEditLoadError] = useState(false);
     const didInitEditRef = useRef(false);
     // 수정 전 첨부파일 목록과 비교해서 변경 여부를 판단하기 위해 보관한다.
     const originalAttachmentKeysRef = useRef<string[]>([]);
@@ -160,6 +160,7 @@ export const WritePage = () => {
         ? '수정된 내용으로 저장됩니다.'
         : '입력한 내용으로 게시글이 등록됩니다.';
     const isSubmitEnabled =
+        (!isEditMode || Boolean(editPost)) &&
         Boolean(boardType) &&
         title.trim().length > 0 &&
         content.trim().length > 0 &&
@@ -319,6 +320,7 @@ export const WritePage = () => {
         didInitEditRef.current = false;
         originalAttachmentKeysRef.current = [];
         setEditPost(null);
+        setHasEditLoadError(false);
     }, [postId]);
 
     useEffect(() => {
@@ -335,7 +337,10 @@ export const WritePage = () => {
             })
             .catch((error) => {
                 if (!isActive) return;
-                setEditPost(mapToCommunityPost(postId));
+                // 수정 원본 조회 실패 시 mock/빈 값으로 PATCH가 진행되면 실제 게시글을 덮어쓸 수 있으므로
+                // 원본은 null로 유지하고 오류 안내를 닫은 뒤 커뮤니티 목록으로 이동시킨다.
+                setEditPost(null);
+                setHasEditLoadError(true);
                 showCommunityError(error, 'postEditLoad');
             });
 
@@ -428,6 +433,7 @@ export const WritePage = () => {
 
     // 완료 버튼 -> 확인 모달 오픈
     const handleSubmit = () => {
+        if (isEditMode && !editPost) return;
         if (!validateForm()) return;
         setIsConfirmOpen(true);
     };
@@ -435,6 +441,7 @@ export const WritePage = () => {
     // 확인 모달에서 "네" 클릭 시 메인으로 이동
     // 작성/수정 확정 처리
     const handleConfirm = async () => {
+        if (isEditMode && !editPost) return;
         if (!userId) {
             console.warn('로그인 정보가 없습니다. 다시 로그인해 주세요.');
             return;
@@ -1001,6 +1008,9 @@ export const WritePage = () => {
                     onClick={() => {
                         closeCommunityError();
                         setErrorPopUp(null);
+                        if (hasEditLoadError) {
+                            navigate('/community', { replace: true });
+                        }
                     }}
                 />
             )}
