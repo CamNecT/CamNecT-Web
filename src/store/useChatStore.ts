@@ -1,11 +1,358 @@
 import { create } from 'zustand';
+import type {
+    StompMessageAck,
+    StompPendingChatMessage,
+    StompSocketError
+} from '../api-types/stompApiTypes';
+import { DEFINITELY_UNSENT_ERROR_CODES } from '../constants/serverErrors/stompErrors';
+import { createJSONStorage, persist } from 'zustand/middleware';
+
+const PENDING_CONFIRM_TIMEOUT_MS = 10_000; // timeout 판별 기준
+const PENDING_TIMEOUT_CHECK_INTERVAL_MS = 1_000; // timeout 검사주기
+
+// interval 중복 생성 방지
+let pendingTimeoutIntervalId: ReturnType<typeof setInterval> | null = null;
 
 interface ChatState {
+    // 전역상태
     totalUnreadCount: number;
+    isStompConnected: boolean; // stomp 연결여부
+    pendingMessages: StompPendingChatMessage[]; // 유저가 전송한 메시지 (서버 응답대기)
+
+    // 전역상태 변경 함수
     setTotalUnreadCount: (count: number) => void;
+    setIsStompConnected: (isConnected: boolean) => void;
+
+    addPendingMessage: (message: StompPendingChatMessage) => void;
+    markPendingMessagePublishFailed: (clientMessageId: string) => void; // 최초 publish 호출이 실패한 경우 (오프라인)
+    markRetryPendingMessagePublishFailed: (clientMessageId: string, lastAttemptAt: string) => void; // 재전송 publish가 실패한 경우
+    markPendingMessageSent: (ack: StompMessageAck) => void; // sent 처리 
+    decideMarkExpiredPendingMessages: (now: number) => void; // 응답 대기 timeout 처리
+    markPendingMessageFailed: (error: StompSocketError) => void; // failed 처리
+    removePendingMessage: (clientMessageId: string) => void; // 메시지가 실제 채팅방에 추가된 후 제거
+    retryPendingMessage: (clientMessageId: string, lastAttemptAt: string) => void; // failed -> pending 로 변경 (재전송)
+    removeFailedPendingMessage: (clientMessageId: string) => void; // 미전송이 확정된 메시지만 제거
+    clearPendingMessages: () => void; // 로그아웃 시 초기화
 }
 
-export const useChatStore = create<ChatState>((set) => ({
-    totalUnreadCount: 0,
-    setTotalUnreadCount: (count) => set({ totalUnreadCount: count }),
-}));
+export const useChatStore = create<ChatState>()(
+    persist( // 영속성 추가
+        (set) => ({
+        totalUnreadCount: 0,
+        isStompConnected: false,
+        pendingMessages: [],
+
+        // 전역상태 변경 함수
+        setTotalUnreadCount: (count) => set({ totalUnreadCount: count }),
+        setIsStompConnected: (isConnected) => set({ isStompConnected: isConnected }),
+
+        // 메시지 전송 직전에 pending 목록에 추가
+        addPendingMessage: (message) => {
+            set((state) => ({
+                // 중복 추가 방지
+                pendingMessages: state.pendingMessages.some(
+                    (pending) => pending.clientMessageId === message.clientMessageId
+                )
+                ? state.pendingMessages
+                : [...state.pendingMessages, message],
+            }));
+
+            // 타임아웃 감시는 STOMP 연결 여부가 아니라 pending 메시지 생성 시점에 시작한다.
+            startPendingMessageTimeoutWatcher();
+        },
+
+        // 연결 경합으로 publish가 동기적으로 실패하면 미전송 실패 상태로 되돌린다. (최초 전송용)
+        markPendingMessagePublishFailed: (clientMessageId) => {
+            set((state) => ({
+                pendingMessages: state.pendingMessages.map((pending) =>
+                    pending.clientMessageId === clientMessageId
+                        ? {
+                            ...pending,
+                            state: 'failed',
+                            publishAttempted: false,
+                            lastAttemptAt: null,
+                            failureKind: 'offline',
+                            errorCode: undefined
+                        }
+                        : pending
+                ),
+            }));
+        },
+
+        // 재전송 시도 시 publish가 동기적으로 실패하면 미전송 실패 상태로 되돌린다. (재전송용)
+        // 기존 unconfirmed / failed 상태 유지
+        markRetryPendingMessagePublishFailed: (clientMessageId, lastAttemptAt) => {
+
+            set((state) => {
+                const target = state.pendingMessages.find(
+                    (pending) => pending.clientMessageId === clientMessageId
+                );
+
+                if (!target || (target.state !== 'failed' && target.state !== 'unconfirmed')) {
+                    return state;
+                }
+
+                return {
+                    pendingMessages: state.pendingMessages.map((pending) =>
+                        pending.clientMessageId === clientMessageId
+                            ? {
+                                ...pending,
+                                retryCount: pending.retryCount + 1,
+                                lastAttemptAt: lastAttemptAt,
+                                failureKind: 'offline',
+                                errorCode: undefined
+                            }
+                            : pending
+                    )
+                }
+            });
+        },
+
+        // ACK 수신 후 sent로 변경
+        markPendingMessageSent: (ack) => {
+            set((state) => ({
+                pendingMessages: state.pendingMessages.map(
+                    (pending) => pending.clientMessageId === ack.clientMessageId
+                        ? {
+                            ...pending,
+                            serverMessageId: ack.messageId,
+                            state: 'sent',
+                            failureKind: undefined,
+                            errorCode: undefined,
+                        }
+                        : pending
+                ),
+            }));
+        },
+
+        // ACK/ERROR 대기 시간이 만료되어도 전송 실패로 단정하지 않음
+        // 이미 서버에 저장됐지만 응답만 늦은 경우일 수 있으므로 미확정 상태로 변경
+        decideMarkExpiredPendingMessages: (now) => {
+            set((state) => {
+                let hasChanged = false; // 리렌더링 방지용 (pendingMessages 변화체크)
+
+                const pendingMessages = state.pendingMessages.map((pending) => {
+
+                    if (pending.state !== 'pending') {
+                        return pending;
+                    }
+
+                    const pendingStartedAt = pending.lastAttemptAt ?? pending.createdAt;
+                    const isExpired = now - new Date(pendingStartedAt).getTime() >= PENDING_CONFIRM_TIMEOUT_MS;
+
+                    if (!isExpired) {
+                        return pending;
+                    }
+
+                    hasChanged = true;
+                    // todo publish 후 응답이 끊긴 unconfirmed 메시지는 STOMP 재연결 시
+                    // 채팅방 상세를 재조회하고 clientMessageId로 sent/failed 상태를 확정해야 함
+                    // 발동 조건: publish 후 10초 동안 ACK/ERROR/채팅방 메시지를 모두 받지 못한 경우
+                    // 발생 빈도: 정상 환경에서는 드물며, 전송 순간 네트워크 전환·단절 또는 서버 재시작 시 가능
+                    // 보류 이유: 재연결 후 서버 채팅 내역과 동기화해야 하므로 현재 MVP 범위보다 복잡함
+                    return {
+                        ...pending,
+                        state: pending.publishAttempted ? 'unconfirmed' as const : 'failed' as const,
+                        failureKind: pending.publishAttempted ? 'timeout' as const : 'offline' as const,
+                    };
+                });
+
+                // timeout 없을 시 기존 state 반환
+                return hasChanged ? { pendingMessages } : state;
+            });
+        },
+
+        // 오류 시 삭제하지 않고 failed로 변경
+        markPendingMessageFailed: (error) => {
+            // 메시지 전송과 연결된 오류가 아니면 pending 메시지를 변경하지 않음
+            if (
+                error.operation !== 'SEND_MESSAGE' ||
+                !error.clientMessageId
+            ) {
+                return;
+            }
+
+            // 확정 미저장 목록에 없는 코드는 DB 저장 여부를 알 수 없으므로 미확정으로 둔다 (판단 근거는 stompErrors.ts 참고)
+            const isUnsureFailure = !DEFINITELY_UNSENT_ERROR_CODES.has(error.code);
+
+            set((state) => ({
+                pendingMessages: state.pendingMessages.map((pending) => {
+                    if (pending.clientMessageId !== error.clientMessageId) {
+                        return pending;
+                    }
+
+                    // ACK 또는 서버 메시지 수신으로 저장이 확인된 상태는 종결
+                    // 같은 clientMessageId의 늦은 ERROR가 도착해도 무시
+                    if (pending.state === 'sent') {
+                        return pending;
+                    }
+
+                    return {
+                        ...pending,
+                        // unconfirmed면 removeFailedPendingMessage의 가드에 막혀 삭제되지 않는다
+                        state: isUnsureFailure
+                            ? 'unconfirmed' as const
+                            : 'failed' as const,
+                        failureKind: 'server' as const,
+                        errorCode: error.code,
+                    };
+                }),
+            }));
+        },
+
+        // 실제 채팅방 메시지와 병합 후 pending에서 제거
+        removePendingMessage: (clientMessageId) => {
+            set((state) => ({
+                pendingMessages: state.pendingMessages.filter(
+                    (pending) => pending.clientMessageId !== clientMessageId
+                )
+            }))
+        },
+
+        // publish 실패된 메시지 재전송
+        retryPendingMessage: (clientMessageId, lastAttemptAt) => {
+            set((state) => {
+                const target = state.pendingMessages.find(
+                    (pending) => pending.clientMessageId === clientMessageId
+                );
+
+                if (!target || (target.state !== 'failed' && target.state !== 'unconfirmed')) {
+                    return state;
+                }
+
+                return {
+                    pendingMessages: state.pendingMessages.map(
+                        (pending) => pending.clientMessageId === clientMessageId
+                            ? {
+                                ...pending,
+                                state: 'pending' as const,
+                                retryCount: pending.retryCount + 1,
+                                publishAttempted: true,
+                                failureKind: undefined,
+                                errorCode: undefined,
+                                lastAttemptAt: lastAttemptAt,
+                            }
+                            : pending
+                    )
+                }
+            });
+
+            // 재시도 후 타임아웃 재시작
+            startPendingMessageTimeoutWatcher();
+        },
+
+        // publish하지 않았거나 서버가 SEND_MESSAGE 오류로 거절한 메시지만 로컬 대기 목록에서 제거
+        // 이 함수는 publish를 호출하지 않는다.
+        removeFailedPendingMessage: (clientMessageId) => {
+            set((state) => {
+                const target = state.pendingMessages.find((pending) => pending.clientMessageId === clientMessageId);
+                const isDefinitelyUnsent =
+                    target?.failureKind === 'offline' || target?.failureKind === 'server';
+
+                if (!target || target.state !== 'failed' || !isDefinitelyUnsent) return state;
+                return { pendingMessages: state.pendingMessages.filter((pending) => pending.clientMessageId !== clientMessageId) };
+            });
+        },
+
+        // 로그아웃 시 pending 메시지와 타임아웃 감시를 함께 초기화
+        clearPendingMessages: () => {
+            set({ pendingMessages: [] });
+            stopPendingMessageTimeoutWatcher();
+        },
+
+    }),
+    {
+        // 새로고침 이후에도 실패한 메시지들 복원
+        name: "chat-pending-messages",
+        storage: createJSONStorage(() => sessionStorage),
+        partialize: (state) => ({
+            pendingMessages: state.pendingMessages.filter(
+                (message) => message.state !== 'sent'
+            ),
+        }),
+
+        // sessionStorage -> zustand 복원 시 실행
+        // persistedState : sessionStorage에 저장된 값, currentState : 현재 store의 기본값
+        merge: (persistedState, currentState) => {
+            const savedState = persistedState as
+                | Partial<Pick<ChatState, 'pendingMessages'>>
+                | undefined;
+
+            const savedMessages = savedState?.pendingMessages ?? [];
+
+            return {
+                // 함수와 저장하지 않은 상태는 현재 store의 기본값으로 초기화
+                ...currentState,
+
+                // sessionStorage에서 읽은 메시지만 복원
+                pendingMessages: savedMessages
+                    // 혹시 저장소에 sent가 남아 있어도 복원하지 않음
+                    .filter((message) => message.state !== 'sent')
+                    .map((message): StompPendingChatMessage => {
+                        // failed와 unconfirmed는 그대로 복원
+                        if (message.state !== 'pending') {
+                            return message;
+                        }
+
+                        // 결과 수신 전 새로고침 한 경우
+                        // 새로고침 이후에 pending은 결과를 정상적으로 대기하지 않으므로 publish 시도 여부로만 판단
+
+                        // publish를 호출했던 메시지는 unconfirmed 상태로 복원
+                        if (message.publishAttempted) {
+                            return {
+                                ...message,
+                                state: 'unconfirmed',
+                                failureKind: 'timeout',
+                            };
+                        }
+
+                        // publish를 호출하지 못한 메시지는 failed 상태로 복원
+                        return {
+                            ...message,
+                            state: 'failed',
+                            failureKind: 'offline',
+                        };
+                    }),
+            };
+        }
+    })
+);
+
+// 전역 타이머 실행
+export const startPendingMessageTimeoutWatcher = () => {
+    if (pendingTimeoutIntervalId !== null) {
+        return; // 이미 실행 중
+    }
+
+    pendingTimeoutIntervalId = setInterval(() => {
+        useChatStore
+            .getState()
+            .decideMarkExpiredPendingMessages(Date.now());
+
+        // 더 이상 제한 시간을 검사할 메시지가 없으면 불필요한 interval을 중단한다.
+        const hasPendingMessage = useChatStore
+            .getState()
+            .pendingMessages
+            .some((message) => message.state === 'pending');
+
+        if (!hasPendingMessage) {
+            stopPendingMessageTimeoutWatcher();
+        }
+        
+    }, PENDING_TIMEOUT_CHECK_INTERVAL_MS);
+};
+
+export const stopPendingMessageTimeoutWatcher = () => {
+    if (pendingTimeoutIntervalId === null) {
+        return; // 실행 중 아님
+    }
+
+    clearInterval(pendingTimeoutIntervalId);
+    pendingTimeoutIntervalId = null;
+};
+
+// todo 전송 상태(pending/failed) UI 확인용. 개발 환경에서만 콘솔로 store 접근 허용
+// 상태 변경만 하므로 서버로 발행되는 메시지는 없음 (publish는 useStompChat에서만 호출)
+if (import.meta.env.DEV) {
+    (window as unknown as Record<string, unknown>).useChatStore = useChatStore;
+}

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "../store/useAuthStore";
+import { handleCommunityError } from "./interceptors/communityError";
 
 // Axios 인스턴스 (API 모듈화)
 export const axiosInstance = axios.create({
@@ -39,6 +40,8 @@ axiosInstance.interceptors.response.use(
         const url = error.config?.url ?? "";
         const isPasswordChange = url.includes("/api/profile/password");
 
+        // TODO: Refresh Token 도입 시 Access Token 재발급 및 원 요청 재시도 후,
+        // 재발급 실패 시에만 로그아웃 처리
         // Unauthorized (비 로그인 접근 or Token 오류)
         if (status === 401 && !isPasswordChange) {
             console.log("Unauthorized(401)");
@@ -47,4 +50,10 @@ axiosInstance.interceptors.response.use(
         }
         return Promise.reject(error);
     }
+);
+
+// 공용 인증 처리가 끝난 뒤 커뮤니티 도메인 오류 안내를 적용한다.
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    handleCommunityError,
 );
