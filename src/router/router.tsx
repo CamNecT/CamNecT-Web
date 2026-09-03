@@ -358,14 +358,6 @@ export const router = createBrowserRouter([
                             },
                         ]
                     },
-                    {
-                        path: "community/write",
-                        element: <WritePage />,
-                    },
-                    {
-                        path: "community/edit/:postId",
-                        element: <WritePage />,
-                    },
                 ]
             },
         ]
