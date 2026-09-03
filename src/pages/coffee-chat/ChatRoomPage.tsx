@@ -516,9 +516,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 )
             }
         >
-            {/* 고정 TypingArea의 기본 높이(상단 6 + 입력창 44 + 하단 15)를 본문 아래에 확보한다. */}
+            {/* 고정 TypingArea가 메시지를 가리지 않도록 환경별 하단 공간을 확보한다. */}
             <div
-                className={`flex flex-col ${isTypingAreaVisible ? 'pb-[65px]' : 'pb-[80px]'} ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
+                className={`flex flex-col ${isTypingAreaVisible ? 'chat-content-bottom-space' : 'pb-[80px]'} ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
                 style={{
                     paddingTop: `calc(${isTeamRecruit ? (isRecruitExpanded ? '200px' : '134px') : '74px'} + env(safe-area-inset-top, 0px))`
                 }}

@@ -415,6 +415,18 @@ body.hide-scrollbar::-webkit-scrollbar {
     60%, 100% { content: '...'; }
 }
 
+/* iOS 브라우저와 PWA 모두 safe-area와 기본 여백 중 큰 값만 사용한다. */
+.chat-composer-bottom-padding {
+    padding-bottom: max(15px, env(safe-area-inset-bottom, 0px));
+}
+
+.chat-content-bottom-space {
+    padding-bottom: max(
+        50px,
+        calc(65px - env(safe-area-inset-bottom, 0px))
+    );
+}
+
 @layer base {
     /* user-select: none은 해당 요소를 텍스트 선택 범위에서 제외한다. */
     /* 비텍스트 UI만 선택에서 제외하며, 일반 텍스트 복사를 위해 선택자를 *로 확대하지 말 것. */
