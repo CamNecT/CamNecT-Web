@@ -136,14 +136,28 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const isLoading = isRoomLoading;
     // 실시간 채팅 기능 이용가능 여부
     const isRealtimeReady = isStompConnected && isRoomSubscriptionReady;
-    // [모바일 LAN UI 테스트 전용]
-    // STOMP 없이 TypingArea와 로컬 실패 UI를 확인하려면 isStompEnabled를 import하고
-    // 아래 조건을 `isRealtimeReady || !isStompEnabled`로 임시 변경한다.
-    const canUseComposer = isRealtimeReady;
-    const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited;
 
-    // 전송 버튼 비활성화 조건 : 채팅방 사용 불가능 OR 실시간 채팅 준비 안됨
-    const isSendDisabled = isChatUnavailable || !canUseComposer;
+    // 이 방에서 실시간 연결과 구독이 한 번이라도 준비됐는지 기억
+    // false → true로만 전환하며, roomId 변경 시 key 재마운트로 초기화
+    const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
+
+    // 렌더링 중에 조건부로 직접 갱신 (useEffect 사용 시 연쇄 렌더링 가능성)
+    if (isRealtimeReady && !hasConnectedOnce) {
+        setHasConnectedOnce(true);
+    }
+
+    const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited; // 초기 REST 로딩·방 데이터 없음·채팅 종료·상대방 퇴장만 판단
+    const isComposerVisible = isRealtimeReady || hasConnectedOnce; // online or 1번이라도 online이면 입력 영역 표시
+
+    // [모바일 LAN/PWA UI 테스트 전용]
+    // STOMP가 비활성화된 로컬 환경에서도 TypingArea를 표시하려면 파일 상단의
+    // `isStompEnabled` import를 활성화하고, 위 배포용 조건 대신 아래 조건을 임시 사용한다.
+    // const isComposerVisible = isRealtimeReady || hasConnectedOnce || !isStompEnabled;
+
+    const isTypingAreaVisible = !isChatUnavailable && isComposerVisible;
+    // 최초 연결 이후 실시간 연결이 끊긴 경우에만 헤더 아래 상태 안내를 표시
+    const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const roomInfo = chatRoomData?.partner;
@@ -302,14 +316,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // 메시지 전송 함수
     const handleSendMessage = (text: string): boolean => {
-        if (isSendDisabled) return false;
+        if (isChatUnavailable) return false;
 
         return sendMessage(text);
     }
 
     // 메시지 재전송 함수
     const handleRetryMessage = (clientMessageId: string): boolean => {
-        if (isSendDisabled) return false;
+        if (isChatUnavailable) return false;
         setOpenFailedMenuId(null); // 메뉴 닫기
 
         return retryMessage(clientMessageId);
@@ -380,6 +394,21 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                 { icon: 'more_menu', onClick: () => setIsMenuOpen(!isMenuOpen), ariaLabel: '채팅방 옵션 열기' }
                             ]}
                         />
+
+                        {shouldShowRealtimeNotice && (
+                            <div
+                                role="status"
+                                aria-live="polite"
+                                className="flex h-[36px] w-full items-center justify-center border-y border-gray-150 bg-gray-100 px-[25px]"
+                            >
+                                <div className="flex w-full max-w-[380px] items-center justify-center gap-[7px] text-gray-750">
+                                    <Icon name="report" size={18} className="text-red" />
+                                    <span className="text-m-12 tracking-[-0.24px]">
+                                        연결이 불안정해요. 전송 실패 시 다시 시도해 주세요.
+                                    </span>
+                                </div>
+                            </div>
+                        )}
 
                         {/* 모집 공고 정보 바 (TEAM_RECRUIT 유형일 때만) */}
                         {isTeamRecruit && requestInfo.recruitmentTitle && (
@@ -487,8 +516,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 )
             }
         >
+            {/* 고정 TypingArea가 메시지를 가리지 않도록 환경별 하단 공간을 확보한다. */}
             <div
-                className={`flex flex-col pb-[80px] ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
+                className={`flex flex-col ${isTypingAreaVisible ? 'chat-content-bottom-space' : 'pb-[80px]'} ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
                 style={{
                     paddingTop: `calc(${isTeamRecruit ? (isRecruitExpanded ? '200px' : '134px') : '74px'} + env(safe-area-inset-top, 0px))`
                 }}
@@ -688,10 +718,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
             {/* 고정된 입력창 */}
             {!isChatUnavailable && (
-                canUseComposer ? (
+                isComposerVisible ? (
                     <TypingArea
                         onSend={handleSendMessage}
-                        disabled={isSendDisabled}
+                        disabled={isChatUnavailable}
                     />
                 ) : (
                     <div

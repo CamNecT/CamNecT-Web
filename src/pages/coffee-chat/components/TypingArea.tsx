@@ -27,7 +27,7 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
 
     return (
         <>
-            <div className="flex justify-center fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white px-[25px] pt-[6px] pb-[calc(15px+env(safe-area-inset-bottom,0px))] z-50">
+            <div className="chat-composer-bottom-padding flex justify-center fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white px-[25px] pt-[6px] z-50">
                 <div className="flex items-center gap-[10px] w-full">
                     {/* 추가 버튼 -> MVP 제외*/}
                     {/* <button 
