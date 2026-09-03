@@ -146,11 +146,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         setHasConnectedOnce(true);
     }
 
-    // [모바일 LAN UI 테스트 전용]
-    // STOMP 없이 TypingArea와 로컬 실패 UI를 확인하려면 isStompEnabled를 import하고
-    // 아래 조건을 `isRealtimeReady || !isStompEnabled`로 임시 변경한다.
     const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited; // 초기 REST 로딩·방 데이터 없음·채팅 종료·상대방 퇴장만 판단
     const isComposerVisible = isRealtimeReady || hasConnectedOnce; // online or 1번이라도 online이면 입력 영역 표시
+
+    // [모바일 LAN/PWA UI 테스트 전용]
+    // STOMP가 비활성화된 로컬 환경에서도 TypingArea를 표시하려면 파일 상단의
+    // `isStompEnabled` import를 활성화하고, 위 배포용 조건 대신 아래 조건을 임시 사용한다.
+    // const isComposerVisible = isRealtimeReady || hasConnectedOnce || !isStompEnabled;
+
+    const isTypingAreaVisible = !isChatUnavailable && isComposerVisible;
     // 최초 연결 이후 실시간 연결이 끊긴 경우에만 헤더 아래 상태 안내를 표시
     const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
 
@@ -512,8 +516,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 )
             }
         >
+            {/* 고정 TypingArea의 기본 높이(상단 6 + 입력창 44 + 하단 15)를 본문 아래에 확보한다. */}
             <div
-                className={`flex flex-col pb-[80px] ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
+                className={`flex flex-col ${isTypingAreaVisible ? 'pb-[65px]' : 'pb-[80px]'} ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
                 style={{
                     paddingTop: `calc(${isTeamRecruit ? (isRecruitExpanded ? '200px' : '134px') : '74px'} + env(safe-area-inset-top, 0px))`
                 }}

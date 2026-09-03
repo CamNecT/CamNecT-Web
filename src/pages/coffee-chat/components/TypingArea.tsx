@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // import BottomSheetModal from "../../../components/BottomSheetModal/BottomSheetModal";
 import Icon from "../../../components/Icon";
 import PressableMotion from "../../../components/PressableMotion";
+import { isStandalone } from "../../../utils/isStandalone";
 
 interface TypingAreaProps {
     onSend: (text: string) => boolean;
@@ -10,7 +11,53 @@ interface TypingAreaProps {
 
 export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
     const [inputValue, setInputValue] = useState("");
+    const [isPwaKeyboardOpen, setIsPwaKeyboardOpen] = useState(false);
     // const [isModalOpen, setIsModalOpen] = useState(false);
+
+    useEffect(() => {
+        // 일반 Safari/Chrome은 기존 패딩 동작을 그대로 유지한다.
+        if (!isStandalone()) return;
+
+        const viewport = window.visualViewport;
+        if (!viewport) return;
+
+        let baselineHeight = viewport.height;
+        let baselineWidth = viewport.width;
+        let animationFrameId: number | null = null;
+
+        const updateKeyboardState = () => {
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            animationFrameId = requestAnimationFrame(() => {
+                // 화면 회전 시 키보드 축소로 오인하지 않도록 기준 viewport를 다시 잡는다.
+                if (Math.abs(viewport.width - baselineWidth) > 50) {
+                    baselineWidth = viewport.width;
+                    baselineHeight = viewport.height;
+                    setIsPwaKeyboardOpen(false);
+                    return;
+                }
+
+                // 키보드가 닫혔을 때 복구되는 가장 큰 높이를 기준으로 사용한다.
+                baselineHeight = Math.max(baselineHeight, viewport.height);
+
+                setIsPwaKeyboardOpen(
+                    viewport.scale === 1 && baselineHeight - viewport.height > 150
+                );
+            });
+        };
+
+        viewport.addEventListener("resize", updateKeyboardState);
+
+        return () => {
+            viewport.removeEventListener("resize", updateKeyboardState);
+
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, []);
 
     const handleSend = () => {
         const content = inputValue.trim();
@@ -27,7 +74,11 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
 
     return (
         <>
-            <div className="flex justify-center fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white px-[25px] pt-[6px] pb-[calc(15px+env(safe-area-inset-bottom,0px))] z-50">
+            <div className={`flex justify-center fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white px-[25px] pt-[6px] z-50 ${
+                isPwaKeyboardOpen
+                    ? "pb-[max(15px,env(safe-area-inset-bottom,0px))]"
+                    : "pb-[calc(15px+env(safe-area-inset-bottom,0px))]"
+            }`}>
                 <div className="flex items-center gap-[10px] w-full">
                     {/* 추가 버튼 -> MVP 제외*/}
                     {/* <button 
