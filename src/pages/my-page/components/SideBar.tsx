@@ -5,6 +5,7 @@ import { logout } from "../../../api/profileApi";
 import PopUp from "../../../components/Pop-up";
 import { usePwaInstall } from "../../../hooks/usePwaInstall";
 import { useAuthStore } from "../../../store/useAuthStore";
+import { clearClientSession } from "../../../utils/clearClientSession";
 
 type SideBarUser = {
   uid: string;
@@ -23,7 +24,6 @@ interface SideBarProps {
 
 export const SideBar = ({ isOpen, onClose, user }: SideBarProps) => {
     const navigate = useNavigate();
-    const setLogout = useAuthStore((s) => s.setLogout);
     const userId = useAuthStore((s) => s.user?.id);
     const { isInstallable, install } = usePwaInstall();
     
@@ -52,7 +52,7 @@ export const SideBar = ({ isOpen, onClose, user }: SideBarProps) => {
             // 401이어도 일단 로그아웃 처리
             console.warn("logout failed:", e);
         } finally {
-            setLogout();
+            clearClientSession();
             onClose();
             navigate("/login");
         }

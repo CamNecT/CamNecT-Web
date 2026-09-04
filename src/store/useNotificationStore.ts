@@ -6,6 +6,7 @@ type NotificationState = {
   markAsRead: (id: string) => void;
   markAsUnread: (id: string) => void;
   setItems: (items: NotificationItem[]) => void;
+  reset: () => void; // 로그아웃 시 초기화
 };
 
 export const useNotificationStore = create<NotificationState>((set) => ({
@@ -23,4 +24,6 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       ),
     })),
   setItems: (items) => set({ items }),
+  // 새로고침 없이 계정 전환 시 이전 사용자 알림이 남지 않도록 초기화
+  reset: () => set({ items: [] }),
 }));

@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { useAuthStore } from "../store/useAuthStore";
 import { handleCommunityError } from "./interceptors/communityError";
+import { clearClientSession } from "../utils/clearClientSession";
 
 // Axios 인스턴스 (API 모듈화)
 export const axiosInstance = axios.create({
@@ -61,8 +62,8 @@ axiosInstance.interceptors.response.use(
         // signup/none 요청은 Refresh 대상이 아니므로 각 호출부에서 오류를 처리함
         if (status === 401 && authMode === "access" && !isPasswordChange) {
             console.log("Unauthorized(401)");
-            // 토큰 만료 시 강제 로그아웃
-            useAuthStore.getState().setLogout();
+            // 토큰 만료 시 강제 로그아웃 (캐시/소켓까지 정리)
+            clearClientSession();
         }
         return Promise.reject(error);
     }

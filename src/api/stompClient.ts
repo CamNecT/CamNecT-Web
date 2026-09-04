@@ -1,8 +1,8 @@
 import { Client, ReconnectionTimeMode } from "@stomp/stompjs";
 import type { StompSocketError } from "../api-types/stompApiTypes";
 import { useChatStore } from "../store/useChatStore";
-import { useAuthStore } from "../store/useAuthStore";
 import { STOMP_ERROR_CODES } from "../constants/serverErrors/stompErrors";
+import { clearClientSession } from "../utils/clearClientSession";
 
 const isLocalDevHost = () => {
     const hostname = window.location.hostname;
@@ -56,8 +56,9 @@ stompClient.onStompError = (frame) => {
         // TODO: Refresh Token 도입 시 Access Token 재발급 후 connectHeaders를 갱신하고
         // STOMP 재연결을 시도하며, 재발급 실패 시에만 로그아웃 처리
         if (error.status === 401) {
+            // 자동 재연결을 먼저 끊고 세션을 정리
             void stompClient.deactivate();
-            useAuthStore.getState().setLogout();
+            clearClientSession();
 
             return;
         }
