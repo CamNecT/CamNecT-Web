@@ -2,6 +2,7 @@ import axios, { AxiosError } from "axios";
 import { useAuthStore } from "../store/useAuthStore";
 import { handleCommunityError } from "./interceptors/communityError";
 import { clearClientSession } from "../utils/clearClientSession";
+import { getServerErrorCode } from "../utils/getServerErrorCode";
 
 // Axios 인스턴스 (API 모듈화)
 export const axiosInstance = axios.create({
@@ -54,16 +55,19 @@ axiosInstance.interceptors.response.use(
     (error) => {
         const status = error.response?.status;
         const authMode = error.config?.authMode ?? "access";
-        //비밀번호 변경 시의 401은 강제 로그아웃 안 되도록 예외처리
-        const url = error.config?.url ?? "";
-        const isPasswordChange = url.includes("/api/profile/password");
+        const errorCode = getServerErrorCode(error);
 
         // access 요청의 Unauthorized만 정식 로그인 세션 만료로 처리
         // signup/none 요청은 Refresh 대상이 아니므로 각 호출부에서 오류를 처리함
-        if (status === 401 && authMode === "access" && !isPasswordChange) {
-            console.log("Unauthorized(401)");
-            // 토큰 만료 시 강제 로그아웃 (캐시/소켓까지 정리)
-            clearClientSession();
+        if (status === 401) {
+            if (authMode === "signup") {
+                // 회원가입 임시 토큰 오류 -> signupToken만 제거
+                useAuthStore.getState().clearSignupToken();
+            }
+            else if (authMode === "access" && errorCode !== "41101") {
+                // 41101(비밀번호 변경 API) : 비밀번호 불일치 오류 -> 로그인 만료 X
+                clearClientSession();
+            }
         }
         return Promise.reject(error);
     }

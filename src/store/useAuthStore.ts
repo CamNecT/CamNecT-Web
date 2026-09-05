@@ -19,6 +19,7 @@ export interface AuthState {
     user: AuthUser | null;
     setUserLogin: (accessToken: string, refreshToken: string, user: AuthUser) => void;
     setSignupLogin: (signupToken: string, user: AuthUser) => void;
+    clearSignupToken: () => void;
     setLogout: () => void;
     setUserId: (userId: string) => void;
 }
@@ -49,6 +50,9 @@ export const useAuthStore = create<AuthState>()(
                 signupToken,
                 isAuthenticated: false,
                 user
+            }),
+            clearSignupToken: () => set({
+                signupToken: null,
             }),
 
             setLogout: () => {
