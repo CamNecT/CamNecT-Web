@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import Icon from "../../../components/Icon";
 import { EDUCATION_STATUS_KR, type EducationStatus, type EducationItem } from "../../../types/mypage/mypageTypes";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
@@ -6,8 +6,8 @@ import { EditHeader } from "../../../layouts/headers/EditHeader";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import PopUp from "../../../components/Pop-up";
 import { generateId } from "../../../utils/uuid";
-import { searchInstitutions } from "../../../api/institutionApi";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getInstitution } from "../../../api/institutionApi";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addEducation, updateEducation, deleteEducation } from "../../../api/userInfoApi";
 import { updateProfilePrivacy } from "../../../api/profileApi";
 import { convertEducationToRequest } from "../utils/dataConverter";
@@ -17,6 +17,11 @@ import type {
     EducationDeleteResponse 
 } from "../../../api-types/userInfoApiTypes";
 import type { ProfilePrivacyUpdateResponse } from "../../../api-types/profileApiTypes";
+import {
+    findInstitutionCampusMappingByFullName,
+    formatEducationSchoolName,
+    searchInstitutionCampusMappings,
+} from "../../../constants/institutionCampusMapping";
 
 interface EducationModalProps {
     userId: number;
@@ -36,6 +41,67 @@ const STATUS_OPTIONS = Object.entries(EDUCATION_STATUS_KR).map(([value, label]) 
     value: value as EducationStatus,
     label
 }));
+
+function EducationSchoolWithStatus({
+    schoolName,
+    status,
+}: {
+    schoolName: string;
+    status: string;
+}) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const schoolRef = useRef<HTMLSpanElement>(null);
+    const statusRef = useRef<HTMLSpanElement>(null);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        const school = schoolRef.current;
+        const statusElement = statusRef.current;
+        if (!container || !school || !statusElement) return;
+
+        const measureSchoolWidth = () => {
+            const gap = 10;
+            const availableWidth = Math.max(
+                0,
+                container.clientWidth - statusElement.getBoundingClientRect().width - gap
+            );
+
+            // 먼저 사용 가능한 전체 너비로 자연스럽게 줄바꿈한 뒤, 실제 각 줄 중 가장 긴 줄만큼만 학교명 영역을 줄인다
+            school.style.width = `${availableWidth}px`;
+            school.style.flexBasis = `${availableWidth}px`;
+
+            const range = document.createRange();
+            range.selectNodeContents(school);
+            const renderedLineWidths = Array.from(range.getClientRects()).map((rect) => rect.width);
+            range.detach();
+
+            const measuredWidth = Math.min(
+                availableWidth,
+                Math.ceil(Math.max(0, ...renderedLineWidths))
+            );
+            school.style.width = `${measuredWidth}px`;
+            school.style.flexBasis = `${measuredWidth}px`;
+        };
+
+        measureSchoolWidth();
+        const resizeObserver = new ResizeObserver(measureSchoolWidth);
+        resizeObserver.observe(container);
+        document.fonts?.ready.then(measureSchoolWidth);
+
+        return () => resizeObserver.disconnect();
+    }, [schoolName, status]);
+
+    return (
+        <div ref={containerRef} className="flex w-full min-w-0 items-center gap-[10px]">
+            <span ref={schoolRef} className="min-w-0 break-keep text-m-16 text-gray-900">
+                {schoolName}
+            </span>
+            <span ref={statusRef} className="shrink-0 whitespace-nowrap text-r-14 text-gray-750">
+                {status}
+            </span>
+        </div>
+    );
+}
 
 export default function EducationModal({ userId, educations, visibility, onClose }: EducationModalProps) {
     const queryClient = useQueryClient();
@@ -66,22 +132,33 @@ export default function EducationModal({ userId, educations, visibility, onClose
 
     const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
     const [schoolSearchQuery, setSchoolSearchQuery] = useState("");
-
-    // 학교 검색 API 호출
-    const { data: schoolSearchResult } = useQuery({
-        queryKey: ["searchInstitutions", schoolSearchQuery],
-        queryFn: () => searchInstitutions({ keyword: schoolSearchQuery }),
-        enabled: schoolSearchQuery.length > 0,
-    });
+    const schoolInputRef = useRef<HTMLInputElement>(null);
+    const schoolSuggestionsRef = useRef<HTMLDivElement>(null);
 
     const filteredSchools = useMemo(() => {
-        if (!schoolSearchResult?.data.institutions) return [];
-        return schoolSearchResult.data.institutions;
-    }, [schoolSearchResult]);
+        return searchInstitutionCampusMappings(schoolSearchQuery);
+    }, [schoolSearchQuery]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    useEffect(() => {
+        if (!showSchoolSuggestions) return;
+
+        const handleOutsidePointerDown = (event: PointerEvent) => {
+            const target = event.target as Node;
+            const isInput = schoolInputRef.current?.contains(target);
+            const isSuggestion = schoolSuggestionsRef.current?.contains(target);
+
+            if (!isInput && !isSuggestion) {
+                setShowSchoolSuggestions(false);
+            }
+        };
+
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    }, [showSchoolSuggestions]);
 
     //변경사항 추적 (리스트 전체 추적)
     const hasListChanges: boolean = useMemo(() => {
@@ -103,6 +180,8 @@ export default function EducationModal({ userId, educations, visibility, onClose
             if (!original) return false;
             return (
                 formData.school !== original.school ||
+                formData.institutionId !== original.institutionId ||
+                formData.campusId !== original.campusId ||
                 formData.status !== original.status ||
                 formData.startYear !== original.startYear ||
                 formData.endYear !== original.endYear
@@ -119,6 +198,40 @@ export default function EducationModal({ userId, educations, visibility, onClose
                 | EducationAddResponse
                 | EducationUpdateResponse
             >[] = [];
+            const institutionRequests = new Map<number, ReturnType<typeof getInstitution>>();
+
+            const verifyEducationSelection = async (education: EducationItem) => {
+                if (!education.institutionId || !education.campusId) {
+                    throw new Error('학교와 캠퍼스를 다시 선택해 주세요.');
+                }
+
+                let request = institutionRequests.get(education.institutionId);
+                if (!request) {
+                    request = getInstitution({ institutionId: education.institutionId });
+                    institutionRequests.set(education.institutionId, request);
+                }
+
+                const response = await request;
+                const campusExists = response.data.campuses.some(
+                    (campus) => campus.campusId === education.campusId
+                );
+
+                if (!campusExists) {
+                    throw new Error('선택한 학교와 캠퍼스 정보를 확인할 수 없습니다.');
+                }
+            };
+
+            const addedEducations = listEducations.filter(e => !isServerId(e.id));
+            const updatedEducations = listEducations.filter(n => {
+                if (!isServerId(n.id)) return false;
+                const original = educations.find(o => o.id === n.id);
+                return original && JSON.stringify(n) !== JSON.stringify(original);
+            });
+
+            //저장 요청을 시작하기 전에 선택값을 먼저 검증
+            await Promise.all(
+                [...addedEducations, ...updatedEducations].map(verifyEducationSelection)
+            );
 
             // 1. 공개여부 변경
             if (showPublic !== initialShowPublic) {
@@ -141,40 +254,14 @@ export default function EducationModal({ userId, educations, visibility, onClose
             }
 
             // 3. 새로 추가된 항목
-            const addedEducations = listEducations.filter(e => !isServerId(e.id));
-
             for (const education of addedEducations) {
-                // 학교 이름 → institutionId 변환
-                const searchResult = await searchInstitutions({ keyword: education.school });
-                const institution = searchResult.data.institutions.find(
-                    i => i.nameKor === education.school
-                );
-                if (!institution) {
-                    throw new Error(`학교를 찾을 수 없습니다: ${education.school}`);
-                }
-
-                // 데이터 convert
-                const request = convertEducationToRequest(education, institution.id);
+                const request = convertEducationToRequest(education);
                 tasks.push(addEducation(userId, request));
             }
 
             // 4. 수정된 항목
-            const updatedEducations = listEducations.filter(n => {
-                if (!isServerId(n.id)) return false;
-                const original = educations.find(o => o.id === n.id);
-                return original && JSON.stringify(n) !== JSON.stringify(original);
-            });
-
             for (const education of updatedEducations) {
-                const searchResult = await searchInstitutions({ keyword: education.school });
-                const institution = searchResult.data.institutions.find(
-                    i => i.nameKor === education.school
-                );
-                if (!institution) {
-                    throw new Error(`학교를 찾을 수 없습니다: ${education.school}`);
-                }
-
-                const request = convertEducationToRequest(education, institution.id);
+                const request = convertEducationToRequest(education);
                 tasks.push(updateEducation(userId, Number(education.id), request));
             }
 
@@ -184,8 +271,10 @@ export default function EducationModal({ userId, educations, visibility, onClose
             queryClient.invalidateQueries({ queryKey: ["myProfile", userId] });
             onClose();
         },
-        onError: () => {
-            setSaveErrorMessage('정보 저장에 실패했습니다.');
+        onError: (error) => {
+            setSaveErrorMessage(
+                error instanceof Error ? error.message : '정보 저장에 실패했습니다.'
+            );
         },
     });
 
@@ -213,7 +302,9 @@ export default function EducationModal({ userId, educations, visibility, onClose
         const edu = listEducations.find(e => e.id === id);
         if (edu) {
             setFormData(edu);
-            setSchoolSearchQuery(edu.school);
+            setSchoolSearchQuery(
+                formatEducationSchoolName(edu.school, edu.campusName, edu.campusId)
+            );
             setCurrentView('edit');
         }
     };
@@ -222,13 +313,22 @@ export default function EducationModal({ userId, educations, visibility, onClose
         const school = (formData.school ?? "").trim();
         if (!school) return;
 
-        // 완료 눌렀을 때: 검색 결과 목록(nameKor) 중 완전일치하는 경우만 통과
-        const institutions = filteredSchools; // 현재 query 기준으로 받은 목록
-        const isExactMatch = institutions.some(i => i.nameKor.trim() === school);
-        if (!isExactMatch) {
-            setShowSchoolInvalid(true);
-            setShowSchoolSuggestions(true); 
-            return;
+        let resolvedFormData = formData;
+        if (!formData.institutionId || !formData.campusId) {
+            const exactMapping = findInstitutionCampusMappingByFullName(schoolSearchQuery);
+            if (!exactMapping) {
+                setShowSchoolInvalid(true);
+                setShowSchoolSuggestions(true);
+                return;
+            }
+
+            resolvedFormData = {
+                ...formData,
+                school: exactMapping.institutionName,
+                institutionId: exactMapping.institutionId,
+                campusId: exactMapping.campusId,
+                campusName: exactMapping.campusName,
+            };
         }
         
         if (!hasFormChanges) {
@@ -239,12 +339,12 @@ export default function EducationModal({ userId, educations, visibility, onClose
         if (currentView === 'add') {
             const newEdu: EducationItem = {
                 id: generateId(),
-                ...formData as Omit<EducationItem, 'id'>
+                ...resolvedFormData as Omit<EducationItem, 'id'>
             };
             setListEducations([...listEducations, newEdu]);
         } else if (currentView === 'edit' && editingId !== null) {
             setListEducations(listEducations.map(e => 
-                e.id === editingId ? { ...e, ...formData } : e
+                e.id === editingId ? { ...e, ...resolvedFormData } : e
             ));
         }
         setShowSchoolSuggestions(false); 
@@ -344,22 +444,26 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                     .map((edu, index) => (
                                     <div
                                         key={edu.id}
-                                        className="w-full flex justify-between items-center px-[25px] py-[20px] border-b border-gray-150"
+                                        className="w-full flex justify-between items-center gap-[10px] px-[25px] py-[20px] border-b border-gray-150"
                                     >
-                                        <div className="flex items-center gap-[20px]">
-                                            <span className="text-m-16 text-gray-650 min-w-[24px] text-center">{index + 1}</span>
-                                            <div className="flex flex-col justify-center gap-[7px]">
+                                        <div className="flex min-w-0 flex-1 items-center gap-[20px]">
+                                            <span className="text-m-16 text-gray-650 min-w-[24px] shrink-0 text-center">{index + 1}</span>
+                                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-[7px]">
                                                 <span className="text-r-12-hn text-gray-650">
                                                     {edu.startYear}{edu.endYear ? `~${edu.endYear}` : '~현재'}
                                                 </span>
-                                                <div className="flex gap-[10px] items-end">
-                                                    <span className="text-m-16 text-gray-900">{edu.school}</span>
-                                                    <span className="text-r-14 text-gray-750">{getStatusLabel(edu.status)}</span>
-                                                </div>
+                                                <EducationSchoolWithStatus
+                                                    schoolName={formatEducationSchoolName(
+                                                        edu.school,
+                                                        edu.campusName,
+                                                        edu.campusId
+                                                    )}
+                                                    status={getStatusLabel(edu.status)}
+                                                />
                                             </div>
                                         </div>
                                         
-                                        <button className="text-sb-14-hn text-gray-650"
+                                        <button className="min-w-[25px] shrink-0 text-sb-14-hn text-gray-650"
                                             onClick={() => handleEditEducation(edu.id)}>
                                             수정
                                         </button>
@@ -430,12 +534,19 @@ export default function EducationModal({ userId, educations, visibility, onClose
                             <div className="flex flex-col gap-[10px] relative">
                                 <span className="text-sb-16-hn text-gray-900">학교 이름</span>
                                 <input
+                                    ref={schoolInputRef}
                                     type="text"
                                     value={schoolSearchQuery}
                                     onChange={(e) => {
                                         const value = e.target.value;
                                         setSchoolSearchQuery(value);
-                                        setFormData(prev => ({ ...prev, school: value }));
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            school: value,
+                                            institutionId: undefined,
+                                            campusId: undefined,
+                                            campusName: undefined,
+                                        }));
                                         setShowSchoolSuggestions(value.length > 0);
                                     }}
                                     onFocus={() => setShowSchoolSuggestions(schoolSearchQuery.length > 0)}
@@ -444,19 +555,27 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                 />
 
                                 {showSchoolSuggestions && filteredSchools.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
+                                    <div
+                                        ref={schoolSuggestionsRef}
+                                        className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto"
+                                    >
                                         {filteredSchools.map((institution) => (
                                             <button
-                                                key={institution.id}
+                                                key={institution.campusId}
                                                 onClick={() => {
-                                                    const name = institution.nameKor.trim();
-                                                    setFormData(prev => ({ ...prev, school: name }));
-                                                    setSchoolSearchQuery(name);
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        school: institution.institutionName,
+                                                        institutionId: institution.institutionId,
+                                                        campusId: institution.campusId,
+                                                        campusName: institution.campusName,
+                                                    }));
+                                                    setSchoolSearchQuery(institution.fullCampusName);
                                                     setShowSchoolSuggestions(false);
                                                 }}
                                                 className="w-full flex p-[15px] text-r-16-hn text-gray-650 border-b border-gray-150 last:border-b-0 hover:bg-gray-200"
                                             >
-                                                {institution.nameKor}
+                                                {institution.fullCampusName}
                                             </button>
                                         ))}
                                     </div>

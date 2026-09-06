@@ -90,6 +90,8 @@ export type AlumniProfilePortfolio = {
 export type AlumniProfileEducation = {
   educationId: number;
   schoolName: string;
+  campusId: number | null;
+  campusName: string | null;
   startDate: string;
   endDate: string | null;
   status: string;
@@ -203,8 +205,8 @@ export type AlumniPortfolioDetailResponse = {
 export type AlumniEducationItem = {
   educationId: number;
   schoolName: string;
-  majorName: string;
-  degree: string;
+  campusId: number | null;
+  campusName: string | null;
   startDate: string;
   endDate: string;
   status: string;
