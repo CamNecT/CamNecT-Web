@@ -58,6 +58,7 @@ export const AdminWritePage = () => {
           ) : (
             <MainHeader
               title='대외활동 등록'
+              leftIcon='empty'
               rightActions={[
                 {
                   icon: 'search',

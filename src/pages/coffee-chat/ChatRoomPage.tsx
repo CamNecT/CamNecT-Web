@@ -19,6 +19,9 @@ import { formatFullDateWithDay, formatTime } from "../../utils/formatDate";
 import { ChatDropdown } from "./components/ChatDropdown";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
 import { TypingArea } from "./components/TypingArea";
+import ReportModal from "../../components/report/ReportModal";
+import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
+import { isAdminUserId } from '../../utils/admin';
 
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -62,6 +65,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // 메뉴 관련 상태
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isRecruitExpanded, setIsRecruitExpanded] = useState(false);
     const [confirmPopUpConfig, setConfirmPopUpConfig] = useState<{
         title: string;
@@ -162,6 +166,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const roomInfo = chatRoomData?.partner;
     const requestInfo = chatRoomData?.requestInfo;
+    const isAdminPartner = isAdminUserId(roomInfo?.id);
     const isTeamRecruit = requestInfo?.type === 'TEAM_RECRUIT';
 
     const myId = String(userId);
@@ -382,6 +387,12 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         });
     }
 
+    //신고하기 함수
+    const handleReportChat = () => {
+        setIsMenuOpen(false);
+        setIsReportModalOpen(true);
+    }
+
     return (
         <HeaderLayout
             headerSlot={
@@ -462,8 +473,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             isOpen={isMenuOpen}
                             onClose={() => setIsMenuOpen(false)}
                             positionClassName="right-[25px] top-[55px]"
-                            triggerSelector='[aria-label="option"]'
-                            hasDivider={false}
+                            triggerSelector='[aria-label="채팅방 옵션 열기"]'
+                            hasDivider={!isAdminPartner}
                             items={[
                                 isTerminated
                                     ? {
@@ -478,6 +489,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                         labelClassName: "text-r-16 tracking-[-0.64px] text-[#FF3838]",
                                         onClick: handleEndChat,
                                     },
+                                ...(!isAdminPartner
+                                    ? [{
+                                        label: "신고하기",
+                                        icon: <BottomSheetIcon name="report" className="w-[24px] h-[24px]" />,
+                                        labelClassName: "text-r-16 tracking-[-0.64px] text-gray-750",
+                                        onClick: handleReportChat,
+                                    }]
+                                    : []),
                             ]}
                         />
                     </div>
@@ -578,16 +597,20 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             <div className="w-[32px] mr-[4px] flex-shrink-0 self-start">
                                                 {!isSameAsPrev && (
                                                     roomInfo?.profileImg ? (
-                                                        <img
-                                                            src={roomInfo.profileImg}
-                                                            alt={`${roomInfo.name} 프로필`}
-                                                            className="w-[32px] h-[32px] rounded-full object-cover shrink-0 cursor-pointer"
-                                                            onClick={() => navigate(`/alumni/profile/${roomInfo?.id}`)}
+                                                        <img 
+                                                            src={roomInfo.profileImg} 
+                                                            alt={`${roomInfo.name} 프로필`} 
+                                                            className={`w-[32px] h-[32px] rounded-full object-cover shrink-0 ${isAdminPartner ? '' : 'cursor-pointer'}`}
+                                                            onClick={() => {
+                                                                if (!isAdminPartner) navigate(`/alumni/profile/${roomInfo?.id}`);
+                                                            }}
                                                         />
                                                     ) : (
-                                                        <div
-                                                            className="w-[32px] h-[32px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer"
-                                                            onClick={() => navigate(`/alumni/profile/${roomInfo?.id}`)}
+                                                        <div 
+                                                            className={`w-[32px] h-[32px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 ${isAdminPartner ? '' : 'cursor-pointer'}`}
+                                                            onClick={() => {
+                                                                if (!isAdminPartner) navigate(`/alumni/profile/${roomInfo?.id}`);
+                                                            }}
                                                         >
                                                             <span className="text-[12px] font-bold text-gray-600">
                                                                 {roomInfo?.name.charAt(0)}
@@ -765,6 +788,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     leftButtonText={confirmPopUpConfig.leftButtonText}
                     onLeftClick={confirmPopUpConfig.onConfirm}
                     onRightClick={() => setConfirmPopUpConfig(null)}
+                />
+            )}
+
+            {roomInfo && !isAdminPartner && (
+                <ReportModal
+                    isOpen={isReportModalOpen}
+                    onClose={() => setIsReportModalOpen(false)}
+                    reportedUserId={Number(roomInfo.id)}
+                    reportedUserName={roomInfo.name}
+                    reportedPostId={Number(roomId)}
+                    postType="CHAT"
                 />
             )}
 
