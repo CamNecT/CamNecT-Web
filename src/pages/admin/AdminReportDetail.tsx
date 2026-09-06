@@ -255,7 +255,9 @@ export const AdminReportDetail = () => {
                     {caseDetail.moderationReason && (
                         <div className="flex items-start gap-[40px] text-gray-750">
                             <span className="text-sb-16-hn w-[75px] flex-none">처리 사유</span>
-                            <span className="text-r-16-hn whitespace-pre-wrap">{caseDetail.moderationReason}</span>
+                            <span className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-r-16-hn">
+                                {caseDetail.moderationReason}
+                            </span>
                         </div>
                     )}
                 </div>
@@ -312,8 +314,10 @@ export const AdminReportDetail = () => {
                                         {formatDotDate(submission.createdAt)}
                                     </span>
                                 </div>
-                                <div className="text-sb-14-hn text-gray-900">{submission.title}</div>
-                                <div className="text-r-16 text-gray-650 whitespace-pre-wrap break-keep">
+                                <div className="min-w-0 break-words [overflow-wrap:anywhere] text-sb-14-hn text-gray-900">
+                                    {submission.title}
+                                </div>
+                                <div className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-r-16 text-gray-650">
                                     {submission.context}
                                 </div>
 

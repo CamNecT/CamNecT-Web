@@ -209,7 +209,7 @@ const ReportModal = ({
 
     return (
         <>
-            <BottomSheetModal isOpen={isOpen} onClose={handleClose} height="85vh">
+            <BottomSheetModal isOpen={isOpen} onClose={handleClose} height="min(85dvh, 85vh)">
                 <div className="flex h-full flex-col">
                     <h2 className="flex-none px-[25px] py-[20px] text-center text-b-20-hn text-gray-900">
                         신고하기
@@ -217,10 +217,10 @@ const ReportModal = ({
 
                     <div className="flex-1 min-h-0 overflow-y-auto px-[25px] py-[10px]">
                         {/* 신고 대상 정보 */}
-                        <div className="flex border-b border-gray-650 pb-[20px]">
-                            <div className="flex items-center gap-[12px]">
-                                <span className="text-m-16-hn text-gray-700 w-[60px]">신고 대상</span>
-                                <span className="text-r-16-hn text-gray-750">{reportedUserName}</span>
+                        <div className="flex min-w-0 border-b border-gray-650 pb-[20px]">
+                            <div className="flex min-w-0 items-center gap-[12px]">
+                                <span className="w-[60px] flex-none text-m-16-hn text-gray-700">신고 대상</span>
+                                <span className="min-w-0 break-words [overflow-wrap:anywhere] text-r-16-hn text-gray-750">{reportedUserName}</span>
                             </div>
                         </div>
 
@@ -291,7 +291,7 @@ const ReportModal = ({
                                         className="flex w-full items-center p-[15px] gap-[15px] rounded-[5px] bg-gray-150"
                                     >
                                         <Icon name="image" />
-                                        <span className="text-r-14-hn text-gray-650">
+                                        <span className="min-w-0 flex-1 break-words text-left text-r-14-hn text-gray-650">
                                             이미지를 추가해주세요 (png, jpg, webp / 최대 {MAX_FILE_COUNT}장, 장당 {MAX_SIZE_MB}MB)
                                         </span>
                                     </button>
