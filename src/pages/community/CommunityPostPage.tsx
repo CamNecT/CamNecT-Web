@@ -17,6 +17,7 @@ import { BottomChat } from '../../layouts/BottomChat/BottomChat';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { loggedInUserProfile } from '../../mock/community';
+import { isAdminUserId } from '../../utils/admin';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { CommentItem } from '../../types/community';
 import { mapFlatCommentsToTree } from '../../utils/communityMapper';
@@ -118,6 +119,9 @@ const CommunityPostPage = () => {
     refetchPost,
     isLoading: isDetailLoading,
   } = usePost({ postId });
+  const selectedTargetUserId = selectedTarget === 'post'
+    ? selectedPost?.author.id
+    : selectedCommentForOptions?.author.id;
   // 실제 본문/썸네일 노출 여부는 게시글 정책(accessType)이 아니라
   // 현재 사용자의 열람 결과인 accessStatus만을 기준으로 판단한다.
   const accessStatus =
@@ -796,7 +800,7 @@ const CommunityPostPage = () => {
             <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
               <button
                 type='button'
-                disabled={isPostMine}
+                disabled={isPostMine || isAdminUserId(selectedPost.author.id)}
                 className='flex items-center gap-[10px] text-left'
                 onClick={() =>
                   navigate(`/alumni/profile/${selectedPost.author.id}`, {
@@ -832,7 +836,7 @@ const CommunityPostPage = () => {
                   </div>
                 </div>
               </button>
-              {!isPostMine ? (
+              {!isPostMine && !isAdminUserId(selectedPost.author.id) ? (
                 <button
                   type='button'
                   className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
@@ -985,6 +989,7 @@ const CommunityPostPage = () => {
         onClose={() => setIsOptionOpen(false)}
         target={selectedTarget}
         isMine={selectedIsMine}
+        isAdminTarget={isAdminUserId(selectedTargetUserId)}
         onItemClick={handleOptionItemClick}
       />
       {reportTarget && (

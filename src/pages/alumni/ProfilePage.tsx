@@ -20,6 +20,7 @@ import { mapAlumniProfileDetailToProfile } from '../../utils/alumniMapper';
 import { mapTagNamesToIds } from '../../utils/tagMapper';
 import Button from '../../components/Button';
 import CoffeeChatModal from './components/CoffeeChatModal';
+import { isAdminUserId } from '../../utils/admin';
 import FollowButton from './components/FollowButton';
 import replaceImg from "../../assets/image/replaceImg.png"
 import defaultImg from "../../assets/image/defaultProfileImg.png"
@@ -134,7 +135,8 @@ const AlumniProfileContent = ({
   const [isFollowPending, setIsFollowPending] = useState(false);
   const [popUpConfig, setPopUpConfig] = useState<{ title: string; content: string } | null>(null);
   // 쿼리 파라미터에 따라 커피챗 모달을 초기 상태로 열 수 있습니다.
-  const canRequestCoffeeChat = profile.privacy.openToCoffeeChat;
+  const isAdminProfile = isAdminUserId(profile.userId);
+  const canRequestCoffeeChat = !isAdminProfile && profile.privacy.openToCoffeeChat;
   const [isCoffeeChatOpen, setIsCoffeeChatOpen] = useState(false);
   const hasOpenedCoffeeChatRef = useRef(false);
   // 옵션 메뉴(점 3개) / 신고 모달 상태
@@ -289,7 +291,7 @@ const AlumniProfileContent = ({
           <MainHeader
             title='프로필'
             rightActions={
-              isMine
+              isMine || isAdminProfile
                 ? []
                 : [{ icon: 'more_menu', onClick: () => setIsOptionOpen(!isOptionOpen), ariaLabel: '프로필 옵션 열기' }]
             }
@@ -566,14 +568,16 @@ const AlumniProfileContent = ({
         />
       )}
 
-      <ReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        reportedUserId={Number(profile.userId)}
-        reportedUserName={profile.author.name}
-        reportedPostId={null}
-        postType="USER"
-      />
+      {!isAdminProfile && (
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={Number(profile.userId)}
+          reportedUserName={profile.author.name}
+          reportedPostId={null}
+          postType="USER"
+        />
+      )}
 
       {popUpConfig && (
         <PopUp

@@ -16,6 +16,7 @@ import { mapDetailToActivityPost } from './utils/activityMapper';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import ImagePopUp from '../../components/ImagePopUp';
 import ReportModal from '../../components/report/ReportModal';
+import { isAdminUserId } from '../../utils/admin';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -124,6 +125,7 @@ const ActivityPostContent = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const isAdminAuthor = isAdminUserId(selectedPost.author.id);
   
   //북마크 토글
   const bookmarkMutation = useMutation({
@@ -169,7 +171,9 @@ const ActivityPostContent = ({
         ]
       : [
           { id: 'copy-url', icon: 'link', label: 'URL 복사' },
-          { id: 'report-post', icon: 'report', label: '게시글 신고' },
+          ...(!isAdminAuthor
+            ? [{ id: 'report-post' as const, icon: 'report' as const, label: '게시글 신고' }]
+            : []),
         ];
 
   const handleOptionClick = async (item: OptionItem) => {
@@ -248,7 +252,7 @@ const ActivityPostContent = ({
             <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
               <button
                 type='button'
-                disabled={isMine}
+                disabled={isMine || isAdminAuthor}
                 className='flex items-center text-left'
                 onClick={() =>
                   navigate(`/alumni/profile/${selectedPost.author.id}`, {
@@ -283,7 +287,7 @@ const ActivityPostContent = ({
                   </div>
                 </div>
               </button>
-              {!isMine && (<button
+              {!isMine && !isAdminAuthor && (<button
                 type='button'
                 className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
                 onClick={() =>
@@ -394,14 +398,16 @@ const ActivityPostContent = ({
         onRightClick={() => setIsDeletePopupOpen(false)}
       />
 
-      <ReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        reportedUserId={Number(selectedPost.author.id)}
-        reportedUserName={selectedPost.author.name}
-        reportedPostId={activityId}
-        postType="ACTIVITY"
-      />
+      {!isAdminAuthor && (
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={Number(selectedPost.author.id)}
+          reportedUserName={selectedPost.author.name}
+          reportedPostId={activityId}
+          postType="ACTIVITY"
+        />
+      )}
 
       <ImagePopUp
         isOpen={Boolean(selectedImageUrl)}

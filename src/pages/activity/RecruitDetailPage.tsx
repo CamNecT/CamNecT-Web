@@ -16,6 +16,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { formatOnlyDate, formatTimeAgo } from '../../utils/formatDate';
 import TeamApplyModal from './components/TeamApplyModal';
 import ReportModal from '../../components/report/ReportModal';
+import { isAdminUserId } from '../../utils/admin';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -132,6 +133,7 @@ export const RecruitDetailPage = () => {
 
     const { recruitment, isMine  } = recruitDetail;
     const isRecruitNow = recruitment.recruitStatus === 'RECRUITING';
+    const isAdminAuthor = isAdminUserId(recruitment.userId);
 
     const optionItems: OptionItem[] = isMine
         ? [
@@ -139,7 +141,9 @@ export const RecruitDetailPage = () => {
         ]
         : [
             { id: 'copy-url', icon: 'link', label: 'URL 복사' },
-            { id: 'report-post', icon: 'report', label: '게시글 신고' },
+            ...(!isAdminAuthor
+                ? [{ id: 'report-post' as const, icon: 'report' as const, label: '게시글 신고' }]
+                : []),
         ];
 
     const handleOptionClick = async (item: OptionItem) => {
@@ -212,7 +216,7 @@ export const RecruitDetailPage = () => {
                     <div className='flex justify-between gap-[10px] border-b border-gray-150 pb-[15px]'>
                         <button
                             type='button'
-                            disabled={isMine}
+                            disabled={isMine || isAdminAuthor}
                             className='flex items-center text-left'
                             onClick={() =>
                                 navigate(`/alumni/profile/${recruitment.userId}`, {
@@ -249,7 +253,7 @@ export const RecruitDetailPage = () => {
                                 </div>
                             </div>
                         </button>
-                        {!isMine && (<button
+                        {!isMine && !isAdminAuthor && (<button
                             className='inline-flex items-center justify-center rounded-[10px] border border-primary p-[10px] text-m-12-hn text-primary break-keep'
                             onClick={() =>
                                 navigate(`/alumni/profile/${recruitment.userId}?coffeeChat=1`, {
@@ -379,14 +383,16 @@ export const RecruitDetailPage = () => {
             }}
         />
 
-        <ReportModal
-            isOpen={isReportModalOpen}
-            onClose={() => setIsReportModalOpen(false)}
-            reportedUserId={recruitment.userId}
-            reportedUserName={recruitDetail.author.name}
-            reportedPostId={recruitmentId}
-            postType="ACTIVITY_RECRUITMENT"
-        />
+        {!isAdminAuthor && (
+            <ReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
+                reportedUserId={recruitment.userId}
+                reportedUserName={recruitDetail.author.name}
+                reportedPostId={recruitmentId}
+                postType="ACTIVITY_RECRUITMENT"
+            />
+        )}
 
         <PopUp
             isOpen={isDuplicateApplyPopup}

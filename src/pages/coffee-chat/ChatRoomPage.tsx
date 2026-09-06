@@ -20,6 +20,7 @@ import { ChatRoomInfo } from "./components/ChatRoomInfo";
 import { TypingArea } from "./components/TypingArea";
 import ReportModal from "../../components/report/ReportModal";
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
+import { isAdminUserId } from '../../utils/admin';
 
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -161,6 +162,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const roomInfo = chatRoomData?.partner;
     const requestInfo = chatRoomData?.requestInfo;
+    const isAdminPartner = isAdminUserId(roomInfo?.id);
     const isTeamRecruit = requestInfo?.type === 'TEAM_RECRUIT';
 
     const myId = String(user?.id);
@@ -379,15 +381,19 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                         <span className="text-r-16 text-[#FF3838] tracking-[-0.64px]">채팅 종료하기</span>
                                     </button>
                                 )}
-                                <div className="w-full h-[1px] bg-gray-150"/>
-                                {/*신고하기*/}
-                                <button
-                                    onClick={handleReportChat}
-                                    className="w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors"
-                                >
-                                    <BottomSheetIcon name="report" className="w-[24px] h-[24px]" />
-                                    <span className="text-r-16 text-gray-750 tracking-[-0.64px]">신고하기</span>
-                                </button>
+                                {!isAdminPartner && (
+                                    <>
+                                        <div className="w-full h-[1px] bg-gray-150"/>
+                                        {/*신고하기*/}
+                                        <button
+                                            onClick={handleReportChat}
+                                            className="w-full flex items-center gap-[15px] hover:bg-gray-50 transition-colors"
+                                        >
+                                            <BottomSheetIcon name="report" className="w-[24px] h-[24px]" />
+                                            <span className="text-r-16 text-gray-750 tracking-[-0.64px]">신고하기</span>
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
@@ -485,13 +491,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                         <img 
                                                             src={roomInfo.profileImg} 
                                                             alt={`${roomInfo.name} 프로필`} 
-                                                            className="w-[32px] h-[32px] rounded-full object-cover shrink-0 cursor-pointer" 
-                                                            onClick={() => navigate(`/alumni/profile/${roomInfo?.id}`)}
+                                                            className={`w-[32px] h-[32px] rounded-full object-cover shrink-0 ${isAdminPartner ? '' : 'cursor-pointer'}`}
+                                                            onClick={() => {
+                                                                if (!isAdminPartner) navigate(`/alumni/profile/${roomInfo?.id}`);
+                                                            }}
                                                         />
                                                     ) : (
                                                         <div 
-                                                            className="w-[32px] h-[32px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer"
-                                                            onClick={() => navigate(`/alumni/profile/${roomInfo?.id}`)}
+                                                            className={`w-[32px] h-[32px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 ${isAdminPartner ? '' : 'cursor-pointer'}`}
+                                                            onClick={() => {
+                                                                if (!isAdminPartner) navigate(`/alumni/profile/${roomInfo?.id}`);
+                                                            }}
                                                         >
                                                             <span className="text-[12px] font-bold text-gray-600">
                                                                 {roomInfo?.name.charAt(0)}
@@ -583,7 +593,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 />
             )}
 
-            {roomInfo && (
+            {roomInfo && !isAdminPartner && (
                 <ReportModal
                     isOpen={isReportModalOpen}
                     onClose={() => setIsReportModalOpen(false)}
