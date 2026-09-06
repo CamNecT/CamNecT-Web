@@ -40,6 +40,8 @@ axiosInstance.interceptors.response.use(
         const url = error.config?.url ?? "";
         const isPasswordChange = url.includes("/api/profile/password");
 
+        // TODO: Refresh Token 도입 시 Access Token 재발급 및 원 요청 재시도 후,
+        // 재발급 실패 시에만 로그아웃 처리
         // Unauthorized (비 로그인 접근 or Token 오류)
         if (status === 401 && !isPasswordChange) {
             console.log("Unauthorized(401)");
