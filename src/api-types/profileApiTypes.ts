@@ -161,7 +161,7 @@ export interface SettingInfoData {
   userId: number;
   name: string;
   profileImageUrl: string | null;
-  phoneNum: string;
+  // phoneNum: string;
   email: string;
 }
 
