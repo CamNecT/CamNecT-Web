@@ -47,6 +47,8 @@ import { Schedule } from "../pages/schedule/Schedule";
 import { ShopDetailPage } from "../pages/shop/ShopDetailPage";
 import { ShopPage } from "../pages/shop/ShopPage";
 import { AuthGuard } from "./AuthGuard";
+import { AdminGuard } from "./AdminGuard";
+import { AlumniProfileAccessGuard } from "./AlumniProfileAccessGuard";
 import { FindAccountPage } from "../pages/auth/FindAccountPage";
 
 export const router = createBrowserRouter([
@@ -88,6 +90,7 @@ export const router = createBrowserRouter([
                 children: [
                     {
                         path: "admin",
+                        element: <AdminGuard />,
                         children: [
                             {
                                 path: "school-verification",
@@ -177,15 +180,21 @@ export const router = createBrowserRouter([
                                 children: [
                                     {
                                         path: ":id",
-                                        element: <AlumniProfilePage />,
-                                    },
-                                    {
-                                        path: ":id/portfolio",
-                                        element: <AlumniPortfolioListPage />,
-                                    },
-                                    {
-                                        path: ":id/portfolio/:portfolioId",
-                                        element: <AlumniPortfolioDetailPage />,
+                                        element: <AlumniProfileAccessGuard />,
+                                        children: [
+                                            {
+                                                index: true,
+                                                element: <AlumniProfilePage />,
+                                            },
+                                            {
+                                                path: "portfolio",
+                                                element: <AlumniPortfolioListPage />,
+                                            },
+                                            {
+                                                path: "portfolio/:portfolioId",
+                                                element: <AlumniPortfolioDetailPage />,
+                                            },
+                                        ],
                                     }
                                 ]
                             },

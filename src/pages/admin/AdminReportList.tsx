@@ -106,6 +106,7 @@ export const AdminReportList = () => {
             headerSlot={
                 <MainHeader
                     title="신고된 글"
+                    leftIcon="empty"
                 />
             }
         >
