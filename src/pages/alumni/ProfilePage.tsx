@@ -15,6 +15,7 @@ import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { AlumniProfile } from '../../types/alumni/alumniTypes';
 import { mapAlumniProfileDetailToProfile } from '../../utils/alumniMapper';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import { mapTagNamesToIds } from '../../utils/tagMapper';
 import Button from '../../components/Button';
 import CoffeeChatModal from './components/CoffeeChatModal';
@@ -62,6 +63,7 @@ export const AlumniProfilePage = ({
     data: profileResponse,
     isLoading,
     isError,
+    error: profileError,
   } = useQuery({
     queryKey: ['alumniProfile', profileUserId, loginUserIdValue],
     queryFn: () =>
@@ -87,6 +89,9 @@ export const AlumniProfilePage = ({
   }
 
   if (isError) {
+    // 전역 offline에만 로컬 UI를 양보하고, 그 외 프로필 오류는 이 화면의 문맥으로 안내한다.
+    if (shouldSkipLocalErrorUI(profileError, navigator.onLine)) return null;
+
     // 네트워크/서버 오류 시 안내 팝업.
     return (
       <PopUp
@@ -221,6 +226,8 @@ const AlumniProfileContent = ({
       });
       return true;
     } catch (error) {
+      if (shouldSkipLocalErrorUI(error, navigator.onLine)) return false;
+
       const status = error instanceof AxiosError ? error.response?.status : undefined;
       const errorMessage = getErrorMessage(error);
       if (status === 400) {

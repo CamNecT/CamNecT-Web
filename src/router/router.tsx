@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "../App";
+import { GlobalErrorFallback } from "../components/GlobalErrorFallback";
 import { ActivityPage } from "../pages/activity/ActivityPage";
 import ActivityPostPage from "../pages/activity/ActivityPostPage";
 import { ExternalActivityPostPage } from "../pages/activity/ExternalActivityPostPage";
@@ -51,6 +52,8 @@ export const router = createBrowserRouter([
     {
         path: "/",
         element: <App />, // 모든 화면을 감싸는 컴포넌트 (큰 틀)
+        // 하위 route의 예상하지 못한 렌더링 오류를 도메인 UI와 분리된 최종 fallback으로 전달한다.
+        errorElement: <GlobalErrorFallback />,
 
         // App의 Outlet 태그에 넣을 contents
         children: [
@@ -354,14 +357,6 @@ export const router = createBrowserRouter([
                                 element: <CommunityPostPage />,
                             },
                         ]
-                    },
-                    {
-                        path: "community/write",
-                        element: <WritePage />,
-                    },
-                    {
-                        path: "community/edit/:postId",
-                        element: <WritePage />,
                     },
                 ]
             },

@@ -6,6 +6,7 @@ import { acceptCommunityComment, createCommunityComment, deleteCommunityComment,
 import BottomSheetModalPost, {
   type ActionItem,
 } from '../../components/BottomSheetModal/BottomSheetModal-post';
+import Button from '../../components/Button';
 import Category from '../../components/Category';
 import Icon from '../../components/Icon';
 import ImagePopUp from '../../components/ImagePopUp';
@@ -28,6 +29,9 @@ import { isEditOption, type OptionItemId } from './utils/option';
 import { formatPostDisplayDate } from './utils/post';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import { getFileName } from '../../utils/getFileName';
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
+import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
+import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
 import type {
   CommunityAccessStatus,
   CommunityErrorResponse,
@@ -68,6 +72,12 @@ const CommunityPostPage = () => {
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
+  const { errorPopup, showCommunityError, closeCommunityError } =
+    useCommunityErrorPopup();
+  const handlePostDetailError = useCallback(
+    (error: unknown) => showCommunityError(error, 'postDetail'),
+    [showCommunityError],
+  );
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('URL 복사가 완료되었습니다');
   const [accessStatusOverride, setAccessStatusOverride] = useState<
@@ -104,10 +114,10 @@ const CommunityPostPage = () => {
     textCount,
     imageCount,
     likedByMe,
-    detailError,
     refetchPost,
     isLoading: isDetailLoading,
-  } = usePost({ postId });
+    hasLoadError: hasDetailLoadError,
+  } = usePost({ postId, onError: handlePostDetailError });
   // 실제 본문/썸네일 노출 여부는 게시글 정책(accessType)이 아니라
   // 현재 사용자의 열람 결과인 accessStatus만을 기준으로 판단한다.
   const accessStatus =
@@ -115,7 +125,11 @@ const CommunityPostPage = () => {
     selectedPost?.accessStatus ??
     (isPostMine ? 'GRANTED' : 'NEED_PURCHASE');
   const isLockedQuestion =
-    !isPostMine && accessStatus !== 'GRANTED';
+    isQuestionPost && !isPostMine && accessStatus !== 'GRANTED';
+  const canLoadComments =
+    selectedPost != null &&
+    String(selectedPost.id) === String(postId) &&
+    !isLockedQuestion;
   // 잠긴 질문글 포인트 구매 API를 mutation으로 관리해 요청 상태와 후처리를 한곳에 둡니다.
   const purchasePostAccessMutation = useMutation({
     mutationFn: (params: { postId: number | string; userId: number }) =>
@@ -131,8 +145,9 @@ const CommunityPostPage = () => {
       setToastMessage('구매 성공! 이제 질문글을 열람할 수 있어요');
       openToast();
     },
-    onError: () => {
+    onError: (error) => {
       closePopUp();
+      showCommunityError(error, 'postPurchase');
     },
   });
 
@@ -157,7 +172,8 @@ const CommunityPostPage = () => {
 
   const loadComments = useCallback(
     async (append = false) => {
-      if (!postId || (append && isLoadingComments)) return;
+      // 댓글 권한은 게시글 상세의 accessStatus로 먼저 판단해 잠긴 질문글의 불필요한 403 요청을 막는다.
+      if (!postId || !canLoadComments || (append && isLoadingComments)) return;
       const numericPostId = Number(postId);
       if (!Number.isInteger(numericPostId) || numericPostId < 1) return;
       if (append && (!hasNextComments || commentCursorId == null)) return;
@@ -197,12 +213,17 @@ const CommunityPostPage = () => {
         if (requestId !== commentRequestSeqRef.current) return;
         const axiosError = error as AxiosError<CommunityErrorResponse>;
         // 숨김·삭제 게시글의 댓글 조회 차단(43925)은 일반 빈 댓글과 구분해 안내한다.
-        setCommentAccessBlocked(axiosError.response?.data?.code === 43925);
+        const isPostAccessBlocked =
+          getServerErrorCode(axiosError) === COMMUNITY_ERROR_CODES.postUnavailable;
+        setCommentAccessBlocked(isPostAccessBlocked);
+        if (!isPostAccessBlocked) {
+          showCommunityError(error, 'commentList');
+        }
         if (!append) setCommentItemsFromApi([]);
       } finally {
         if (requestId === commentRequestSeqRef.current) setIsLoadingComments(false);
       }
-    }, [commentCursorId, hasNextComments, isLoadingComments, postId],
+    }, [canLoadComments, commentCursorId, hasNextComments, isLoadingComments, postId, showCommunityError],
   );
 
   useEffect(() => {
@@ -211,11 +232,14 @@ const CommunityPostPage = () => {
     setCommentCursorId(null);
     setHasNextComments(false);
     setCommentAccessBlocked(false);
+    // 상세 조회가 현재 게시글의 열람 권한을 확정한 뒤에만 댓글 첫 페이지를 요청한다.
+    // 구매 성공으로 잠금이 해제되면 canLoadComments가 true로 바뀌어 댓글을 자동으로 불러온다.
+    if (!canLoadComments) return;
     const timer = window.setTimeout(() => void loadComments(false), 0);
     return () => window.clearTimeout(timer);
-    // postId 변경 때만 첫 페이지를 새로 가져온다.
+    // loadComments의 커서 상태 변경으로 첫 페이지가 반복 호출되지 않도록 실행 조건만 의존한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
+  }, [canLoadComments, postId]);
 
   const commentListFromApi = useMemo(
     () => mapFlatCommentsToTree(commentItemsFromApi),
@@ -260,17 +284,21 @@ const CommunityPostPage = () => {
       const numericUserId = Number(userId);
       if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericParentId = parentCommentId ? Number(parentCommentId) : null;
-      await createCommunityComment({
-        postId,
-        params: { userId: numericUserId },
-        body: {
-          content,
-          parentCommentId: Number.isInteger(numericParentId) && (numericParentId ?? 0) > 0
-            ? numericParentId
-            : null,
-        },
-      });
-      await refreshComments();
+      try {
+        await createCommunityComment({
+          postId,
+          params: { userId: numericUserId },
+          body: {
+            content,
+            parentCommentId: Number.isInteger(numericParentId) && (numericParentId ?? 0) > 0
+              ? numericParentId
+              : null,
+          },
+        });
+        await refreshComments();
+      } catch (error) {
+        showCommunityError(error, 'commentCreate');
+      }
     },
     onDeleteCommentApi: async (commentId) => {
       if (!userId) return;
@@ -278,12 +306,16 @@ const CommunityPostPage = () => {
       if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericCommentId = Number(commentId);
       if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
-      await deleteCommunityComment({
-        commentId: numericCommentId,
-        params: { userId: numericUserId },
-      });
-      if (postId) {
-        await refreshComments();
+      try {
+        await deleteCommunityComment({
+          commentId: numericCommentId,
+          params: { userId: numericUserId },
+        });
+        if (postId) {
+          await refreshComments();
+        }
+      } catch (error) {
+        showCommunityError(error, 'commentDelete');
       }
     },
     onUpdateCommentApi: async ({ commentId, content }) => {
@@ -292,13 +324,17 @@ const CommunityPostPage = () => {
       if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
       const numericCommentId = Number(commentId);
       if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
-      await updateCommunityComment({
-        commentId: numericCommentId,
-        params: { userId: numericUserId },
-        body: { content },
-      });
-      if (postId) {
-        await refreshComments();
+      try {
+        await updateCommunityComment({
+          commentId: numericCommentId,
+          params: { userId: numericUserId },
+          body: { content },
+        });
+        if (postId) {
+          await refreshComments();
+        }
+      } catch (error) {
+        showCommunityError(error, 'commentUpdate');
       }
     },
   });
@@ -317,7 +353,19 @@ const CommunityPostPage = () => {
     return () => window.cancelAnimationFrame(frameId);
   }, [highlightComment, searchParams, sortedComments.length]);
 
-  // 로딩 중에는 단일 PopUp만 노출
+  const communityErrorPopUpConfig: PopUpConfig | null = errorPopup
+    ? {
+        type: 'error',
+        ...errorPopup,
+        onClick: () => {
+          closeCommunityError();
+          // 상세 조회 자체가 실패한 경우 빈 상세 화면에 남지 않고 이전 진입 화면으로 복귀한다.
+          if (!selectedPost) navigate(-1);
+        },
+      }
+    : null;
+
+  // 로딩 중에는 단일 PopUp만 노출하고, 요청 실패 안내는 기존 확인 팝업보다 우선한다.
   const activePopUpConfig: PopUpConfig | null = isDetailLoading
     ? {
         type: 'loading',
@@ -331,15 +379,12 @@ const CommunityPostPage = () => {
           buttonText: '로그인하러 가기',
           onClick: () => navigate('/login', { replace: true }),
         }
-      : detailError
-        ? {
-            type: 'error',
-            title: '일시적 오류',
-            content: '잠시 후 다시 시도해주세요.',
-            rightButtonText: '확인',
-            onClick: () => navigate(-1),
-          }
-    : popUpConfig;
+      : communityErrorPopUpConfig ?? popUpConfig;
+
+  const handleRetryPostDetail = () => {
+    closeCommunityError();
+    refetchPost();
+  };
 
   if (!selectedPost) {
     return (
@@ -358,6 +403,27 @@ const CommunityPostPage = () => {
           />
         }
       >
+        {hasDetailLoadError && !isDetailLoading ? (
+          <section
+            role='alert'
+            className='flex flex-1 flex-col items-center justify-center px-[25px] text-center'
+          >
+            <h1 className='text-[20px] font-semibold leading-[140%] text-[var(--ColorBlack,#202023)]'>
+              게시글을 불러오지 못했어요
+            </h1>
+            <p className='mt-[10px] whitespace-pre-line text-[14px] leading-[150%] text-[var(--ColorGray3,#646464)]'>
+              {'인터넷 연결 상태를 확인한 뒤\n다시 시도해 주세요.'}
+            </p>
+            {/* 전역 offline 팝업은 연결 안내만 담당하므로, 상세 요청은 사용자가 이 화면에서 명시적으로 재시도한다. */}
+            <Button
+              type='button'
+              label='다시 시도'
+              font='sb-16-hn'
+              className='mt-[30px] max-w-[325px]'
+              onClick={handleRetryPostDetail}
+            />
+          </section>
+        ) : null}
         {activePopUpConfig && (
           <PopUp
             isOpen={true}
@@ -424,6 +490,8 @@ const CommunityPostPage = () => {
           });
           refetchPost();
           await refreshComments();
+        } catch (error) {
+          showCommunityError(error, 'commentAccept');
         } finally {
           closePopUp();
         }
@@ -490,11 +558,12 @@ const CommunityPostPage = () => {
       setLikeCount(response.data.likeCount);
     } catch (error) {
       const axiosError = error as AxiosError<{ code?: number; message?: string }>;
-      const status = axiosError.response?.status;
-      const code = axiosError.response?.data?.code;
-      if (status === 409 || code === 43927) {
+      const code = getServerErrorCode(axiosError);
+      if (code === COMMUNITY_ERROR_CODES.ownPostLikeUnavailable) {
         setToastMessage('본인의 글에 좋아요를 누를 수 없습니다.');
         openToast();
+      } else {
+        showCommunityError(error, 'like');
       }
       setIsLiked(prev.liked);
       setLikeCount(prev.count);
@@ -512,9 +581,10 @@ const CommunityPostPage = () => {
       const response = await postCommunityBookmark(selectedPost.id, { userId });
       setIsBookmarked(response.data.bookmarked);
       setBookmarkCount(response.data.bookmarkCount);
-    } catch {
+    } catch (error) {
       setIsBookmarked(prev.bookmarked);
       setBookmarkCount(prev.count);
+      showCommunityError(error, 'bookmark');
     } finally {
       setIsBookmarkLoading(false);
     }
@@ -589,6 +659,8 @@ const CommunityPostPage = () => {
               params: { userId: numericUserId },
             });
             navigate('/community', { replace: true });
+          } catch (error) {
+            showCommunityError(error, 'postDelete');
           } finally {
             closePopUp();
           }
@@ -716,7 +788,7 @@ const CommunityPostPage = () => {
         />
       }
     >
-      {selectedPost && !detailError ? (
+      {selectedPost ? (
         // 이미지·프로필까지 드래그 선택되는 것을 막고, 실제 콘텐츠 텍스트에서만 선택을 다시 허용한다.
         <main
           className='flex w-full select-none justify-center bg-white'
@@ -939,7 +1011,7 @@ const CommunityPostPage = () => {
           </div>
         </main>
       ) : null}
-      {selectedPost && !detailError ? (
+      {selectedPost ? (
         <BottomChat
           likeCount={likeCount}
           isLiked={isLiked}

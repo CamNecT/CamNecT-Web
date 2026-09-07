@@ -14,7 +14,8 @@ import { mapToInfoPost, mapToQuestionPost } from '../../utils/communityMapper';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTagList } from '../../hooks/useTagList';
 import type { AxiosError } from 'axios';
-import type { CommunityErrorResponse } from '../../api-types/communityApiTypes';
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
+import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 
 const tabItems: TabItem[] = [
   { id: 'all', label: '전체' },
@@ -276,7 +277,7 @@ export const CommunityPage = () => {
       } catch (error) {
         if (controller.signal.aborted) return;
         if (requestId !== requestSeq.current[tab]) return;
-        const code = (error as AxiosError<CommunityErrorResponse>).response?.data?.code;
+        const code = getServerErrorCode(error as AxiosError);
         setTabState(tab, (previous) => ({
           ...previous,
           nextCursorId: isAppend ? null : previous.nextCursorId,
@@ -285,9 +286,9 @@ export const CommunityPage = () => {
           isLoading: false,
           isLoadingMore: false,
           error:
-            code === 43040
+            code === COMMUNITY_ERROR_CODES.cursorExpired
               ? '목록 커서가 만료되어 새로고침이 필요해요.'
-              : code === 43041
+              : code === COMMUNITY_ERROR_CODES.invalidSearchKeyword
                 ? '검색어를 다시 확인해 주세요.'
                 : '커뮤니티 글을 불러오지 못했어요.',
         }));
