@@ -6,6 +6,7 @@ import { acceptCommunityComment, createCommunityComment, deleteCommunityComment,
 import BottomSheetModalPost, {
   type ActionItem,
 } from '../../components/BottomSheetModal/BottomSheetModal-post';
+import Button from '../../components/Button';
 import Category from '../../components/Category';
 import Icon from '../../components/Icon';
 import ImagePopUp from '../../components/ImagePopUp';
@@ -115,6 +116,7 @@ const CommunityPostPage = () => {
     likedByMe,
     refetchPost,
     isLoading: isDetailLoading,
+    hasLoadError: hasDetailLoadError,
   } = usePost({ postId, onError: handlePostDetailError });
   // 실제 본문/썸네일 노출 여부는 게시글 정책(accessType)이 아니라
   // 현재 사용자의 열람 결과인 accessStatus만을 기준으로 판단한다.
@@ -379,6 +381,11 @@ const CommunityPostPage = () => {
         }
       : communityErrorPopUpConfig ?? popUpConfig;
 
+  const handleRetryPostDetail = () => {
+    closeCommunityError();
+    refetchPost();
+  };
+
   if (!selectedPost) {
     return (
       <HeaderLayout
@@ -396,6 +403,27 @@ const CommunityPostPage = () => {
           />
         }
       >
+        {hasDetailLoadError && !isDetailLoading ? (
+          <section
+            role='alert'
+            className='flex flex-1 flex-col items-center justify-center px-[25px] text-center'
+          >
+            <h1 className='text-[20px] font-semibold leading-[140%] text-[var(--ColorBlack,#202023)]'>
+              게시글을 불러오지 못했어요
+            </h1>
+            <p className='mt-[10px] whitespace-pre-line text-[14px] leading-[150%] text-[var(--ColorGray3,#646464)]'>
+              {'인터넷 연결 상태를 확인한 뒤\n다시 시도해 주세요.'}
+            </p>
+            {/* 전역 offline 팝업은 연결 안내만 담당하므로, 상세 요청은 사용자가 이 화면에서 명시적으로 재시도한다. */}
+            <Button
+              type='button'
+              label='다시 시도'
+              font='sb-16-hn'
+              className='mt-[30px] max-w-[325px]'
+              onClick={handleRetryPostDetail}
+            />
+          </section>
+        ) : null}
         {activePopUpConfig && (
           <PopUp
             isOpen={true}

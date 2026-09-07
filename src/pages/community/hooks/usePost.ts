@@ -16,6 +16,7 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
   const { mapTagIdToName } = useTagList();
   const [selectedPost, setSelectedPost] = useState<CommunityPostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadError, setHasLoadError] = useState(false);
   const [likedByMe, setLikedByMe] = useState(false);
   // 동일 마운트 사이클에서 중복 호출을 방지하기 위한 플래그
   const isFetchingRef = useRef(false);
@@ -26,6 +27,7 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
       setSelectedPost(null);
       setLikedByMe(false);
       setIsLoading(false);
+      setHasLoadError(true);
       onError?.(new Error('게시글 ID가 없습니다.'));
       return;
     }
@@ -42,12 +44,14 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
       setSelectedPost(null);
       setLikedByMe(false);
       setIsLoading(false);
+      setHasLoadError(true);
       onError?.(new Error('게시글 ID 형식이 올바르지 않습니다.'));
       return;
     }
     if (isFetchingRef.current) return;
 
     setIsLoading(true);
+    setHasLoadError(false);
     isFetchingRef.current = true;
     getCommunityPostDetail({
       postId: numericPostId,
@@ -56,10 +60,12 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
       .then((response) => {
         setSelectedPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
         setLikedByMe(Boolean(response.data.likedByMe));
+        setHasLoadError(false);
       })
       .catch((error: unknown) => {
         setSelectedPost(null);
         setLikedByMe(false);
+        setHasLoadError(true);
         // 상세 오류 UI는 API hook에서 결정하지 않고 Community Post 호출부의 도메인 오류 hook에 위임한다.
         onError?.(error);
       })
@@ -91,6 +97,7 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
       likedByMe,
       refetchPost,
       isLoading,
+      hasLoadError,
     };
   }
 
@@ -121,5 +128,6 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
     likedByMe,
     refetchPost,
     isLoading,
+    hasLoadError,
   };
 };
