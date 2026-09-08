@@ -9,6 +9,7 @@ type BottomSheetModalPostProps = {
   onClose: () => void;
   target: ContentTarget;
   isMine: boolean;
+  isAdminTarget?: boolean;
   onItemClick?: (item: ActionItem, target: ContentTarget) => void;
 };
 
@@ -46,9 +47,14 @@ const BottomSheetModalPost = ({
   onClose,
   target,
   isMine,
+  isAdminTarget = false,
   onItemClick,
 }: BottomSheetModalPostProps) => {
-  const items = optionsMap[target][isMine ? 'mine' : 'other'];
+  const items = optionsMap[target][isMine ? 'mine' : 'other'].filter((item) =>
+    isAdminTarget
+      ? item.id !== 'view-author-profile' && item.id !== 'report-post' && item.id !== 'report-comment'
+      : true,
+  );
 
   return (
     <BottomSheetModal isOpen={isOpen} onClose={onClose} height='auto'>
