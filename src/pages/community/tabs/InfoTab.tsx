@@ -25,10 +25,11 @@ type InfoTabProps = {
   onSortChange: (next: SortKey) => void;
   selectedTag: string | null;
   onTagChange: (next: string | null) => void;
+  isAdmin?: boolean;
 };
 
 // 정보 탭: 필터 + 정렬 + 정보글 리스트
-const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange }: InfoTabProps) => {
+const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange, isAdmin = false }: InfoTabProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
   // 목록 API가 tagId 하나만 받으므로 정보 탭의 일반 태그는 단일 선택으로 제한한다.
@@ -150,7 +151,7 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange }: Inf
         maxSelected={1}
       />
 
-      <WriteButton boardType='정보' />
+      <WriteButton boardType='정보' hasBottomNav={isAdmin} />
     </div>
   );
 };
