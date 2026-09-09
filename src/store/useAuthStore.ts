@@ -18,6 +18,7 @@ export interface AuthState {
     isAuthenticated: boolean;
     user: AuthUser | null;
     setUserLogin: (accessToken: string, refreshToken: string, user: AuthUser) => void;
+    setTokens: (accessToken: string, refreshToken: string) => void;
     setSignupLogin: (signupToken: string, user: AuthUser) => void;
     clearSignupToken: () => void;
     setLogout: () => void;
@@ -43,6 +44,11 @@ export const useAuthStore = create<AuthState>()(
                 signupToken: null,
                 isAuthenticated: true,
                 user
+            }),
+            // Refresh Token Rotation 응답의 두 토큰을 함께 교체
+            setTokens: (accessToken, refreshToken) => set({
+                accessToken,
+                refreshToken,
             }),
             setSignupLogin: (signupToken, user) => set({
                 accessToken: null,

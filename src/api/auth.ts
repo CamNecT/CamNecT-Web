@@ -14,10 +14,11 @@ import type {
     ProfileOnboardingRequest, ProfileOnboardingResponse,
     SchoolVerificationPresignRequest, SchoolVerificationPresignResponse,
     SchoolVerificationUploadRequest, SchoolVerificationUploadResponse,
-    TagListResponse, TokenRefreshRequest, TokenRefreshResponse,
+    TagListResponse,
     VerificationCompleteRequest, VerificationCompleteResponse
 } from "../api-types/authApiTypes";
 import { axiosInstance } from "./axiosInstance";
+export { refreshTokens } from "./refreshClient";
 
 // 1. 로그인 API [POST] (/api/auth/login)
 export const login = async (data: LoginRequest) => {
@@ -26,15 +27,6 @@ export const login = async (data: LoginRequest) => {
         authMode: "none",
     });
     return response.data; 
-}
-
-// 토큰 재발급 API [POST] (/api/auth/refresh)
-// Refresh Token Rotation을 사용하므로 호출부에서 응답의 두 토큰을 모두 교체해야 함
-export const refreshTokens = async (data: TokenRefreshRequest) => {
-    const response = await axiosInstance.post<TokenRefreshResponse>("/api/auth/refresh", data, {
-        authMode: "none",
-    });
-    return response.data;
 }
 
 // -------------------- 회원가입 단계 --------------------
