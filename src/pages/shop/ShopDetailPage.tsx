@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getSettingInfo } from '../../api/profileApi';
 import PopUp from '../../components/Pop-up';
-import { useGifticonProductQuery, useGifticonPurchaseMutation } from '../../hooks/useGifticonQuery';
+import {
+  useGifticonListQuery,
+  useGifticonProductQuery,
+  useGifticonPurchaseMutation,
+} from '../../hooks/useGifticonQuery';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -18,15 +20,10 @@ export const ShopDetailPage = () => {
   const { productId } = useParams();
 
   const { user } = useAuthStore();
-  const { data: gifticonProduct } = useGifticonProductQuery(productId);
+  const { data: gifticonList, isLoading: isGifticonListLoading } = useGifticonListQuery();
+  const { data: gifticonProduct, isLoading: isProductLoading } = useGifticonProductQuery(productId);
   const { mutate: purchaseProduct, isPending: isPurchasePending } = useGifticonPurchaseMutation();
   const product = gifticonProduct;
-  const userId = user?.id ? Number(user.id) : null;
-  const { data: settingInfoResponse } = useQuery({
-    queryKey: ['setting', userId],
-    queryFn: () => getSettingInfo(userId!),
-    enabled: !!userId,
-  });
 
   // 포인트는 ShopPage 진입 시 gifticonList API에서 전역 스토어에 동기화됩니다.
   const point = usePointStore((state) => state.point);
@@ -44,7 +41,11 @@ export const ShopDetailPage = () => {
     rightButtonText: string;
   } | null>(null);
 
-  // 상품이 없을 때 
+  if (isProductLoading || isGifticonListLoading) {
+    return <PopUp isOpen={true} type='loading' />;
+  }
+
+  // 조회가 끝난 뒤에도 상품이 없으면 잘못된 상품 경로로 처리합니다.
   if (!product) {
     return (
       <HeaderLayout headerSlot={<MainHeader title='기프티콘 샵' />}>
@@ -67,6 +68,7 @@ export const ShopDetailPage = () => {
   };
 
   const handleBuyClick = () => {
+    if (!product.active) return;
     if (!isPurchasing) {
       openPurchaseSheet();
       return;
@@ -83,8 +85,8 @@ export const ShopDetailPage = () => {
   const handleConfirmPurchase = () => {
     if (!user || !product) return;
 
-    const recipientEmail = settingInfoResponse?.data.email;
-    // 구매 API는 수신 이메일을 필수로 요구하므로, 환경설정 조회 전에는 요청을 보내지 않습니다.
+    const recipientEmail = gifticonList?.email;
+    // 상점 홈 응답의 기본 수신 이메일을 사용하며, 조회 전에는 구매 요청을 보내지 않습니다.
     if (!recipientEmail) {
       setConfirmPopUpConfig(null);
       setPopUpConfig({
@@ -113,7 +115,6 @@ export const ShopDetailPage = () => {
       quantity: quantity,
       spendPoints: totalRequiredPoint,
       clientRequestId: crypto.randomUUID(),
-      recipientName: user.name || "사용자",
       recipientEmail,
       giftMessage: null,
     }, {
@@ -170,6 +171,9 @@ export const ShopDetailPage = () => {
           <span className='text-[24px] font-bold leading-[normal] text-[var(--ColorMain,#00C56C)]'>
             {formatPoint(product.point)} Point
           </span>
+          {!product.active && (
+            <span className='text-m-14 text-gray-650'>현재 판매가 종료된 상품입니다.</span>
+          )}
         </div>
 
         <div className='flex flex-col gap-[10px] px-[25px] py-[15px] flex-1'>
@@ -187,7 +191,7 @@ export const ShopDetailPage = () => {
           </span>
         </div>
       </section>
-      <BottomBuy onClick={handleBuyClick} />
+      <BottomBuy onClick={handleBuyClick} disabled={!product.active} />
       <PurchaseBottomSheet
         isOpen={isSheetOpen}
         onClose={closePurchaseSheet}
