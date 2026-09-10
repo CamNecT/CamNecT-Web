@@ -4,7 +4,7 @@ import { handleCommunityError } from "./interceptors/communityError";
 import { clearClientSession } from "../utils/clearClientSession";
 import { getServerErrorCode } from "../utils/getServerErrorCode";
 import { refreshTokens } from "./refreshClient";
-import { REFRESHABLE_ACCESS_TOKEN_ERROR_CODES } from "../constants/serverErrors/tokenErrors";
+import { REFRESHABLE_ACCESS_TOKEN_ERROR_CODES, REFRESH_FAILURE_LOGOUT_ERROR_CODES, ACCOUNT_SESSION_LOGOUT_ERROR_CODES } from "../constants/serverErrors/tokenErrors";
 
 // Axios 인스턴스 (API 모듈화)
 export const axiosInstance = axios.create({
@@ -68,6 +68,33 @@ const refreshAccessToken = (refreshToken: string) => {
                 accessToken,
                 refreshToken
             );
+        })
+        // catch : refresh api 호출 실패 시 원인별 처리
+        .catch((refreshError: unknown) => {
+            if (axios.isAxiosError(refreshError)) {
+                const status = refreshError.response?.status;
+                const errorCode = getServerErrorCode(refreshError);
+
+                // 강제 로그아웃 여부 판단 (401, 403의 특정 errorCodes)
+                const shouldLogout =
+                    errorCode !== undefined && (
+                        (
+                            status === 401 &&
+                            REFRESH_FAILURE_LOGOUT_ERROR_CODES.has(errorCode)
+                        ) ||
+                        (
+                            status === 403 &&
+                            ACCOUNT_SESSION_LOGOUT_ERROR_CODES.has(errorCode)
+                        )
+                    )
+
+                if (shouldLogout) {
+                    clearClientSession();
+                }
+            }
+
+            // refresh 실패 원인을 호출부에서 처리
+            throw refreshError;
         })
         .finally(() => {
             // refreshPromise명시적 초기화 (자동 초기화 X)
