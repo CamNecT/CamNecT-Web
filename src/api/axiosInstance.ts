@@ -121,20 +121,34 @@ axiosInstance.interceptors.response.use(
                 // 회원가입 임시 토큰 오류 -> signupToken만 제거
                 useAuthStore.getState().clearSignupToken();
             }
+            // 41101(비밀번호 변경 API) : 비밀번호 불일치 오류 -> 로그인 만료 X
             else if (authMode === "access" && errorCode !== "41101") {
-                // 41101(비밀번호 변경 API) : 비밀번호 불일치 오류 -> 로그인 만료 X
 
                 const originalRequest = error.config; // config : URL, HTTP method, header, body가 포함
                 const { refreshToken } = useAuthStore.getState();
+
+                const isAccessTokenError = 
+                    errorCode !== undefined && 
+                    REFRESHABLE_ACCESS_TOKEN_ERROR_CODES.has(errorCode);
+                
+                // [Guard1] RTR이후 동일 API 재요청 오류시
+                if (originalRequest?._retry) {
+                    // API 재요청 이후 accesstoken관련 오류
+                    if (isAccessTokenError) {
+                        clearClientSession();
+                    }
+
+                    // 그 외 일반오류
+                    return Promise.reject(error);
+                }
                 
                 // refresh api 호출 조건
                 const shouldRefresh =
                     originalRequest
-                    && errorCode
                     && refreshToken
-                    && !originalRequest._retry
-                    && REFRESHABLE_ACCESS_TOKEN_ERROR_CODES.has(errorCode)
+                    && isAccessTokenError;
                 
+                // [Guard2] RTR 호출 및 동일 API 재호출
                 if (shouldRefresh) {
                     originalRequest._retry = true; // 해당 요청은 이미 재시도 중
 
@@ -143,7 +157,7 @@ axiosInstance.interceptors.response.use(
                     return axiosInstance(originalRequest); // API 재요청
                 }
 
-                // RTR 조건 불충족 시 클라이언트 세션 종료 (로그아웃)
+                // (처음시도) RTR 조건 불충족 시 클라이언트 세션 종료 (로그아웃)
                 clearClientSession();
             }
         }
