@@ -26,6 +26,7 @@ type QuestionTabProps = {
   onTagChange: (next: string | null) => void;
   adoptionFilter: string | null;
   onAdoptionFilterChange: (next: string | null) => void;
+  isAdmin?: boolean;
 };
 
 // 질문 탭: 필터 + 정렬 + 질문글 리스트
@@ -37,6 +38,7 @@ const QuestionTab = ({
   onTagChange,
   adoptionFilter,
   onAdoptionFilterChange,
+  isAdmin = false,
 }: QuestionTabProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
@@ -186,7 +188,7 @@ const QuestionTab = ({
         selectionGuide='채택/일반 태그 각 1개'
       />
 
-      <WriteButton boardType='질문' />
+      <WriteButton boardType='질문' hasBottomNav={isAdmin} />
     </div>
   );
 };

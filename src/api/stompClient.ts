@@ -1,4 +1,8 @@
-import { Client } from "@stomp/stompjs";
+import { Client, ReconnectionTimeMode } from "@stomp/stompjs";
+import type { StompSocketError } from "../api-types/stompApiTypes";
+import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
+import { STOMP_ERROR_CODES } from "../constants/serverErrors/stompErrors";
 
 const isLocalDevHost = () => {
     const hostname = window.location.hostname;
@@ -18,18 +22,78 @@ const brokerURL = import.meta.env.DEV
 export const stompClient = new Client({
     brokerURL, // WebSocket pipeline 연결주소
     // 연결 상태를 로그로 확인
-    debug: (str) => {
-        console.log('STOMP Debug:', str);
-    },
-    reconnectDelay: 2000, 
-    // 4초간격으로 서버와 연결확인 
-    heartbeatIncoming: 4000,
-    heartbeatOutgoing: 4000,
+    // debug: (str) => {
+    //     console.log('STOMP Debug:', str);
+    // },
+    reconnectDelay: 2000,
+    reconnectTimeMode:
+        ReconnectionTimeMode.EXPONENTIAL,
+    maxReconnectDelay: 30000,
+
+    connectionTimeout: 10000, // 최초 연결 무응답 방지
+    // 10초간격으로 서버와 연결확인
+    heartbeatIncoming: 10000,
+    heartbeatOutgoing: 10000,
     onWebSocketError: (event) => {
         console.error('WebSocket Error:', event);
     },
-    onStompError: (frame) => {
-        console.error('STOMP Error:', frame.headers['message']);
-        console.log('STOMP Error Details:', frame.body);
-    },
-})
+});
+
+// STOMP ERROR frame 처리
+stompClient.onStompError = (frame) => {
+    try {
+        // ERROR frame의 문자열 body를 객체로 변환
+        const error =
+            JSON.parse(frame.body) as StompSocketError;
+
+        console.error('STOMP Error:', error);
+
+        // SEND 인터셉터에서 거절 당한 메세지 제거
+        useChatStore
+            .getState()
+            .markPendingMessageFailed(error);
+
+        // TODO: Refresh Token 도입 시 Access Token 재발급 후 connectHeaders를 갱신하고
+        // STOMP 재연결을 시도하며, 재발급 실패 시에만 로그아웃 처리
+        if (error.status === 401) {
+            void stompClient.deactivate();
+            useAuthStore.getState().setLogout();
+
+            return;
+        }
+
+        // todo: 403 발생 시 해당 roomId 재구독 차단 후 공용 연결 복구
+
+        if (
+            error.code ===
+            STOMP_ERROR_CODES.common.temporarilyUnavailable
+        ) {
+            console.warn(
+                'STOMP 일시 장애입니다. 서버 종료 후 자동 재연결을 기다립니다.',
+                error
+            );
+
+            return;
+        }
+    } catch (parseError) {
+        // JSON이 아닌 ERROR가 와도 앱이 죽지 않도록 방어
+        console.error(
+            'STOMP ERROR JSON 파싱 실패:',
+            parseError,
+            frame.body
+        );
+
+        // 원인을 알 수 없으므로 자동 재연결 중단
+        void stompClient.deactivate();
+    }
+};
+
+// localhost 재연결 테스트 전용 — 테스트 후 제거
+// 명령어 : window.__stompClient.forceDisconnect();
+if (isLocalDevHost()) {
+    (
+        window as Window & {
+            __stompClient?: Client;
+        }
+    ).__stompClient = stompClient;
+}

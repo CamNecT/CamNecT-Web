@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { AuthState } from "../types/auth/authTypes";
+import { useChatStore } from "./useChatStore";
 
 // 앱 전체에서 사용하는 로그인 상태 관리
 
@@ -18,11 +19,17 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: true,
                 user: user
             }),
-            setLogout: () => set({
-                accessToken: null,
-                isAuthenticated: false,
-                user: null
-            }),
+            setLogout: () => {
+                // 수동 로그아웃뿐 아니라 인증 만료(REST/STOMP 401)에서도
+                // 다른 사용자 세션으로 전송 대기 메시지가 넘어가지 않도록 함께 초기화
+                useChatStore.getState().clearPendingMessages();
+
+                set({
+                    accessToken: null,
+                    isAuthenticated: false,
+                    user: null
+                });
+            },
             setUserId: (userId: string) => set((state) => ({
                 user: state.user ? { ...state.user, id: userId } : { id: userId }
             }))
