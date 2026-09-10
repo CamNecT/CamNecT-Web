@@ -91,6 +91,9 @@ export const ShopDetailPage = () => {
     );
   }
 
+  const requiredPoint = product.point * quantity;
+  const isInsufficientPoint = point < requiredPoint;
+
   const openPurchaseSheet = () => {
     setIsPurchasing(true);
     setIsSheetOpen(true);
@@ -233,7 +236,11 @@ export const ShopDetailPage = () => {
           </span>
         </div>
       </section>
-      <BottomBuy onClick={handleBuyClick} disabled={!product.active} />
+      <BottomBuy
+        onClick={handleBuyClick}
+        // 첫 클릭으로 구매 정보를 확인할 수 있게 하고, 바텀시트가 열린 뒤 부족한 경우에만 구매를 막습니다.
+        disabled={!product.active || (isPurchasing && isInsufficientPoint)}
+      />
       <PurchaseBottomSheet
         isOpen={isSheetOpen}
         onClose={closePurchaseSheet}
@@ -242,7 +249,7 @@ export const ShopDetailPage = () => {
         onIncrease={handleIncrease}
         myPoint={point}
         requiredPoint={product.point}
-        bottomOffset='calc(105px)'
+        bottomOffset='100px'
       />
       {confirmPopUpConfig && (
         <PopUp

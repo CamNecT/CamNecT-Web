@@ -15,7 +15,11 @@ export const BottomBuy = ({ onClick, disabled = false }: BottomBuyProps) => {
         type='button'
         label="구매하기"
         font="sb-18-flat"
-        className="h-[50px] max-w-none rounded-[10px] bg-[var(--ColorMain,#00C56C)]"
+        className={`h-[50px] max-w-none rounded-[10px] ${
+          disabled
+            ? 'bg-gray-150 text-gray-750'
+            : 'bg-[var(--ColorMain,#00C56C)]'
+        }`}
         onClick={onClick}
         disabled={disabled}
       />
