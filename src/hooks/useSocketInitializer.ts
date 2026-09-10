@@ -8,7 +8,7 @@ import { useChatStore } from "../store/useChatStore";
 
 // 로그인 / 로그아웃 시 소켓 연결/해제 (커피챗 실시간 수신을 위해)
 export const useSocketInitializer = () => {
-    const { isAuthenticated, user, accessToken } = useAuthStore();
+    const { isAuthenticated, user } = useAuthStore();
     const userId = user?.id;
     const queryClient = useQueryClient();
 
@@ -50,11 +50,6 @@ export const useSocketInitializer = () => {
             }
             return;
         }
-
-        // accessToken 주입
-        stompClient.connectHeaders = {
-            Authorization: `Bearer ${accessToken}`,
-        };
 
         // 전역 구독 (1.ack -> 2.error -> 3.rooms)
         const setUpGlobalSubscriptions = () => {
@@ -175,6 +170,6 @@ export const useSocketInitializer = () => {
                 stompClient.deactivate();
             }
         }
-    }, [isAuthenticated, userId, user?.nextStep, accessToken, queryClient])
+    }, [isAuthenticated, userId, user?.nextStep, queryClient])
     
 }

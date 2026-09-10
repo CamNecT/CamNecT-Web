@@ -3,6 +3,7 @@ import type { StompSocketError } from "../api-types/stompApiTypes";
 import { useChatStore } from "../store/useChatStore";
 import { STOMP_ERROR_CODES } from "../constants/serverErrors/stompErrors";
 import { clearClientSession } from "../utils/clearClientSession";
+import { useAuthStore } from "../store/useAuthStore";
 
 const isLocalDevHost = () => {
     const hostname = window.location.hostname;
@@ -27,7 +28,7 @@ export const stompClient = new Client({
     // },
     reconnectDelay: 2000,
     reconnectTimeMode:
-        ReconnectionTimeMode.EXPONENTIAL,
+    ReconnectionTimeMode.EXPONENTIAL,
     maxReconnectDelay: 30000,
 
     connectionTimeout: 10000, // 최초 연결 무응답 방지
@@ -38,6 +39,16 @@ export const stompClient = new Client({
         console.error('WebSocket Error:', event);
     },
 });
+
+// STOMP 연결 직전마다 store의 최신 accessToken을 CONNECT 헤더에 주입
+stompClient.beforeConnect = () => {
+    const { accessToken } = useAuthStore.getState();
+
+    // 로그아웃, 자동 재연결이 겹치는 순간 방어
+    stompClient.connectHeaders = accessToken ? {
+        Authorization: `Bearer ${accessToken}`,
+    } : {};
+};
 
 // STOMP ERROR frame 처리
 stompClient.onStompError = (frame) => {
