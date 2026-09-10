@@ -1,9 +1,10 @@
 import { Client, ReconnectionTimeMode } from "@stomp/stompjs";
 import type { StompSocketError } from "../api-types/stompApiTypes";
 import { useChatStore } from "../store/useChatStore";
-import { STOMP_ERROR_CODES } from "../constants/serverErrors/stompErrors";
+import { STOMP_ERROR_CODES, STOMP_SESSION_LOGOUT_ERROR_CODES } from "../constants/serverErrors/stompErrors";
 import { clearClientSession } from "../utils/clearClientSession";
 import { useAuthStore } from "../store/useAuthStore";
+import { refreshAccessToken } from "./axiosInstance";
 
 const isLocalDevHost = () => {
     const hostname = window.location.hostname;
@@ -50,29 +51,23 @@ stompClient.beforeConnect = () => {
     } : {};
 };
 
+// 새 토큰으로 STOMP 재연결을 이미 시도했는지 확인
+let hasRetriedAfterTokenRefresh = false;
+
+export const resetStompTokenRefreshRetry = () => {
+    hasRetriedAfterTokenRefresh = false;
+};
+
 // STOMP ERROR frame 처리
-stompClient.onStompError = (frame) => {
+stompClient.onStompError = async (frame) => {
     try {
         // ERROR frame의 문자열 body를 객체로 변환
-        const error =
-            JSON.parse(frame.body) as StompSocketError;
-
-        console.error('STOMP Error:', error);
+        const error = JSON.parse(frame.body) as StompSocketError;
 
         // SEND 인터셉터에서 거절 당한 메세지 제거
         useChatStore
             .getState()
             .markPendingMessageFailed(error);
-
-        // TODO: Refresh Token 도입 시 Access Token 재발급 후 connectHeaders를 갱신하고
-        // STOMP 재연결을 시도하며, 재발급 실패 시에만 로그아웃 처리
-        if (error.status === 401) {
-            // 자동 재연결을 먼저 끊고 세션을 정리
-            void stompClient.deactivate();
-            clearClientSession();
-
-            return;
-        }
 
         // todo: 403 발생 시 해당 roomId 재구독 차단 후 공용 연결 복구
 
@@ -87,6 +82,45 @@ stompClient.onStompError = (frame) => {
 
             return;
         }
+
+        // 40100 처리
+        if (error.code === STOMP_ERROR_CODES.connection.invalidToken) {
+            const { refreshToken } = useAuthStore.getState();
+
+            if (hasRetriedAfterTokenRefresh || !refreshToken) {
+                await stompClient.deactivate();
+                clearClientSession();
+
+                return;
+            }
+
+            try {
+                await refreshAccessToken(refreshToken);
+                hasRetriedAfterTokenRefresh = true;
+                
+                // 기존 STOMP연결 해제 및 재연결
+                await stompClient.deactivate();
+                stompClient.activate();
+            } catch {
+                // refresh 실패 되어 로그아웃 상태 시
+                const { isAuthenticated } = useAuthStore.getState();
+
+                if (!isAuthenticated) {
+                    await stompClient.deactivate();
+                }
+            }
+
+            return;
+        }
+
+        // RTR 호출하면 안되는 cases
+        if (STOMP_SESSION_LOGOUT_ERROR_CODES.has(error.code)) {
+            await stompClient.deactivate();
+            clearClientSession();
+
+            return;
+        }
+    
     } catch (parseError) {
         // JSON이 아닌 ERROR가 와도 앱이 죽지 않도록 방어
         console.error(

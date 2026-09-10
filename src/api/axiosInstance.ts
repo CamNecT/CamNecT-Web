@@ -53,7 +53,7 @@ axiosInstance.interceptors.request.use(
 let refreshPromise: Promise<void> | null = null;
 
 // RTR 요청 함수 (성공 시 accessToken, refreshToken 갱신)
-const refreshAccessToken = (refreshToken: string) => {
+export const refreshAccessToken = (refreshToken: string) => {
     // 이미 refresh요청 중
     if (refreshPromise) {
         return refreshPromise;

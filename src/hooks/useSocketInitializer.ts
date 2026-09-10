@@ -2,7 +2,7 @@ import type { StompSubscription } from "@stomp/stompjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type { StompChatRoomListResponse, StompMessageAck, StompSocketError } from "../api-types/stompApiTypes";
-import { isStompEnabled, stompClient } from "../api/stompClient";
+import { isStompEnabled, stompClient, resetStompTokenRefreshRetry } from "../api/stompClient";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
@@ -101,6 +101,8 @@ export const useSocketInitializer = () => {
 
         // socket 연결 성공 후 실행될 단 하나의 마스터 핸들러
         stompClient.onConnect = (frame) => {
+            resetStompTokenRefreshRetry();
+
             if (import.meta.env.DEV) {
                 console.log("STOMP 연결 성공! 전역 구독 및 이벤트 발송");
             }
