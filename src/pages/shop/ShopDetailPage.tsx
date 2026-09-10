@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PopUp from '../../components/Pop-up';
 import {
@@ -12,6 +12,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { usePointStore } from '../../store/usePointStore';
 import { BottomBuy } from './components/BottomBuy';
 import { PurchaseBottomSheet } from './components/PurchaseBottomSheet';
+import { useGifticonErrorPopup } from './hooks/useGifticonErrorPopup';
 
 const formatPoint = (value: number) => value.toLocaleString('ko-KR');
 
@@ -20,9 +21,12 @@ export const ShopDetailPage = () => {
   const { productId } = useParams();
 
   const { user } = useAuthStore();
-  const { data: gifticonList, isLoading: isGifticonListLoading } = useGifticonListQuery();
-  const { data: gifticonProduct, isLoading: isProductLoading } = useGifticonProductQuery(productId);
+  const gifticonListQuery = useGifticonListQuery();
+  const gifticonProductQuery = useGifticonProductQuery(productId);
+  const { data: gifticonList, isLoading: isGifticonListLoading } = gifticonListQuery;
+  const { data: gifticonProduct, isLoading: isProductLoading } = gifticonProductQuery;
   const { mutate: purchaseProduct, isPending: isPurchasePending } = useGifticonPurchaseMutation();
+  const { errorPopup, showGifticonError, closeGifticonError } = useGifticonErrorPopup();
   const product = gifticonProduct;
 
   // 포인트는 ShopPage 진입 시 gifticonList API에서 전역 스토어에 동기화됩니다.
@@ -41,6 +45,22 @@ export const ShopDetailPage = () => {
     rightButtonText: string;
   } | null>(null);
 
+  useEffect(() => {
+    if (gifticonProductQuery.isError) {
+      showGifticonError(gifticonProductQuery.error, 'detail');
+      return;
+    }
+    if (gifticonListQuery.isError) {
+      showGifticonError(gifticonListQuery.error, 'home');
+    }
+  }, [
+    gifticonListQuery.error,
+    gifticonListQuery.isError,
+    gifticonProductQuery.error,
+    gifticonProductQuery.isError,
+    showGifticonError,
+  ]);
+
   if (isProductLoading || isGifticonListLoading) {
     return <PopUp isOpen={true} type='loading' />;
   }
@@ -52,6 +72,19 @@ export const ShopDetailPage = () => {
         <section className='flex flex-col px-[25px] py-[20px]'>
           <p className='text-m-14 text-[var(--ColorGray3,#646464)]'>상품을 찾을 수 없습니다.</p>
         </section>
+        {errorPopup && (
+          <PopUp
+            isOpen={true}
+            type='error'
+            title={errorPopup.title}
+            content={errorPopup.content}
+            buttonText='다시 시도'
+            onClick={() => {
+              closeGifticonError();
+              void Promise.all([gifticonProductQuery.refetch(), gifticonListQuery.refetch()]);
+            }}
+          />
+        )}
       </HeaderLayout>
     );
   }
@@ -125,12 +158,9 @@ export const ShopDetailPage = () => {
         // 성공 시 ShopPage로 이동 (useGifticonPurchaseMutation 내부에서 포인트 차감 및 쿼리 무효화 처리됨)
         navigate('/shop', { state: { purchaseSuccess: true } });
       },
-      onError: () => {
+      onError: (error) => {
         setConfirmPopUpConfig(null);
-        setPopUpConfig({
-          title: '구매에 실패했어요',
-          content: '잠시 후 다시 시도해 주세요.',
-        });
+        showGifticonError(error, 'purchase');
       }
     });
   };
@@ -221,6 +251,15 @@ export const ShopDetailPage = () => {
           title={popUpConfig.title}
           content={popUpConfig.content}
           onClick={() => setPopUpConfig(null)}
+        />
+      )}
+      {errorPopup && (
+        <PopUp
+          isOpen={true}
+          type='error'
+          title={errorPopup.title}
+          content={errorPopup.content}
+          onClick={closeGifticonError}
         />
       )}
     </HeaderLayout>

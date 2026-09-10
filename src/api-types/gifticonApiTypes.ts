@@ -58,3 +58,9 @@ export interface GifticonPurchaseResponse {
     message: string;
     data: GifticonPurchaseData;
 }
+
+export interface GifticonErrorResponse {
+    status: number;
+    code: number;
+    message: string;
+}
