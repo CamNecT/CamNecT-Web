@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PopUp from '../../components/Pop-up';
 import {
@@ -44,6 +44,8 @@ export const ShopDetailPage = () => {
     content: string;
     rightButtonText: string;
   } | null>(null);
+  const purchasePendingRef = useRef(false);
+  const purchaseAttemptRef = useRef<{ key: string; clientRequestId: string } | null>(null);
 
   useEffect(() => {
     if (gifticonProductQuery.isError) {
@@ -117,17 +119,8 @@ export const ShopDetailPage = () => {
   // 상품 구매 함수
   const handleConfirmPurchase = () => {
     if (!user || !product) return;
-
-    const recipientEmail = gifticonList?.email;
-    // 상점 홈 응답의 기본 수신 이메일을 사용하며, 조회 전에는 구매 요청을 보내지 않습니다.
-    if (!recipientEmail) {
-      setConfirmPopUpConfig(null);
-      setPopUpConfig({
-        title: '이메일 정보를 확인할 수 없어요',
-        content: '잠시 후 다시 시도해 주세요.',
-      });
-      return;
-    }
+    // mutation 상태가 렌더링되기 전 같은 tick에서 발생하는 연속 구매 요청도 차단합니다.
+    if (purchasePendingRef.current || isPurchasePending) return;
 
     const totalRequiredPoint = product.point * quantity;
     const currentPoint = getPoint();
@@ -142,16 +135,30 @@ export const ShopDetailPage = () => {
       return;
     }
 
+    const recipientEmail = gifticonList?.email || undefined;
+    const purchaseKey = `${product.id}:${quantity}:${totalRequiredPoint}:${recipientEmail ?? ''}`;
+    if (purchaseAttemptRef.current?.key !== purchaseKey) {
+      purchaseAttemptRef.current = {
+        key: purchaseKey,
+        clientRequestId: crypto.randomUUID(),
+      };
+    }
+
+    // 응답 유실 후 재시도에도 같은 ID를 사용해야 서버가 중복 포인트 차감을 막을 수 있습니다.
+    const clientRequestId = purchaseAttemptRef.current.clientRequestId;
+    purchasePendingRef.current = true;
+
     // 서버로 구매 요청 전송
     purchaseProduct({
       productId: product.id,
       quantity: quantity,
       spendPoints: totalRequiredPoint,
-      clientRequestId: crypto.randomUUID(),
+      clientRequestId,
       recipientEmail,
       giftMessage: null,
     }, {
       onSuccess: () => {
+        purchaseAttemptRef.current = null;
         setConfirmPopUpConfig(null);
         setIsSheetOpen(false);
         setIsPurchasing(false);
@@ -161,7 +168,12 @@ export const ShopDetailPage = () => {
       onError: (error) => {
         setConfirmPopUpConfig(null);
         showGifticonError(error, 'purchase');
-      }
+        // 서버 검증 실패 시 클라이언트의 포인트가 오래된 값일 수 있어 최신 잔액을 다시 받습니다.
+        void gifticonListQuery.refetch();
+      },
+      onSettled: () => {
+        purchasePendingRef.current = false;
+      },
     });
   };
 
@@ -211,7 +223,7 @@ export const ShopDetailPage = () => {
             - 구매일로부터 교환권 지급까지 평균 3일 정도 소요될 수 있습니다.
           </span>
           <span className='text-r-12 text-[var(--ColorGray2,#A1A1A1)]'>
-            - 교환권은 등록된 번호로 문자 발송됩니다.
+            - 교환권은 등록된 이메일로 발송됩니다.
           </span>
           <span className='text-r-12 text-[var(--ColorGray2,#A1A1A1)]'>
             - 구매 불가 시 이메일로 알림발송 됩니다.
