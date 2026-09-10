@@ -182,7 +182,8 @@ export interface AdminVerificationItem {
   submittedAt: string; // date와 매핑
   userId: number; // userId
   username: string; // 실제 유저 아이디 (매핑 X)
-  phoneNum: string; // 전화번호
+  // phoneNum: string; // 전화번호
+  email: string; // 이메일 주소
 }
 
 export interface AdminVerificationListResponse {
