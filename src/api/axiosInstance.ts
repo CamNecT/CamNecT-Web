@@ -3,6 +3,8 @@ import { useAuthStore } from "../store/useAuthStore";
 import { handleCommunityError } from "./interceptors/communityError";
 import { clearClientSession } from "../utils/clearClientSession";
 import { getServerErrorCode } from "../utils/getServerErrorCode";
+import { refreshTokens } from "./refreshClient";
+import { REFRESHABLE_ACCESS_TOKEN_ERROR_CODES } from "../constants/serverErrors/tokenErrors";
 
 // Axios 인스턴스 (API 모듈화)
 export const axiosInstance = axios.create({
@@ -47,12 +49,40 @@ axiosInstance.interceptors.request.use(
     }
 );
 
+// 동시 401시에 1번의 RTR만 호출 (비동기 Lock)
+let refreshPromise: Promise<void> | null = null;
+
+// RTR 요청 함수 (성공 시 accessToken, refreshToken 갱신)
+const refreshAccessToken = (refreshToken: string) => {
+    // 이미 refresh요청 중
+    if (refreshPromise) {
+        return refreshPromise;
+    }
+
+    refreshPromise = refreshTokens({ refreshToken })
+        .then((response) => {
+            const { accessToken, refreshToken } = response.data;
+
+            // access, refreskToken 갱신
+            useAuthStore.getState().setTokens(
+                accessToken,
+                refreshToken
+            );
+        })
+        .finally(() => {
+            // refreshPromise명시적 초기화 (자동 초기화 X)
+            refreshPromise = null;
+        });
+    
+    return refreshPromise;
+}
+
 // Response Interceptor
 axiosInstance.interceptors.response.use(
     (response) => {
         return response;
     },
-    (error) => {
+    async (error) => {
         const status = error.response?.status;
         const authMode = error.config?.authMode ?? "access";
         const errorCode = getServerErrorCode(error);
@@ -66,6 +96,27 @@ axiosInstance.interceptors.response.use(
             }
             else if (authMode === "access" && errorCode !== "41101") {
                 // 41101(비밀번호 변경 API) : 비밀번호 불일치 오류 -> 로그인 만료 X
+
+                const originalRequest = error.config; // config : URL, HTTP method, header, body가 포함
+                const { refreshToken } = useAuthStore.getState();
+                
+                // refresh api 호출 조건
+                const shouldRefresh =
+                    originalRequest
+                    && errorCode
+                    && refreshToken
+                    && !originalRequest._retry
+                    && REFRESHABLE_ACCESS_TOKEN_ERROR_CODES.has(errorCode)
+                
+                if (shouldRefresh) {
+                    originalRequest._retry = true; // 해당 요청은 이미 재시도 중
+
+                    await refreshAccessToken(refreshToken);
+                    
+                    return axiosInstance(originalRequest); // API 재요청
+                }
+
+                // RTR 조건 불충족 시 클라이언트 세션 종료 (로그아웃)
                 clearClientSession();
             }
         }
