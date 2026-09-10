@@ -13,6 +13,12 @@ import { usePointStore } from '../../store/usePointStore';
 import { BottomBuy } from './components/BottomBuy';
 import { PurchaseBottomSheet } from './components/PurchaseBottomSheet';
 import { useGifticonErrorPopup } from './hooks/useGifticonErrorPopup';
+import {
+  calculateGifticonPurchasePoints,
+  hasEnoughGifticonPoints,
+  resolveGifticonPurchaseAttempt,
+  type GifticonPurchaseAttempt,
+} from './utils/gifticonPurchase';
 
 const formatPoint = (value: number) => value.toLocaleString('ko-KR');
 
@@ -45,7 +51,7 @@ export const ShopDetailPage = () => {
     rightButtonText: string;
   } | null>(null);
   const purchasePendingRef = useRef(false);
-  const purchaseAttemptRef = useRef<{ key: string; clientRequestId: string } | null>(null);
+  const purchaseAttemptRef = useRef<GifticonPurchaseAttempt | null>(null);
 
   useEffect(() => {
     if (gifticonProductQuery.isError) {
@@ -122,11 +128,11 @@ export const ShopDetailPage = () => {
     // mutation 상태가 렌더링되기 전 같은 tick에서 발생하는 연속 구매 요청도 차단합니다.
     if (purchasePendingRef.current || isPurchasePending) return;
 
-    const totalRequiredPoint = product.point * quantity;
+    const totalRequiredPoint = calculateGifticonPurchasePoints(product.point, quantity);
     const currentPoint = getPoint();
 
     // 포인트가 부족하면 구매 진행 중단 (최신 포인트 기준)
-    if (currentPoint < totalRequiredPoint) {
+    if (!hasEnoughGifticonPoints(currentPoint, totalRequiredPoint)) {
       setConfirmPopUpConfig(null);
       setPopUpConfig({
         title: '포인트가 부족해서 구매할 수 없어요',
@@ -136,13 +142,14 @@ export const ShopDetailPage = () => {
     }
 
     const recipientEmail = gifticonList?.email || undefined;
-    const purchaseKey = `${product.id}:${quantity}:${totalRequiredPoint}:${recipientEmail ?? ''}`;
-    if (purchaseAttemptRef.current?.key !== purchaseKey) {
-      purchaseAttemptRef.current = {
-        key: purchaseKey,
-        clientRequestId: crypto.randomUUID(),
-      };
-    }
+    purchaseAttemptRef.current = resolveGifticonPurchaseAttempt({
+      previousAttempt: purchaseAttemptRef.current,
+      productId: product.id,
+      quantity,
+      spendPoints: totalRequiredPoint,
+      recipientEmail,
+      createRequestId: () => crypto.randomUUID(),
+    });
 
     // 응답 유실 후 재시도에도 같은 ID를 사용해야 서버가 중복 포인트 차감을 막을 수 있습니다.
     const clientRequestId = purchaseAttemptRef.current.clientRequestId;

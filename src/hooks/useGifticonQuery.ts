@@ -1,19 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import type { GifticonProduct, GifticonPurchaseRequest } from "../api-types/gifticonApiTypes";
+import type { GifticonPurchaseRequest } from "../api-types/gifticonApiTypes";
 import { purchaseProduct, viewGifticonList, viewGifticonProduct } from "../api/gifticon";
+import { mapActiveGifticonProducts, mapGifticonProduct } from "../pages/shop/utils/gifticonProduct";
 import { useAuthStore } from "../store/useAuthStore";
 import { usePointStore } from "../store/usePointStore";
-
-// data.ts의 ShopItem 형식으로 매핑하는 헬퍼 함수
-const mapToShopItem = (product: GifticonProduct) => ({
-    id: product.productId,
-    company: product.brandName,
-    name: product.productName,
-    point: product.pricePoints,
-    imageUrl: product.imageUrl,
-    active: product.active,
-});
 
 // 기프티콘 리스트 조회
 export const useGifticonListQuery = () => {
@@ -29,9 +20,7 @@ export const useGifticonListQuery = () => {
             return {
                 myPoint: response.data.myPoint,
                 email: response.data.email,
-                shopItems: response.data.products
-                    .filter((product) => product.active)
-                    .map(mapToShopItem),
+                shopItems: mapActiveGifticonProducts(response.data.products),
                 lastSyncedAt: response.data.lastSyncedAt
             };
         },
@@ -58,7 +47,7 @@ export const useGifticonProductQuery = (productId: string | undefined) => {
             const response = await viewGifticonProduct({
                 productId: Number(productId)
             })
-            return mapToShopItem(response.data);
+            return mapGifticonProduct(response.data);
         },
         enabled: !!productId,
         staleTime: 60 * 60 * 10000
