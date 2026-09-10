@@ -68,7 +68,7 @@ export interface EmailVerificationRequest {
   username: string;
   password: string;
   name: string;
-  phoneNum: string;
+  // phoneNum: string;
   agreements: {
     serviceTerms: boolean;
     privacyTerms: boolean;

@@ -125,7 +125,7 @@ export const EmailVerificationStep = ({ onNext }: EmailVerificationStepProps) =>
                 // 서버에서 온 메시지가 있으면 그걸 보여주고, 없으면 기본 메시지 표시
                 setPopUpConfig({ 
                     title: "중복된 가입정보", 
-                    content: serverMessage || "이미 가입된 전화번호입니다." 
+                    content: serverMessage || "이미 가입된 회원입니다." 
                 });
             } else {
                 setPopUpConfig({ 
