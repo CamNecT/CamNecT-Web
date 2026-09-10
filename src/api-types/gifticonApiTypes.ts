@@ -44,7 +44,7 @@ export interface GifticonPurchaseRequest {
     spendPoints: number;
     clientRequestId: string;
     recipientName: string;
-    recipientPhone: string;
+    recipientEmail: string;
     giftMessage: string | null;
 }
 

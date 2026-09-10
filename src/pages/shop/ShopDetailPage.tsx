@@ -1,5 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { getSettingInfo } from '../../api/profileApi';
 import PopUp from '../../components/Pop-up';
 import { useGifticonProductQuery, useGifticonPurchaseMutation } from '../../hooks/useGifticonQuery';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
@@ -19,10 +21,15 @@ export const ShopDetailPage = () => {
   const { data: gifticonProduct } = useGifticonProductQuery(productId);
   const { mutate: purchaseProduct, isPending: isPurchasePending } = useGifticonPurchaseMutation();
   const product = gifticonProduct;
+  const userId = user?.id ? Number(user.id) : null;
+  const { data: settingInfoResponse } = useQuery({
+    queryKey: ['setting', userId],
+    queryFn: () => getSettingInfo(userId!),
+    enabled: !!userId,
+  });
 
-  // 전역 포인트 및 핸드폰 번호 (ShopPage 진입 시 gifticonList API에서 동기화됨)
+  // 포인트는 ShopPage 진입 시 gifticonList API에서 전역 스토어에 동기화됩니다.
   const point = usePointStore((state) => state.point);
-  const phoneNum = usePointStore((state) => state.phoneNum);
   const getPoint = usePointStore((state) => state.getPoint);
   
   // 구매 수량 및 구매 플로우 상태
@@ -76,6 +83,17 @@ export const ShopDetailPage = () => {
   const handleConfirmPurchase = () => {
     if (!user || !product) return;
 
+    const recipientEmail = settingInfoResponse?.data.email;
+    // 구매 API는 수신 이메일을 필수로 요구하므로, 환경설정 조회 전에는 요청을 보내지 않습니다.
+    if (!recipientEmail) {
+      setConfirmPopUpConfig(null);
+      setPopUpConfig({
+        title: '이메일 정보를 확인할 수 없어요',
+        content: '잠시 후 다시 시도해 주세요.',
+      });
+      return;
+    }
+
     const totalRequiredPoint = product.point * quantity;
     const currentPoint = getPoint();
 
@@ -96,7 +114,7 @@ export const ShopDetailPage = () => {
       spendPoints: totalRequiredPoint,
       clientRequestId: crypto.randomUUID(),
       recipientName: user.name || "사용자",
-      recipientPhone: phoneNum, // 전역 스토어에서 가져온 핸드폰 번호
+      recipientEmail,
       giftMessage: null,
     }, {
       onSuccess: () => {
