@@ -37,6 +37,13 @@ interface EducationModalProps {
 
 type View = 'list' | 'add' | 'edit';
 
+class EducationValidationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'EducationValidationError';
+    }
+}
+
 const STATUS_OPTIONS = Object.entries(EDUCATION_STATUS_KR).map(([value, label]) => ({
     value: value as EducationStatus,
     label
@@ -202,7 +209,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
 
             const verifyEducationSelection = async (education: EducationItem) => {
                 if (!education.institutionId || !education.campusId) {
-                    throw new Error('학교와 캠퍼스를 다시 선택해 주세요.');
+                    throw new EducationValidationError('학교와 캠퍼스를 다시 선택해 주세요.');
                 }
 
                 let request = institutionRequests.get(education.institutionId);
@@ -217,7 +224,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                 );
 
                 if (!campusExists) {
-                    throw new Error('선택한 학교와 캠퍼스 정보를 확인할 수 없습니다.');
+                    throw new EducationValidationError('선택한 학교와 캠퍼스 정보를 확인할 수 없습니다.');
                 }
             };
 
@@ -273,7 +280,9 @@ export default function EducationModal({ userId, educations, visibility, onClose
         },
         onError: (error) => {
             setSaveErrorMessage(
-                error instanceof Error ? error.message : '정보 저장에 실패했습니다.'
+                error instanceof EducationValidationError
+                    ? error.message
+                    : '정보 저장에 실패했습니다. 다시 시도해주세요.'
             );
         },
     });
