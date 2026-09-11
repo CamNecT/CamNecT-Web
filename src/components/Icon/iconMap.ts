@@ -48,6 +48,7 @@ const figmaIconNames = [
   "image",
   "link",
   "search",
+    "expand_more",
   "report",
   "add",
   "camera",
@@ -74,6 +75,7 @@ const figmaIconNames = [
   "settings",
   "send",
   "bell_notification",
+  "send_failed",
 ] as const;
 
 type FigmaIconName = (typeof figmaIconNames)[number];

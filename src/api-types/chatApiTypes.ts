@@ -37,6 +37,7 @@ export interface ChatRoomDetailRequest {
 export interface ChatMessageInfo {
     messageId: number;
     roomId: number;
+    clientMessageId: string | null;
     senderId: number;
     sender: string;
     receiverId: number;

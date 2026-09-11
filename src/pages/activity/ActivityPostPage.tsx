@@ -15,6 +15,8 @@ import { getTags, getActivityDetail, deleteActivity, toggleActivityBookmark, clo
 import { mapDetailToActivityPost } from './utils/activityMapper';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import ImagePopUp from '../../components/ImagePopUp';
+import ReportModal from '../../components/report/ReportModal';
+import { isAdminUserId } from '../../utils/admin';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -120,9 +122,10 @@ const ActivityPostContent = ({
   const [isOptionOpen, setIsOptionOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
   const [isCloseRecruitPopupOpen, setIsCloseRecruitPopupOpen] = useState(false);
-  const [isReportPopupOpen, setIsReportPopupOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const isAdminAuthor = isAdminUserId(selectedPost.author.id);
   
   //북마크 토글
   const bookmarkMutation = useMutation({
@@ -168,7 +171,9 @@ const ActivityPostContent = ({
         ]
       : [
           { id: 'copy-url', icon: 'link', label: 'URL 복사' },
-          { id: 'report-post', icon: 'report', label: '게시글 신고' },
+          ...(!isAdminAuthor
+            ? [{ id: 'report-post' as const, icon: 'report' as const, label: '게시글 신고' }]
+            : []),
         ];
 
   const handleOptionClick = async (item: OptionItem) => {
@@ -187,7 +192,7 @@ const ActivityPostContent = ({
         document.body.removeChild(textarea);
       }
     }
-    if (item.id === 'report-post') setIsReportPopupOpen(true);
+    if (item.id === 'report-post') setIsReportModalOpen(true);
     if (item.id === 'edit-post') navigate(`/activity/edit/${activityId}`, {replace:true});
     if (item.id === 'delete-post') setIsDeletePopupOpen(true);
     setIsOptionOpen(false);
@@ -247,7 +252,7 @@ const ActivityPostContent = ({
             <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
               <button
                 type='button'
-                disabled={isMine}
+                disabled={isMine || isAdminAuthor}
                 className='flex items-center text-left'
                 onClick={() =>
                   navigate(`/alumni/profile/${selectedPost.author.id}`, {
@@ -282,7 +287,7 @@ const ActivityPostContent = ({
                   </div>
                 </div>
               </button>
-              {!isMine && (<button
+              {!isMine && !isAdminAuthor && (<button
                 type='button'
                 className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
                 onClick={() =>
@@ -393,13 +398,16 @@ const ActivityPostContent = ({
         onRightClick={() => setIsDeletePopupOpen(false)}
       />
 
-      <PopUp
-        isOpen={isReportPopupOpen}
-        type='confirm'
-        title='현재 제작 중이에요!'
-        content='유저분들이 더 즐겁게 소통할 수 있도록\n꼼꼼히 준비해서 돌아올게요!'
-        onClick={() => setIsReportPopupOpen(false)}
-      />
+      {!isAdminAuthor && (
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={Number(selectedPost.author.id)}
+          reportedUserName={selectedPost.author.name}
+          reportedPostId={activityId}
+          postType="ACTIVITY"
+        />
+      )}
 
       <ImagePopUp
         isOpen={Boolean(selectedImageUrl)}

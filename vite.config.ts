@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
 
   server: {
+    port: 5173,
     host: true, // LAN의 다른 기기(모바일 실기기)에서 접속 가능하게 노출
 
     // [dev server proxy] 브라우저가 백엔드로 직접 요청 : 모바일 LAN 접속 시 CORS 에러 발생
@@ -33,5 +34,10 @@ export default defineConfig({
         ws: true, // WebSocket 프로토콜 업그레이드 프록시 지원
       },
     },
+  },
+
+  preview: {
+    port: 5173,
+    host: true,
   },
 })
