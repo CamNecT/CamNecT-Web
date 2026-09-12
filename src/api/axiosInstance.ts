@@ -80,17 +80,28 @@ export const refreshAccessToken = (refreshToken: string) => {
 
     refreshPromise = refreshTokens({ refreshToken })
         .then((response) => {
-            const { accessToken, refreshToken } = response.data;
+            const { accessToken, refreshToken: rotatedRefreshToken } = response.data;
+
+            // 갱신을 요청한 뒤 로그아웃·재로그인이 일어나면 store의 refreshToken이 달라진다.
+            // (로그아웃이면 null, 다른 계정이거나 같은 계정 재로그인이어도 새 값)
+            // 늦게 도착한 응답으로 이미 끝난 세션의 토큰을 되살리지 않는다.
+            if (useAuthStore.getState().refreshToken !== refreshToken) {
+                return;
+            }
 
             // access, refreskToken 갱신
             useAuthStore.getState().setTokens(
                 accessToken,
-                refreshToken
+                rotatedRefreshToken
             );
         })
         // catch : refresh api 호출 실패 시 원인별 처리
         .catch((refreshError: unknown) => {
-            if (axios.isAxiosError(refreshError)) {
+            // 갱신을 시작한 세션이 이미 끝났다면 현재 세션을 로그아웃시키지 않는다
+            const isSameSession =
+                useAuthStore.getState().refreshToken === refreshToken;
+
+            if (isSameSession && axios.isAxiosError(refreshError)) {
                 const status = refreshError.response?.status;
                 const errorCode = getServerErrorCode(refreshError);
 
