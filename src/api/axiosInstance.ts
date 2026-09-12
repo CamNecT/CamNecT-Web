@@ -22,9 +22,28 @@ axiosInstance.interceptors.request.use(
         const authMode = config.authMode ?? "access"; // 기본 : access
         const { accessToken, signupToken } = useAuthStore.getState();
 
-        const token = authMode === "signup" ? signupToken ?? accessToken // 회원가입 중 재 로그인 시 accessToken 사용
-            : authMode === "access" ? accessToken
-            : null; // token필요없는 API
+        // 어떤 토큰을 붙였는지 함께 기록한다.
+        // authMode "signup"이라도 signupToken이 없으면 정식 accessToken으로 폴백하므로
+        // (ACTIVE + ONBOARDING_REQUIRED처럼 정식 세션으로 가입 단계를 이어가는 경우)
+        // 401 처리에서 화면 종류가 아닌 실제 토큰 종류를 봐야 갱신 가능한 세션을 놓치지 않는다
+        let token: string | null = null;
+        let tokenKind: "temp" | "access" | null = null;
+
+        if (authMode === "signup") {
+            if (signupToken) {
+                token = signupToken;
+                tokenKind = "temp"; // 가입용 임시 토큰 (RTR 대상 아님)
+            } else if (accessToken) {
+                token = accessToken;
+                tokenKind = "access"; // 회원가입 중 재로그인 등으로 정식 세션만 보유
+            }
+        } else if (authMode === "access") {
+            token = accessToken;
+            tokenKind = accessToken ? "access" : null;
+        }
+        // authMode "none" : 토큰 불필요
+
+        config.tokenKind = tokenKind;
 
         if (authMode === "signup" && !token) {
             throw new AxiosError(
@@ -111,18 +130,20 @@ axiosInstance.interceptors.response.use(
     },
     async (error) => {
         const status = error.response?.status;
-        const authMode = error.config?.authMode ?? "access";
+        const tokenKind = error.config?.tokenKind ?? null;
         const errorCode = getServerErrorCode(error);
 
-        // access 요청의 Unauthorized만 정식 로그인 세션 만료로 처리
-        // signup/none 요청은 Refresh 대상이 아니므로 각 호출부에서 오류를 처리함
+        // 실제로 보낸 토큰 종류로 만료 처리를 나눈다
+        // temp : 가입용 임시 토큰이므로 RTR 대상이 아님 (호출부에서 오류를 처리)
+        // access : 가입 화면에서 보낸 요청이라도 정식 세션이므로 RTR 대상
+        // null : 붙인 토큰이 없어 401로 세션 상태를 판단할 수 없음 (그대로 호출부에 전달)
         if (status === 401) {
-            if (authMode === "signup") {
+            if (tokenKind === "temp") {
                 // 회원가입 임시 토큰 오류 -> signupToken만 제거
                 useAuthStore.getState().clearSignupToken();
             }
             // 41101(비밀번호 변경 API) : 비밀번호 불일치 오류 -> 로그인 만료 X
-            else if (authMode === "access" && errorCode !== "41101") {
+            else if (tokenKind === "access" && errorCode !== "41101") {
 
                 const originalRequest = error.config; // config : URL, HTTP method, header, body가 포함
                 const { refreshToken } = useAuthStore.getState();
