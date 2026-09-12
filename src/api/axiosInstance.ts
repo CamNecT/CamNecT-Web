@@ -69,6 +69,13 @@ axiosInstance.interceptors.request.use(
 );
 
 // 동시 401시에 1번의 RTR만 호출 (비동기 Lock)
+// todo 이 Lock은 탭 하나 안에서만 동작한다.
+// 탭을 여러 개 띄운 상태에서 accessToken이 만료되면 각 탭이 같은 refreshToken으로
+// 동시에 갱신을 요청해 서버의 재사용 검출에 걸리고, 실패한 탭이 로그아웃된다.
+// 아래 세션 비교(보낸 refreshToken vs store 값)로도 막을 수 없다.
+// zustand persist가 다른 탭의 localStorage 변경을 메모리 상태에 반영하지 않아
+// 실패한 탭 입장에서는 세션이 그대로인 것으로 보이기 때문이다.
+// 해결하려면 탭 간 잠금(Web Locks API 등)과 갱신 결과 공유(BroadcastChannel 등)가 필요하다.
 let refreshPromise: Promise<void> | null = null;
 
 // RTR 요청 함수 (성공 시 accessToken, refreshToken 갱신)
