@@ -35,6 +35,7 @@ type ReportModalProps = {
     reportedPostId: number | null;
     postType: TargetType;
     onSubmitted?: () => void; // 제출 성공 후 콜백
+    showDefaultSuccessPopup?: boolean; // 특정 도메인마다 다른 팝업을 사용할 수 있어서 추가
 };
 
 const ReportModal = ({
@@ -45,6 +46,7 @@ const ReportModal = ({
     reportedPostId,
     postType,
     onSubmitted,
+    showDefaultSuccessPopup = true,
 }: ReportModalProps) => {
     const authUser = useAuthStore((state) => state.user);
     const reporterId = authUser?.id ? Number(authUser.id) : null;
@@ -169,6 +171,13 @@ const ReportModal = ({
             });
         },
         onSuccess: (res) => {
+            if (!showDefaultSuccessPopup) {
+                resetForm();
+                onClose();
+                onSubmitted?.();
+                return;
+            }
+
             setSuccessMessage(res.data.message || '관리자 검토 후 조치 예정입니다.');
             setIsSuccessPopupOpen(true);
         },

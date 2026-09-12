@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { requestProfilePresign } from "../../api/auth";
+import { requestSignupProfilePresign } from "../../api/auth";
 import Button from "../../components/Button";
 import ButtonWhite from "../../components/ButtonWhite";
 import Icon from "../../components/Icon";
@@ -70,7 +70,7 @@ export const ProfileStep = ({ onNext }: ProfileStepProps) => {
   };
 
   const presignMutation = useMutation({
-    mutationFn: requestProfilePresign
+    mutationFn: requestSignupProfilePresign
   })
 
   // 다음 버튼 클릭

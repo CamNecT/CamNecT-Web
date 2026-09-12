@@ -29,7 +29,11 @@ export const PurchaseBottomSheet = ({
   const remainingPoint = Math.max(0, myPoint - deductedPoint);
 
   return (
-    <BottomSheetModal isOpen={isOpen} onClose={onClose} bottomOffset={bottomOffset}>
+    <BottomSheetModal
+      isOpen={isOpen}
+      onClose={onClose}
+      bottomOffset={bottomOffset}
+    >
       {/* 수량 체크 + 가격 확인 영역 */}
       <div className='flex flex-col gap-[30px] px-[25px] pb-[50px] pt-[35px]'>
         <div className='px-[3px]'><QuantitySelector value={quantity} onDecrease={onDecrease} onIncrease={onIncrease} /></div>
