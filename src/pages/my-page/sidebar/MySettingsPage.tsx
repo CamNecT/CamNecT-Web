@@ -113,11 +113,11 @@ export const MySettingsPage = () => {
                             <span className="text-sb-18 text-gray-900">{userSetting.name}</span>
                             <div className="flex gap-[15px]">
                                 <div className="min-w-[56px] flex flex-col gap-[5px] text-m-16-hn text-gray-650">
-                                    <span>전화번호</span>
+                                    {/* <span>전화번호</span> */}
                                     <span>이메일</span>
                                 </div>
                                 <div className="w-full min-w-0 flex flex-col gap-[5px] text-m-16-hn text-gray-750 ">
-                                    <span>{userSetting.phoneNum}</span>
+                                    {/* <span>{userSetting.phoneNum}</span> */}
                                     <div className="w-full min-w-0 break-all whitespace-normal">{userSetting.email}</div>
                                 </div>
                             </div>

@@ -76,7 +76,8 @@ const BottomSheetModal = ({
                         style={{
                             height: height,
                             borderRadius: "20px 20px 0 0",
-                            boxShadow: "0 -4px 10px rgba(0,0,0,0.1)",
+                            // 음수 spread로 그림자가 하단에 번지지 않고 상단에만 보이도록 제한합니다.
+                            boxShadow: "0 -4px 10px -6px rgba(0,0,0,0.1)",
                             marginBottom: bottomOffset,
                         }}
                         onClick={(e) => e.stopPropagation()}
