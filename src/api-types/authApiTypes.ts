@@ -7,6 +7,11 @@ export interface LoginRequest {
 
 export type UserRole = 'USER' | 'ADMIN';
 
+// 로그인 응답의 계정 상태
+// ADMIN_PENDING : 관리자 승인 전 (accessToken 자리에 가입용 VERIFICATION 토큰, refreshToken은 null)
+// ACTIVE        : 정식 세션 (Redis 세션의 access/refresh 토큰)
+export type LoginAccountStatusType = 'ADMIN_PENDING' | 'ACTIVE';
+
 export type NextStepType = 
   | 'HOME'
   | 'DOCUMENT_REQUIRED'
@@ -17,12 +22,12 @@ export type NextStepType =
 
 export interface LoginResponse {
   tokenType: string;
-  accessToken: string;
-  refreshToken: string;
+  accessToken: string; // ADMIN_PENDING에서는 가입용 VERIFICATION 토큰이 내려옴
+  refreshToken: string | null; // ADMIN_PENDING에서는 null
   accessTokenExpiresInMs: number;
   refreshTokenExpiresInMs: number;
   userId: number;
-  status: string;
+  status: LoginAccountStatusType;
   role: UserRole;
   nextStep: NextStepType;
 }
