@@ -24,6 +24,9 @@ export interface UserProfile extends User {
 export interface EducationItem {
   id: string;
   school: string;
+  institutionId?: number;
+  campusId?: number | null;
+  campusName?: string | null;
   status: EducationStatus;
   startYear: number;
   endYear?: number;

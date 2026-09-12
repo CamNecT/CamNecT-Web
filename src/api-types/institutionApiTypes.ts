@@ -20,12 +20,22 @@ export interface MajorRequest {
 
 // ===== 대학 관련 타입 =====
 
+export interface Campus {
+  campusId: number;
+  campusName: string;
+  fullCampusName: string;
+  campusRelation: string;
+  campusOrder: number;
+  region: string;
+}
+
 // 대학 정보
 export interface Institution {
   id: number;
   code: string;
   nameKor: string;
   nameEng: string;
+  campuses: Campus[];
 }
 
 // 대학 검색 요청
