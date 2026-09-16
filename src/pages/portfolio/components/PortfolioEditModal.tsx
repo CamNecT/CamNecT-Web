@@ -195,7 +195,7 @@ export default function PortfolioEditModal({
         setEndMonth(endM);
 
         setRole(portfolioData.assignedRole[0] || '');
-        setSkills(portfolioData.techStack[0] || '');
+        setSkills(portfolioData.techStack.join(', '));
         setProblemSolution(portfolioData.review || '');
 
         // 썸네일
@@ -225,7 +225,7 @@ export default function PortfolioEditModal({
             title: portfolioData.title,
             content: portfolioData.description,
             role: portfolioData.assignedRole[0] || '',
-            skills: portfolioData.techStack[0] || '',
+            skills: portfolioData.techStack.join(', '),
             problemSolution: portfolioData.review || '',
             thumbnailImage: thumbnail,
             attachmentFiles: attachments,
