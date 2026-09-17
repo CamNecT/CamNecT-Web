@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { isStandalone } from '../../utils/isStandalone';
 
 type BottomSheetModalProps = {
     isOpen: boolean;
@@ -16,37 +18,72 @@ const BottomSheetModal = ({
     bottomOffset = 0,
     children,
 }: BottomSheetModalProps) => {
-    const scrollYRef = useRef(0);
-    // 모달이 열려있을 때 body 스크롤 방지 (브라우저 스크롤 막기)
-    useEffect(() => {
-        if (isOpen) {
-            scrollYRef.current = window.scrollY;
-            document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${scrollYRef.current}px`;
-            document.body.style.width = '100%';
-        } else {
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            window.scrollTo(0, scrollYRef.current);
-        }
-        return () => {
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            if (scrollYRef.current) {
-                window.scrollTo(0, scrollYRef.current);
-            }
-        };
-    }, [isOpen]);
+    // iOS Chrome 일반 탭에서만 하단 툴바가 사라진 뒤 fixed 위치가 어긋나는 WebKit 오류를 우회
+    const needsIOSChromeWorkaround = typeof window !== 'undefined'
+        && /CriOS/i.test(window.navigator.userAgent)
+        && !isStandalone();
 
-    return (
+    // 모달이 열려 있는 동안 뒤쪽 페이지의 스크롤을 잠금
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // iOS Chrome은 body에 fixed를 적용하지 않고 루트 스크롤만 잠가 fixed 오류를 피함
+        if (needsIOSChromeWorkaround) {
+            const root = document.documentElement;
+            const previousRootOverflow = root.style.overflow;
+            const previousRootOverscroll = root.style.overscrollBehavior;
+            const previousBodyOverflow = document.body.style.overflow;
+            const previousBodyOverscroll = document.body.style.overscrollBehavior;
+
+            root.style.overflow = 'hidden';
+            root.style.overscrollBehavior = 'none';
+            document.body.style.overflow = 'hidden';
+            document.body.style.overscrollBehavior = 'none';
+
+            return () => {
+                root.style.overflow = previousRootOverflow;
+                root.style.overscrollBehavior = previousRootOverscroll;
+                document.body.style.overflow = previousBodyOverflow;
+                document.body.style.overscrollBehavior = previousBodyOverscroll;
+            };
+        }
+
+        // Safari, PWA와 그 외 브라우저는 기존 방식으로 현재 스크롤 위치를 고정
+        const scrollY = window.scrollY;
+        const previousBodyOverflow = document.body.style.overflow;
+        const previousBodyPosition = document.body.style.position;
+        const previousBodyTop = document.body.style.top;
+        const previousBodyWidth = document.body.style.width;
+
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+
+        return () => {
+            document.body.style.overflow = previousBodyOverflow;
+            document.body.style.position = previousBodyPosition;
+            document.body.style.top = previousBodyTop;
+            document.body.style.width = previousBodyWidth;
+            window.scrollTo(0, scrollY);
+        };
+    }, [isOpen, needsIOSChromeWorkaround]);
+
+    // iOS Chrome의 absolute 프레임이 현재 보이는 화면 상단에서 시작할 문서 위치를 계산
+    const viewportTop = typeof window === 'undefined'
+        ? 0
+        : (window.visualViewport?.pageTop ?? window.scrollY);
+
+    const modal = (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[1001] flex items-end justify-center pointer-events-none">
+                <div
+                    className={needsIOSChromeWorkaround
+                        ? "absolute left-0 z-[1001] flex h-[100dvh] w-full items-end justify-center pointer-events-none"
+                        : "fixed inset-0 z-[1001] flex items-end justify-center pointer-events-none"
+                    }
+                    style={needsIOSChromeWorkaround ? { top: viewportTop } : undefined}
+                >
                     {/* 배경 어둡게 처리 (단순 투명도 조절) */}
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -96,6 +133,11 @@ const BottomSheetModal = ({
             )}
         </AnimatePresence>
     );
+
+    // 문제가 있는 iOS Chrome에서만 상위 레이아웃 영향을 피하도록 body에 직접 렌더링
+    return needsIOSChromeWorkaround && typeof document !== 'undefined'
+        ? createPortal(modal, document.body)
+        : modal;
 };
 
 export default BottomSheetModal;
