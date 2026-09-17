@@ -174,7 +174,10 @@ export const WritePage = () => {
         if (Array.from(title).some(isControlCharacter)) nextErrors.title = '제목에는 줄바꿈이나 제어문자를 사용할 수 없습니다.';
         if (!content.trim()) nextErrors.content = '본문을 입력해 주세요.';
         if (content.length > MAX_CONTENT_LENGTH) nextErrors.content = `본문은 ${MAX_CONTENT_LENGTH.toLocaleString()}자 이하로 입력해 주세요.`;
-        if (selectedTags.length > 5 || new Set(selectedTags).size !== selectedTags.length) {
+        // 목록에 태그 없는 새 글이 생기지 않도록 등록 시 최소 한 개를 요구한다.
+        if (!isEditMode && selectedTags.length === 0) {
+            nextErrors.tagIds = '태그를 최소 1개 이상 선택해 주세요.';
+        } else if (selectedTags.length > 5 || new Set(selectedTags).size !== selectedTags.length) {
             nextErrors.tagIds = '태그는 중복 없이 최대 5개까지 선택할 수 있습니다.';
         }
         if (existingAttachments.length + newAttachments.length > MAX_ATTACHMENTS) {
@@ -431,6 +434,10 @@ export const WritePage = () => {
             return;
         }
         if (isSubmitting) return;
+        if (!validateForm()) {
+            setIsConfirmOpen(false);
+            return;
+        }
         const numericUserId = Number(userId);
         if (!Number.isInteger(numericUserId) || numericUserId < 1) {
             console.warn('로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.');
@@ -727,7 +734,7 @@ export const WritePage = () => {
                             }
                         />
                         {fieldErrors.tagIds ? (
-                            <span className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
+                            <span role='alert' className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
                                 {fieldErrors.tagIds}
                             </span>
                         ) : null}
@@ -928,11 +935,12 @@ export const WritePage = () => {
 
             {/* 게시판 선택 모달 */}
             {!isEditMode && (
-                <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)} height='235px'>
+                <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)}>
                     <div
                         className='flex w-full flex-col'
                         style={{
-                            padding: '10px 24px 56px',
+                            // 화면 하단을 덮는 모달이라 내비게이션 높이는 더하지 않는다. 여백 50px이 홈 인디케이터보다 크므로 max로 겹쳐 쓴다.
+                            padding: '10px 24px max(50px, env(safe-area-inset-bottom, 0px))',
                             background: 'var(--Color_Gray_B, #FCFCFC)',
                             gap: '20px',
                         }}
@@ -999,6 +1007,7 @@ export const WritePage = () => {
                 onClose={() => setIsFilterOpen(false)}
                 onSave={(next) => {
                     setSelectedTags(next);
+                    setFieldErrors((previous) => ({ ...previous, tagIds: '' }));
                     setIsFilterOpen(false);
                 }}
                 categories={filterCategories}

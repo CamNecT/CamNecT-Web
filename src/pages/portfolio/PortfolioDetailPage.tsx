@@ -338,7 +338,7 @@ export const PortfolioDetailPage = ({
                         onClose={() => setIsMenuOpen(false)}
                         height="auto"
                     >
-                        <div className="px-[25px] pb-[40px]">
+                        <div className="px-[25px] pb-[max(50px,env(safe-area-inset-bottom,0px))]">
                             {/* 프로젝트 수정 */}
                             <button
                                 onClick={() => {setIsMenuOpen(false); setIsModalOpen(true);}}
