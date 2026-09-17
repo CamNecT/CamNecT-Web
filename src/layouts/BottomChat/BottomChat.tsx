@@ -81,9 +81,10 @@ export const BottomChat = ({
 
   const bottomOffset = isFocused ? keyboardOffset : 0;
 
+  // 하단 안전 영역은 내부 입력 행에서 확보하므로 외곽에 고정 여백을 중복하지 않는다.
   return (
     <div
-      className='fixed left-0 right-0 z-50 bg-white pb-[40px]'
+      className='fixed left-0 right-0 z-50 bg-white'
       style={{ bottom: bottomOffset }}
     >
       <div
