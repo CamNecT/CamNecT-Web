@@ -394,7 +394,7 @@ export const ExternalActivityPostPage = () => {
 
 
         <BottomSheetModal isOpen={isOptionOpen} onClose={() => setIsOptionOpen(false)} height='auto'>
-            <div className='flex flex-col px-[clamp(16px,6vw,25px)] pt-[15px] pb-[25px]'>
+            <div className='flex flex-col px-[clamp(16px,6vw,25px)] pt-[15px] pb-[max(50px,env(safe-area-inset-bottom,0px))]'>
             <div className='flex flex-col divide-y divide-[var(--ColorGray1,#ECECEC)]'>
                 {optionItems.map((item) => (
                 <button

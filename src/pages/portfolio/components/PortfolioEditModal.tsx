@@ -556,7 +556,7 @@ export default function PortfolioEditModal({
                     }
                 >
 
-                    <div className="w-full max-w-screen-sm h-dvh bg-white animate-slide-up flex flex-col pb-[50px]">
+                    <div className="w-full max-w-screen-sm flex-1 min-h-0 bg-white animate-slide-up flex flex-col">
                         {/* 로딩 오버레이 */}
                         {(isLoadingDetail  || isSaving) && (
                             <div className="absolute inset-0 z-50">
@@ -1011,7 +1011,7 @@ export default function PortfolioEditModal({
                     onClose={() => setIsFileAddModalOpen(false)} 
                     height="auto"
                 >
-                    <div className="px-[25px] pt-[20px] pb-[40px]">
+                    <div className="px-[25px] pt-[20px] pb-[max(50px,env(safe-area-inset-bottom,0px))]">
                         <div className="flex flex-col">
                             {/* 사진 */}
                             <button

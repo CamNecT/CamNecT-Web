@@ -81,14 +81,15 @@ export const BottomChat = ({
 
   const bottomOffset = isFocused ? keyboardOffset : 0;
 
+  // 하단 안전 영역은 내부 입력 행에서 확보하므로 외곽에 고정 여백을 중복하지 않는다.
   return (
     <div
-      className='fixed left-0 right-0 z-50 bg-white pb-[40px]'
+      className='fixed left-0 right-0 z-50 bg-white'
       style={{ bottom: bottomOffset }}
     >
       <div
         className='mx-auto flex w-full max-w-[720px] items-center gap-[clamp(8px,2.2vw,10px)] px-[clamp(16px,6vw,25px)] py-[6px] box-border'
-        style={{ paddingBottom: 'calc(6px + env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'calc(15px + env(safe-area-inset-bottom))' }}
       >
         <div className='flex min-w-0 flex-1 flex-col gap-[6px]'>
           {replyTargetName ? (
