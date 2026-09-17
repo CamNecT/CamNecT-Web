@@ -935,11 +935,12 @@ export const WritePage = () => {
 
             {/* 게시판 선택 모달 */}
             {!isEditMode && (
-                <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)} height='235px'>
+                <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)}>
                     <div
                         className='flex w-full flex-col'
                         style={{
-                            padding: '10px 24px 56px',
+                            // 화면 하단을 덮는 모달이라 내비게이션 높이는 더하지 않는다. 여백 50px이 홈 인디케이터보다 크므로 max로 겹쳐 쓴다.
+                            padding: '10px 24px max(50px, env(safe-area-inset-bottom, 0px))',
                             background: 'var(--Color_Gray_B, #FCFCFC)',
                             gap: '20px',
                         }}

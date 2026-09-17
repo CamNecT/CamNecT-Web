@@ -1011,7 +1011,7 @@ export default function PortfolioEditModal({
                     onClose={() => setIsFileAddModalOpen(false)} 
                     height="auto"
                 >
-                    <div className="px-[25px] pt-[20px] pb-[40px]">
+                    <div className="px-[25px] pt-[20px] pb-[max(50px,env(safe-area-inset-bottom,0px))]">
                         <div className="flex flex-col">
                             {/* 사진 */}
                             <button
