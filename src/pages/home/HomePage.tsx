@@ -234,9 +234,22 @@ export const HomePage = () => {
                         coffeeChatCount={homeViewModel.coffeeChatTotalCount}
                         teamRecruitCount={homeViewModel.recruitmentTotalCount}
                         onViewAll={() => navigate('/chat')}
-                        // 각 요청 요약 항목은 요청 페이지의 해당 탭을 초기 선택한 뒤 URL 쿼리를 제거합니다.
-                        onSelectCoffeeChat={() => navigate('/chat/requests?type=COFFEE_CHAT')}
-                        onSelectTeamRecruit={() => navigate('/chat/requests?type=TEAM_RECRUIT')}
+                        // 요청이 없을 때는 새 요청을 시작할 수 있는 탐색 화면으로 안내하고,
+                        // 요청이 있으면 요청 목록의 해당 탭으로 이동합니다.
+                        onSelectCoffeeChat={() =>
+                            navigate(
+                                homeViewModel.coffeeChatTotalCount === 0
+                                    ? '/alumni'
+                                    : '/chat/requests?type=COFFEE_CHAT',
+                            )
+                        }
+                        onSelectTeamRecruit={() =>
+                            navigate(
+                                homeViewModel.recruitmentTotalCount === 0
+                                    ? '/activity?tab=external'
+                                    : '/chat/requests?type=TEAM_RECRUIT',
+                            )
+                        }
                     />
                     {/* 1-2: 일정 박스 + 포인트/커뮤니티 박스 */}
                     <div className="flex w-full flex-col gap-[15px]">

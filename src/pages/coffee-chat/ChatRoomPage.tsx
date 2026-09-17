@@ -71,6 +71,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         title: string;
         content: string;
         leftButtonText: string;
+        rightButtonText?: string;
         onConfirm: () => void;
     } | null>(null);
 
@@ -391,6 +392,22 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const handleReportChat = () => {
         setIsMenuOpen(false);
         setIsReportModalOpen(true);
+    }
+
+    // 신고 접수 후 사용자가 원할 때 바로 채팅을 종료할 수 있도록 안내
+    const handleReportSubmitted = () => {
+        setConfirmPopUpConfig({
+            title: "신고 처리가 완료되었습니다",
+            content: "채팅을 종료하시겠습니까?",
+            leftButtonText: "종료하기",
+            onConfirm: () => {
+                endChat({ roomId }, {
+                    onSuccess: () => {
+                        setConfirmPopUpConfig(null);
+                    }
+                });
+            }
+        });
     }
 
     return (
@@ -786,6 +803,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     title={confirmPopUpConfig.title}
                     content={confirmPopUpConfig.content}
                     leftButtonText={confirmPopUpConfig.leftButtonText}
+                    rightButtonText={confirmPopUpConfig.rightButtonText}
                     onLeftClick={confirmPopUpConfig.onConfirm}
                     onRightClick={() => setConfirmPopUpConfig(null)}
                 />
@@ -799,6 +817,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     reportedUserName={roomInfo.name}
                     reportedPostId={Number(roomId)}
                     postType="CHAT"
+                    showDefaultSuccessPopup={false}
+                    onSubmitted={handleReportSubmitted}
                 />
             )}
 

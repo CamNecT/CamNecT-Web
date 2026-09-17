@@ -60,8 +60,9 @@ export const ActivityPage = () => {
                     setIsSearchOpen(false);
                   }}
                   aria-label='검색 닫기'
+                  className='flex h-[28px] w-[28px] shrink-0 items-center justify-center'
                 >
-                  <Icon name='search' className='h-[28px] w-[28px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
+                  <Icon name='search' className='h-[24px] w-[24px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
                 </button>
                 <input
                   type='text'
@@ -71,6 +72,21 @@ export const ActivityPage = () => {
                   placeholder='제목 검색'
                   className='flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchOpen(false);
+                  }}
+                  aria-label='검색 닫기'
+                  className='flex h-[24px] w-[24px] shrink-0 items-center justify-center'
+                >
+                  <Icon
+                    name='x'
+                    className='h-[24px] w-[24px]'
+                    style={{ color: 'var(--ColorGray4,#A1A1A1)' }}
+                  />
+                </button>
               </div>
             </div>
           ) : (

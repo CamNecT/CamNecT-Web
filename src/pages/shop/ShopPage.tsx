@@ -6,6 +6,8 @@ import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { usePointStore } from '../../store/usePointStore';
 import { useGifticonListQuery } from '../../hooks/useGifticonQuery';
+import PopUp from '../../components/Pop-up';
+import { useGifticonErrorPopup } from './hooks/useGifticonErrorPopup';
 
 const formatPoint = (value: number) => value.toLocaleString('ko-KR');
 
@@ -14,7 +16,8 @@ export const ShopPage = () => {
   const navigate = useNavigate();
   const { isOpen: isToastOpen, isFading: isToastFading, openToast } = useToast();
 
-  const { data: gifticonList} = useGifticonListQuery();
+  const { data: gifticonList, isLoading, isError, error, refetch } = useGifticonListQuery();
+  const { errorPopup, showGifticonError, closeGifticonError } = useGifticonErrorPopup();
   const shopItems = gifticonList?.shopItems ?? [];
 
   // 전역 포인트 표시
@@ -29,6 +32,10 @@ export const ShopPage = () => {
     openToast();
     navigate('/shop', { replace: true, state: {} });
   }, [purchaseSuccess, navigate, openToast]);
+
+  useEffect(() => {
+    if (isError) showGifticonError(error, 'home');
+  }, [error, isError, showGifticonError]);
 
   return (
     <HeaderLayout
@@ -76,6 +83,20 @@ export const ShopPage = () => {
         isFading={isToastFading}
         message='구매성공! 내역을 확인해보세요'
       />
+      <PopUp isOpen={isLoading} type='loading' />
+      {errorPopup && (
+        <PopUp
+          isOpen={true}
+          type='error'
+          title={errorPopup.title}
+          content={errorPopup.content}
+          buttonText='다시 시도'
+          onClick={() => {
+            closeGifticonError();
+            void refetch();
+          }}
+        />
+      )}
     </HeaderLayout>
   );
 };

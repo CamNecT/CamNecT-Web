@@ -12,12 +12,13 @@ const mapToShopItem = (product: GifticonProduct) => ({
     name: product.productName,
     point: product.pricePoints,
     imageUrl: product.imageUrl,
+    active: product.active,
 });
 
 // 기프티콘 리스트 조회
 export const useGifticonListQuery = () => {
     const {user} = useAuthStore();
-    const { setPoint, setPhoneNum } = usePointStore();
+    const setPoint = usePointStore((state) => state.setPoint);
     
     const query = useQuery({
         queryKey: ['gifticonList', user?.id],
@@ -27,24 +28,23 @@ export const useGifticonListQuery = () => {
             })
             return {
                 myPoint: response.data.myPoint,
-                phoneNum: response.data.phoneNum,
-                shopItems: response.data.products.map(mapToShopItem),
+                email: response.data.email,
+                shopItems: response.data.products
+                    .filter((product) => product.active)
+                    .map(mapToShopItem),
                 lastSyncedAt: response.data.lastSyncedAt
             };
         },
         enabled: !!user?.id,
-        staleTime: 60 * 60 * 10000
+        staleTime: 30 * 1000
     })
 
-    // API에서 가져온 데이터(포인트, 핸드폰번호)를 전역 스토어에 동기화
+    // 구매 가능 금액 판단과 홈 포인트 표시가 같은 값을 사용하도록 서버 포인트를 동기화합니다.
     useEffect(() => {
         if (query.data?.myPoint !== undefined) {
             setPoint(query.data.myPoint);
         }
-        if (query.data?.phoneNum) {
-            setPhoneNum(query.data.phoneNum);
-        }
-    }, [query.data?.myPoint, query.data?.phoneNum, setPoint, setPhoneNum]);
+    }, [query.data?.myPoint, setPoint]);
 
     return query;
 }

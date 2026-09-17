@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { viewChatRequestList } from "../../api/chat";
 import PopUp from "../../components/Pop-up";
 import { useChatRequestRespond, useChatRequestRoom } from "../../hooks/useChatQuery";
 import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
+import { useAuthStore } from "../../store/useAuthStore";
+import type { ChatRoomListItemType } from "../../types/coffee-chat/coffeeChatTypes";
 import { ChatRequestButton } from "./components/ChatRequestButton";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
 
 export const ChatRequestRoomPage = () => {
     const { id } = useParams<{ id: string }>();
     const { data: requestInfo, isLoading } = useChatRequestRoom(id || "");
+    const userId = useAuthStore((state) => state.user?.id);
 
     const navigate = useNavigate();
 
@@ -26,13 +30,33 @@ export const ChatRequestRoomPage = () => {
 
     const { mutate: respondRequest } = useChatRequestRespond();
     const handleAcceptChatRequestConfirm = () => {
-        if (!id) return;
+        if (!id || !requestInfo) return;
         respondRequest(
             { requestId: Number(id), isAccepted: true },
             {
-                onSuccess: () => {
+                onSuccess: async () => {
                     setIsAcceptPopUpOpen(false);
-                    navigate(`/chat/requests`, { replace: true });
+
+                    const requestType = requestInfo.requestInfo.type as ChatRoomListItemType;
+                    const requestListPath = `/chat/requests?type=${requestType}`;
+
+                    try {
+                        // 수락한 요청과 같은 타입의 전체 요청을 다시 조회
+                        const response = await viewChatRequestList({
+                            userId: Number(userId),
+                            type: requestType
+                        });
+                        const hasRemainingRequest = response.data.chatRequestList.length > 0;
+                        const nextPath = hasRemainingRequest
+                            ? requestListPath
+                            : '/chat';
+
+                        navigate(nextPath, { replace: true });
+                    } catch (error) {
+                        // 목록 재조회 실패 시 기존 요청 목록 화면으로 이동
+                        console.error('Failed to check remaining chat requests:', error);
+                        navigate(requestListPath, { replace: true });
+                    }
                 }
             }
         );

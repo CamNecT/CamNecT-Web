@@ -1,7 +1,29 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { AuthState } from "../types/auth/authTypes";
+import type { NextStepType, UserRole } from "../api-types/authApiTypes";
 import { useChatStore } from "./useChatStore";
+
+
+export type AuthUser = {
+    id: string;
+    name?: string;
+    role?: UserRole;
+    nextStep?: NextStepType;
+};
+
+export interface AuthState {
+    accessToken: string | null;
+    refreshToken: string | null;
+    signupToken: string | null;
+    isAuthenticated: boolean;
+    user: AuthUser | null;
+    setUserLogin: (accessToken: string, refreshToken: string, user: AuthUser) => void;
+    setTokens: (accessToken: string, refreshToken: string) => void;
+    setSignupLogin: (signupToken: string, user: AuthUser) => void;
+    clearSignupToken: () => void;
+    setLogout: () => void;
+    setUserId: (userId: string) => void;
+}
 
 // 앱 전체에서 사용하는 로그인 상태 관리
 
@@ -11,14 +33,34 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             accessToken: null,
+            refreshToken: null, // accessToken 만료 시 재발급(/api/auth/refresh)에 사용
+            signupToken: null, // 회원가입 이메일 인증 이후에 발급되는 임시토큰
             isAuthenticated: false,
             user: null,
             
-            setLogin: (accessToken, user) => set({
-                accessToken: accessToken,
+            setUserLogin: (accessToken, refreshToken, user) => set({
+                accessToken,
+                refreshToken,
+                signupToken: null,
                 isAuthenticated: true,
-                user: user
+                user
             }),
+            // Refresh Token Rotation 응답의 두 토큰을 함께 교체
+            setTokens: (accessToken, refreshToken) => set({
+                accessToken,
+                refreshToken,
+            }),
+            setSignupLogin: (signupToken, user) => set({
+                accessToken: null,
+                refreshToken: null,
+                signupToken,
+                isAuthenticated: false,
+                user
+            }),
+            clearSignupToken: () => set({
+                signupToken: null,
+            }),
+
             setLogout: () => {
                 // 수동 로그아웃뿐 아니라 인증 만료(REST/STOMP 401)에서도
                 // 다른 사용자 세션으로 전송 대기 메시지가 넘어가지 않도록 함께 초기화
@@ -26,6 +68,8 @@ export const useAuthStore = create<AuthState>()(
 
                 set({
                     accessToken: null,
+                    refreshToken: null,
+                    signupToken: null,
                     isAuthenticated: false,
                     user: null
                 });
@@ -35,7 +79,7 @@ export const useAuthStore = create<AuthState>()(
             }))
         }),
         {
-            name: "auth-storage",
+            name: "camnect-auth",
             storage: createJSONStorage(() => localStorage)
         }
     )

@@ -7,8 +7,8 @@ import type { RecruitStatus } from "./activityApiTypes";
 export interface EducationItemAPI {
   educationId: number;
   schoolName: string;
-  majorName: string;
-  degree: string;
+  campusId: number | null;
+  campusName: string | null;
   startDate: string; // "YYYY-MM-DD"
   endDate: string | null;
   status: EducationStatus;
@@ -25,6 +25,7 @@ export interface EducationListResponse {
 // 학력 추가/수정 요청
 export interface EducationRequest {
   institutionId: number;
+  campusId: number;
   startDate: string; // "YYYY-MM-DD"
   endDate: string | null;
   status: EducationStatus;

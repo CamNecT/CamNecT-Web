@@ -2,13 +2,13 @@ import type { StompSubscription } from "@stomp/stompjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type { StompChatRoomListResponse, StompMessageAck, StompSocketError } from "../api-types/stompApiTypes";
-import { isStompEnabled, stompClient } from "../api/stompClient";
+import { isStompEnabled, stompClient, resetStompTokenRefreshRetry } from "../api/stompClient";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
 // 로그인 / 로그아웃 시 소켓 연결/해제 (커피챗 실시간 수신을 위해)
 export const useSocketInitializer = () => {
-    const { isAuthenticated, user, accessToken } = useAuthStore();
+    const { isAuthenticated, user } = useAuthStore();
     const userId = user?.id;
     const queryClient = useQueryClient();
 
@@ -50,11 +50,6 @@ export const useSocketInitializer = () => {
             }
             return;
         }
-
-        // accessToken 주입
-        stompClient.connectHeaders = {
-            Authorization: `Bearer ${accessToken}`,
-        };
 
         // 전역 구독 (1.ack -> 2.error -> 3.rooms)
         const setUpGlobalSubscriptions = () => {
@@ -106,6 +101,8 @@ export const useSocketInitializer = () => {
 
         // socket 연결 성공 후 실행될 단 하나의 마스터 핸들러
         stompClient.onConnect = (frame) => {
+            resetStompTokenRefreshRetry();
+
             if (import.meta.env.DEV) {
                 console.log("STOMP 연결 성공! 전역 구독 및 이벤트 발송");
             }
@@ -175,6 +172,6 @@ export const useSocketInitializer = () => {
                 stompClient.deactivate();
             }
         }
-    }, [isAuthenticated, userId, user?.nextStep, accessToken, queryClient])
+    }, [isAuthenticated, userId, user?.nextStep, queryClient])
     
 }

@@ -1,6 +1,7 @@
 import { type EducationItem, type CareerItem, type CertificateItem, EDUCATION_STATUS_KR } from "../../../types/mypage/mypageTypes";
 import BaseSection from "./BaseSection";
 import Icon from "../../../components/Icon";
+import { formatEducationSchoolName } from "../../../constants/institutionCampusMapping";
 
 type InfoType = "education"|"career"|"certificate";
 type InfoItem = EducationItem|CareerItem|CertificateItem;
@@ -87,7 +88,7 @@ function makeDisplayItems(type: InfoType, items: InfoItem[]): InfoItemDisplay[] 
             .sort((a, b) => b.startYear - a.startYear)
             .map((e) => ({
                 period: `${e.startYear}${e.endYear ? `-${e.endYear}` : '-현재'}`,
-                mainText: e.school,
+                mainText: formatEducationSchoolName(e.school, e.campusName, e.campusId),
                 status: EDUCATION_STATUS_KR[e.status]
             }));
     }

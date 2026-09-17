@@ -35,7 +35,8 @@ const Divider = () => {
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const setLogin = useAuthStore((state) => state.setLogin);
+  const setUserLogin = useAuthStore((state) => state.setUserLogin); // 정식 세션(ACTIVE) 저장
+  const setSignupLogin = useAuthStore((state) => state.setSignupLogin); // 승인 대기(ADMIN_PENDING) 가입 세션 저장
   const { handleRedirect } = useAuthRedirect(); // 리다이렉트 훅 추가
 
   const [showPassword, setShowPassword] = useState(false);
@@ -51,14 +52,22 @@ export const LoginPage = () => {
 
     // data : 서버의 response (AxiosResponse)
     onSuccess: (data) => {
-      const { accessToken, userId, role, nextStep } = data;
-      
-      // 모든 로그인 성공 시 토큰과 유저 정보 저장 (AccessToken 필수)
-      setLogin(accessToken, {
+      const { accessToken, refreshToken, userId, status, role, nextStep } = data;
+
+      const user = {
         id: String(userId),
         role,
         nextStep
-      });
+      };
+
+      if (status === 'ACTIVE' && refreshToken) {
+        // 정식 세션: accessToken + refreshToken 저장 (refreshToken은 RTR에 사용)
+        setUserLogin(accessToken, refreshToken, user);
+      } else {
+        // ADMIN_PENDING: accessToken 자리에 가입용 VERIFICATION 토큰이 내려오고 refreshToken은 null
+        // 정식 토큰으로 저장하면 미승인 사용자가 로그인 사용자로 잘못 취급되므로 signupToken으로만 보관
+        setSignupLogin(accessToken, user);
+      }
 
       if (nextStep === 'HOME') {
         setShowSplash(true); 
