@@ -556,7 +556,7 @@ export default function PortfolioEditModal({
                     }
                 >
 
-                    <div className="w-full max-w-screen-sm h-dvh bg-white animate-slide-up flex flex-col pb-[50px]">
+                    <div className="w-full max-w-screen-sm flex-1 min-h-0 bg-white animate-slide-up flex flex-col">
                         {/* 로딩 오버레이 */}
                         {(isLoadingDetail  || isSaving) && (
                             <div className="absolute inset-0 z-50">
