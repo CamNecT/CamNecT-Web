@@ -402,6 +402,14 @@ export default function PortfolioEditModal({
         }
 
         const techStack = parseTechStack(skills);
+        if (techStack.length === 0) {
+            setError({
+                title: '사용 기술을 확인해주세요',
+                content: '사용 기술을 한 개 이상 입력해주세요.',
+            });
+            return;
+        }
+
         if (techStack.length > MAX_TECH_STACK_COUNT) {
             setError({
                 title: '사용 기술을 확인해주세요',
