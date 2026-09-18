@@ -21,6 +21,19 @@ const MAX_SIZE_MB = 10;
 const THUMBNAIL_MAX_SIZE_MB = 5;
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/jpg'];
 const ALLOWED_FILE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf', 'image/jpg'];
+const MAX_TECH_STACK_COUNT = 10;
+const MAX_TECH_STACK_ITEM_LENGTH = 20;
+
+const parseTechStack = (value: string) =>
+    value
+        .split(',')
+        .map((skill) => skill.trim())
+        .filter(Boolean);
+
+type PopupError = {
+    title: string;
+    content: string;
+};
 
 interface PortfolioEditModalProps {
     isOpen: boolean;
@@ -84,7 +97,7 @@ export default function PortfolioEditModal({
     // 모달 상태
     const [isFileAddModalOpen, setIsFileAddModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<PopupError | null>(null);
     const [showValidationPopup, setShowValidationPopup] = useState(false);
     const [showCloseWarning, setShowCloseWarning] = useState(false);
     const [confirm, setConfirm] = useState(false);
@@ -182,7 +195,7 @@ export default function PortfolioEditModal({
         setEndMonth(endM);
 
         setRole(portfolioData.assignedRole[0] || '');
-        setSkills(portfolioData.techStack[0] || '');
+        setSkills(portfolioData.techStack.join(', '));
         setProblemSolution(portfolioData.review || '');
 
         // 썸네일
@@ -212,7 +225,7 @@ export default function PortfolioEditModal({
             title: portfolioData.title,
             content: portfolioData.description,
             role: portfolioData.assignedRole[0] || '',
-            skills: portfolioData.techStack[0] || '',
+            skills: portfolioData.techStack.join(', '),
             problemSolution: portfolioData.review || '',
             thumbnailImage: thumbnail,
             attachmentFiles: attachments,
@@ -256,20 +269,29 @@ export default function PortfolioEditModal({
         if (!file) return;
 
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-            setError('이미지는 webp / jpeg / jpg / png 형식만 업로드 가능합니다.');
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: '이미지는 webp / jpeg / jpg / png 형식만 업로드 가능합니다.',
+            });
             e.target.value = '';
             return;
         }
 
         if (file.size > THUMBNAIL_MAX_SIZE_MB  * 1024 * 1024) {
-            setError(`이미지가 파일 용량 제한을 초과합니다. (최대 ${THUMBNAIL_MAX_SIZE_MB }MB)`);
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: `이미지가 파일 용량 제한을 초과합니다. (최대 ${THUMBNAIL_MAX_SIZE_MB }MB)`,
+            });
             e.target.value = '';
             return;
         }
 
         const prepared = prepareFile(file);
         if (!prepared) {
-            setError('파일을 업로드할 수 없어요. 형식/용량을 확인해주세요.');
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: '파일을 업로드할 수 없어요. 형식/용량을 확인해주세요.',
+            });
             e.target.value = '';
             return;
         }
@@ -335,7 +357,10 @@ export default function PortfolioEditModal({
         }
 
         if (errorMsg) {
-            setError(errorMsg);
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: errorMsg,
+            });
         }
 
         e.target.value = '';
@@ -373,9 +398,35 @@ export default function PortfolioEditModal({
         const missing = getMissingFields();
         if (missing.length > 0) {
             setShowValidationPopup(true);
-        } else {
-            setConfirm(true);
+            return;
         }
+
+        const techStack = parseTechStack(skills);
+        if (techStack.length === 0) {
+            setError({
+                title: '사용 기술을 확인해주세요',
+                content: '사용 기술을 한 개 이상 입력해주세요.',
+            });
+            return;
+        }
+
+        if (techStack.length > MAX_TECH_STACK_COUNT) {
+            setError({
+                title: '사용 기술을 확인해주세요',
+                content: `사용 기술은 최대 ${MAX_TECH_STACK_COUNT}개까지 입력할 수 있습니다.`,
+            });
+            return;
+        }
+
+        if (techStack.some((skill) => skill.length > MAX_TECH_STACK_ITEM_LENGTH)) {
+            setError({
+                title: '사용 기술을 확인해주세요',
+                content: `각 사용 기술은 ${MAX_TECH_STACK_ITEM_LENGTH}자 이하로 입력해주세요.`,
+            });
+            return;
+        }
+
+        setConfirm(true);
     };
 
     const handleSave = async () => {
@@ -484,7 +535,7 @@ export default function PortfolioEditModal({
                 startedAt: `${startYear}-${String(startMonth).padStart(2, '0')}-01`,
                 endedAt: `${endYear}-${String(endMonth).padStart(2, '0')}-01`,
                 project_role: role.trim(),
-                techStack: [skills.trim()],  // 단일 문자열을 배열로
+                techStack: parseTechStack(skills),
                 review: problemSolution.trim(),
                 thumbnailKey,
                 attachmentKeys,
@@ -500,7 +551,10 @@ export default function PortfolioEditModal({
             onClose();
         } catch (error) {
             console.error('저장 실패:', error);
-            setError('포트폴리오 저장에 실패했습니다. 다시 시도해주세요.');
+            setError({
+                title: '포트폴리오 저장 실패',
+                content: '포트폴리오 저장에 실패했습니다. 다시 시도해주세요.',
+            });
         } finally {
             setIsSaving(false);
         }
@@ -571,8 +625,8 @@ export default function PortfolioEditModal({
                             <div className="absolute inset-0 z-50">
                                 <PopUp
                                     type="error"
-                                    title='업로드할 수 없는 파일'
-                                    content={error}
+                                    title={error.title}
+                                    content={error.content}
                                     isOpen={true}
                                     rightButtonText='확인'
                                     onClick={() => setError(null)}
@@ -838,9 +892,8 @@ export default function PortfolioEditModal({
                                     <input
                                         type="text"
                                         value={skills}
-                                        maxLength={50}
                                         onChange={(e) => setSkills(e.target.value)}
-                                        placeholder="프로젝트에서 사용한 기술을 입력해 주세요"
+                                        placeholder="사용한 기술을 쉼표(,)로 구분해 입력해 주세요"
                                         className="w-full p-[15px] border border-gray-150 rounded-[5px] text-r-16-hn text-gray-750 placeholder:text-gray-650 focus:outline-none focus:border-primary"
                                     />
                                 </div>
