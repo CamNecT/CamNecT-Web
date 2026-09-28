@@ -121,6 +121,7 @@ export type AlumniProfileTag = {
 };
 
 export type AlumniProfileDetail = {
+  hasChat: boolean;
   userId: number;
   name: string;
   basics: AlumniProfileBasics;

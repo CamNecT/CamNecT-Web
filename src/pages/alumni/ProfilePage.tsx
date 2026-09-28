@@ -8,6 +8,7 @@ import {
     sendCoffeeChatRequest,
     unfollowUser,
 } from '../../api/alumni';
+import { viewChatRoomList } from '../../api/chat';
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import PopUp from '../../components/Pop-up';
 import ReportModal from '../../components/report/ReportModal';
@@ -105,7 +106,9 @@ export const AlumniProfilePage = ({
 
   return (
     <AlumniProfileContent
+      key={profile.id}
       profile={profile}
+      hasChat={profileResponse?.data.hasChat === true}
       enableCoffeeChatModal={enableCoffeeChatModal}
       shouldOpenCoffeeChat={shouldOpenCoffeeChat}
     />
@@ -114,15 +117,18 @@ export const AlumniProfilePage = ({
 
 type AlumniProfileContentProps = {
   profile: AlumniProfile;
+  hasChat: boolean;
   enableCoffeeChatModal: boolean;
   shouldOpenCoffeeChat: boolean;
 };
 
 const AlumniProfileContent = ({
   profile,
+  hasChat,
   enableCoffeeChatModal,
   shouldOpenCoffeeChat,
 }: AlumniProfileContentProps) => {
+  const navigate = useNavigate();
   const loginUserId = useAuthStore((state) => state.user?.id);
   // 팔로우 상태 및 팔로워 수는 즉시 반영하기 위해 로컬 상태로 관리합니다.
   const [isFollowing, setIsFollowing] = useState(profile.isFollowing);
@@ -131,7 +137,7 @@ const AlumniProfileContent = ({
   const [popUpConfig, setPopUpConfig] = useState<{ title: string; content: string } | null>(null);
   // 쿼리 파라미터에 따라 커피챗 모달을 초기 상태로 열 수 있습니다.
   const isAdminProfile = isAdminUserId(profile.userId);
-  const canRequestCoffeeChat = !isAdminProfile && profile.privacy.openToCoffeeChat;
+  const canRequestCoffeeChat = !hasChat && !isAdminProfile && profile.privacy.openToCoffeeChat;
   const [isCoffeeChatOpen, setIsCoffeeChatOpen] = useState(false);
   const hasOpenedCoffeeChatRef = useRef(false);
   // 옵션 메뉴(점 3개) / 신고 모달 상태
@@ -155,6 +161,36 @@ const AlumniProfileContent = ({
       });
     },
   });
+
+  const chatRoomLookupPendingRef = useRef(false);
+  const chatRoomLookup = useMutation({
+    mutationFn: () => viewChatRoomList({ userId: Number(loginUserId), type: 'COFFEE_CHAT' }),
+  });
+
+  const handleOpenChatRoom = () => {
+    if (!hasChat || chatRoomLookupPendingRef.current) return;
+    if (!loginUserId) {
+      setPopUpConfig({ title: '로그인 필요', content: '채팅방은 로그인 후 이용할 수 있습니다.' });
+      return;
+    }
+    chatRoomLookupPendingRef.current = true;
+    // hasChat은 방 ID가 아니므로 상대방과의 활성 커피챗 방을 조회해 이동합니다.
+    // 팀 모집 방이나 종료된 방을 대신 선택하거나 새 커피챗 요청을 보내지 않습니다.
+    chatRoomLookup.mutate(undefined, {
+      onSuccess: (response) => {
+        const room = response.data.chatRoomList.find((item) =>
+          String(item.opponentId) === profile.userId && !item.closed && !item.opponentExited,
+        );
+        if (room) {
+          navigate(`/chat/${room.roomId}`);
+        } else {
+          setPopUpConfig({ title: '채팅방을 찾을 수 없어요', content: '채팅방이 종료되었거나 상태가 변경되었습니다. 프로필을 새로고침해 주세요.' });
+        }
+      },
+      onError: () => setPopUpConfig({ title: '채팅방을 불러오지 못했어요', content: '네트워크 상태를 확인한 뒤 다시 시도해 주세요.' }),
+      onSettled: () => { chatRoomLookupPendingRef.current = false; },
+    });
+  };
 
   // 본인 프로필 여부 (본인 프로필에서는 신고 옵션 자체를 노출하지 않음)
   const isMine = String(loginUserId ?? '') === String(profile.userId);
@@ -319,6 +355,9 @@ const AlumniProfileContent = ({
           followerCount={followerCount}
           isFollowPending={isFollowPending}
           canRequestCoffeeChat={canRequestCoffeeChat}
+          hasChat={hasChat}
+          isChatPending={chatRoomLookup.isPending}
+          onChatClick={handleOpenChatRoom}
           onFollowToggle={handleFollowToggle}
           onCoffeeChatClick={() => {
             if (!enableCoffeeChatModal) return;
