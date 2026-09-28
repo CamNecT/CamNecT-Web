@@ -16,7 +16,7 @@ export const ShopPage = () => {
   const navigate = useNavigate();
   const { isOpen: isToastOpen, isFading: isToastFading, openToast } = useToast();
 
-  const { data: gifticonList, isLoading, isError, error, refetch } = useGifticonListQuery();
+  const { data: gifticonList, isLoading, isFetching, isError, error, refetch } = useGifticonListQuery();
   const { errorPopup, showGifticonError, closeGifticonError } = useGifticonErrorPopup();
   const shopItems = gifticonList?.shopItems ?? [];
 
@@ -54,6 +54,11 @@ export const ShopPage = () => {
 
         <div className='flex flex-col gap-[25px]'>
           <h2 className='text-sb-20 text-[var(--ColorBlack,#202023)]'>상품 목록</h2>
+          {!isLoading && shopItems.length === 0 && (
+            <p role={isError ? 'alert' : undefined} className='text-m-14 text-[var(--ColorGray3,#646464)]'>
+              {isError ? '상품 목록을 불러오지 못했습니다.' : '현재 판매 중인 상품이 없습니다.'}
+            </p>
+          )}
           <div className='grid grid-cols-2 gap-x-[10px] gap-y-[35px]'>
             {shopItems.map((item) => (
               <Link key={item.id} to={`/shop/${item.id}`} className='flex flex-col gap-[10px]'>
@@ -83,7 +88,7 @@ export const ShopPage = () => {
         isFading={isToastFading}
         message='구매성공! 내역을 확인해보세요'
       />
-      <PopUp isOpen={isLoading} type='loading' />
+      <PopUp isOpen={isLoading || (isFetching && !errorPopup)} type='loading' />
       {errorPopup && (
         <PopUp
           isOpen={true}
@@ -92,6 +97,7 @@ export const ShopPage = () => {
           content={errorPopup.content}
           buttonText='다시 시도'
           onClick={() => {
+            if (isFetching) return;
             closeGifticonError();
             void refetch();
           }}
