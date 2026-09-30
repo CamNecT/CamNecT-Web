@@ -74,6 +74,7 @@ const figmaIconNames = [
   "settings",
   "send",
   "bell_notification",
+  "error_circle",
 ] as const;
 
 type FigmaIconName = (typeof figmaIconNames)[number];
