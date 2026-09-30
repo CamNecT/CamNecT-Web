@@ -25,7 +25,7 @@ export const AlumniSearchPage = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [alumniItems, setAlumniItems] = useState<ReturnType<typeof mapAlumniApiListToProfiles> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const { filterCategories, filterTags, mapTagNamesToIds } = useTagList();
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
@@ -43,7 +43,6 @@ export const AlumniSearchPage = () => {
     abortRef.current = controller;
     const timer = window.setTimeout(async () => {
       try {
-        setIsLoading(true);
         // 서버 필터 결과를 받아 클라이언트 모델로 변환합니다.
         const response = await getAlumniList({
           userId: meUserId ?? undefined,
@@ -61,7 +60,8 @@ export const AlumniSearchPage = () => {
         }
       } finally {
         if (isActive) {
-          setIsLoading(false);
+          // 전체 화면 로딩 팝업은 첫 진입에만 닫고, 이후 검색·필터 요청에는 다시 표시하지 않습니다.
+          setIsInitialLoading(false);
         }
       }
     }, 300);
@@ -247,7 +247,7 @@ export const AlumniSearchPage = () => {
         categories={filterCategories}
         allTags={filterTags}
       />
-      <PopUp isOpen={isLoading} type="loading" />
+      <PopUp isOpen={isInitialLoading} type="loading" />
     </FullLayout>
   );
 };

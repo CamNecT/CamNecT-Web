@@ -6,19 +6,21 @@ import type { EducationRequest, ExperienceRequest, CertificateRequest } from "..
 /**
  * UI의 EducationItem을 API의 EducationRequest로 변환
  * @param education UI 학력 데이터
- * @param institutionId 학교 ID (학교 검색 API로 얻은 값)
  */
 export const convertEducationToRequest = (
-  education: EducationItem,
-  institutionId: number
+  education: EducationItem
 ): EducationRequest => {
+  if (!education.institutionId || !education.campusId) {
+    throw new Error('학교와 캠퍼스 선택 정보가 없습니다.');
+  }
   // LocalDate 형식: YYYY-MM-DD
   // 연도만 수집 시 -01-01 형식으로 변환
   const startDate = `${education.startYear}-01-01`;
   const endDate = education.endYear ? `${education.endYear}-01-01` : null;
 
   return {
-    institutionId,
+    institutionId: education.institutionId,
+    campusId: education.campusId,
     startDate,
     endDate,
     status: education.status,

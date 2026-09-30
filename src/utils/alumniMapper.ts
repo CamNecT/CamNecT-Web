@@ -1,6 +1,7 @@
 import type { AlumniApiItem, AlumniProfileDetail } from "../api-types/alumniApiTypes";
 import type { AlumniProfile } from "../types/alumni/alumniTypes";
 import { mapMajorIdToName } from "./majorMapper";
+import { formatEducationSchoolName } from "../constants/institutionCampusMapping";
 
 const toProfileImage = (url?: string | null) => (url && url.trim() ? url : undefined);
 
@@ -131,7 +132,7 @@ export const mapAlumniProfileDetailToProfile = (
     educationItems: detail.educations.map((item) => ({
       id: String(item.educationId),
       period: formatEducationPeriod(item.startDate, item.endDate ?? undefined),
-      school: item.schoolName,
+      school: formatEducationSchoolName(item.schoolName, item.campusName, item.campusId),
       status: EDUCATION_STATUS_KR[item.status] ?? item.status,
     })),
     careerItems: detail.experience.map((item) => ({

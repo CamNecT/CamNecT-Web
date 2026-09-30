@@ -4,23 +4,30 @@ import Icon from "../../../components/Icon";
 import PressableMotion from "../../../components/PressableMotion";
 
 interface TypingAreaProps {
-    onSend: (text: string) => void;
+    onSend: (text: string) => boolean;
+    disabled?: boolean;
 }
 
-export const TypingArea = ({ onSend }: TypingAreaProps) => {
+export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
     const [inputValue, setInputValue] = useState("");
     // const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleSend = () => {
-        if (inputValue.trim()) {
-            onSend(inputValue.trim());
+        const content = inputValue.trim();
+
+        if (!content || disabled) return; // disabled -> 엔터키 전송 차단
+
+        const publishStarted = onSend(content);
+
+        // 발송 성공 시 입력창 초기화
+        if (publishStarted) {
             setInputValue("");
         }
     };
 
     return (
         <>
-            <div className="flex justify-center fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white px-[25px] pt-[6px] pb-[calc(25px+env(safe-area-inset-bottom))] focus-within:pb-[15px] z-50">
+            <div className="chat-composer-bottom-padding flex justify-center fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white px-[25px] pt-[6px] z-50">
                 <div className="flex items-center gap-[10px] w-full">
                     {/* 추가 버튼 -> MVP 제외*/}
                     {/* <button 
@@ -50,8 +57,16 @@ export const TypingArea = ({ onSend }: TypingAreaProps) => {
                             as="button"
                             intensity="strong"
                             type="button" 
+                            // iOS PWA에서 버튼 포커스로 전환되며 키보드가 닫히기 전에 클릭이 취소되는 것을 방지
+                            onPointerDown={(event) => event.preventDefault()}
                             onClick={handleSend}
-                            className="absolute right-[4px] top-1/2 -translate-y-1/2 w-[36px] h-[36px] rounded-full bg-primary flex items-center justify-center transition"
+                            disabled={disabled}
+                            // Framer Motion의 scale transform과 translate transform이 충돌하지 않도록 고정 offset 사용
+                            className={`absolute right-[4px] top-[4px] w-[36px] h-[36px] rounded-full flex items-center justify-center transition ${
+                                disabled 
+                                    ? 'bg-gray-300 cursor-not-allowed' 
+                                    : 'bg-primary'
+                            }`}
                         >
                             <Icon name="send" color="var(--ColorWhite,#FFF)" />
                         </PressableMotion>

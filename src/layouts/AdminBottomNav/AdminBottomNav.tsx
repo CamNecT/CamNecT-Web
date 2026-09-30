@@ -19,10 +19,22 @@ const navList: AdminBottomNavProps[] = [
         path: "/admin/school-verification"
     },
     {
+        icon: "Navigation_report_stroke",
+        activeIcon: "Navigation_report_fill",
+        label: "신고된 글",
+        path: "/admin/reports"
+    },
+    {
         icon: "Navigation_activities_write_stroke",
         activeIcon: "Navigation_activities_write_fill",
         label: "대외활동 글쓰기",
         path: "/admin/post"
+    },
+    {
+        icon: "Navigation_community_stroke",
+        activeIcon: "Navigation_community_fill",
+        label: "커뮤니티",
+        path: "/admin/community"
     }
 ];
 

@@ -6,6 +6,7 @@ import PopUp from "../../../components/Pop-up";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { MainHeader } from "../../../layouts/headers/MainHeader";
 import { useAuthStore } from "../../../store/useAuthStore";
+import { clearClientSession } from "../../../utils/clearClientSession";
 
 const EyeClosedIcon = () => {
     return (
@@ -25,7 +26,6 @@ const EyeOpenIcon = () => {
 
 export const DeleteAccountPage = () => {
     const navigate = useNavigate();
-    const setLogout = useAuthStore((s) => s.setLogout);
     const authUser = useAuthStore((s) => s.user);
     const userId = authUser?.id ? parseInt(authUser.id) : null;
 
@@ -88,7 +88,7 @@ export const DeleteAccountPage = () => {
     };
 
     const handleFinalDelete = () => {
-        setLogout();
+        clearClientSession();
         navigate("/", { replace: true });
     };
 

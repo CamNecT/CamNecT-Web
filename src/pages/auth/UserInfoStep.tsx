@@ -22,9 +22,9 @@ const userInfoSchema = z.object({
             .string()
             .min(1, "이름을 입력해 주세요")
             .regex(/^(?:[가-힣]+|[a-zA-Z]+)$/, "이름은 한글 또는 영문만 입력할 수 있습니다"),
-        phoneNum: z
-            .string() 
-            .regex(/^01[0-9]\d{8}$/, "전화번호 형식이 올바르지 않습니다"),
+        // phoneNum: z
+        //     .string() 
+        //     .regex(/^01[0-9]\d{8}$/, "전화번호 형식이 올바르지 않습니다"),
         username: z
             .string()
             .min(1, "아이디를 입력해 주세요")
@@ -45,7 +45,7 @@ const userInfoSchema = z.object({
 // .infer : zod 스키마에서 만든 사용자 입력 요소를 타입화
 type UserInfoFormData = z.infer<typeof userInfoSchema>;
 
-// 가입자 정보 입력 단계 (아이디 / 비밀번호 / 이름 / 전화번호)
+// 가입자 정보 입력 단계 (이름 / 아이디 / 비밀번호)
 export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
 
     const [isUserNameChecked, setIsUserNameChecked] = useState(false);  // 아이디 중복확인 여부
@@ -54,7 +54,7 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
         username, setUsername,
         password, setPassword,
         name, setName,
-        phoneNum, setPhoneNum
+        // phoneNum, setPhoneNum
     } = useSignupStore(
         useShallow((state) => ({
             username: state.username,
@@ -63,8 +63,8 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
             setPassword: state.setPassword,
             name: state.name,
             setName: state.setName,
-            phoneNum: state.phoneNum,
-            setPhoneNum: state.setPhoneNum
+            // phoneNum: state.phoneNum,
+            // setPhoneNum: state.setPhoneNum
         }))
     );
 
@@ -76,7 +76,7 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
         mode: "onChange", // 입력될 때 마다 검사
         defaultValues: {
             name: name,
-            phoneNum: phoneNum,
+            // phoneNum: phoneNum,
             username: username,
             password: password,
             confirmPassword: ""
@@ -122,7 +122,7 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
     const onSubmit = (data : UserInfoFormData) => {
 
         setName(data.name);
-        setPhoneNum(data.phoneNum);
+        // setPhoneNum(data.phoneNum);
         setUsername(data.username);
         setPassword(data.password);
         onNext();
@@ -143,7 +143,16 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
                 
                 {/* 2. 입력 섹션 (스크롤 가능) */}
                 {/* overflow-y-auto : 넘치면 스크롤, flex-1 : 남은 공간 차지 (유동적) */}
-                <div className="flex-1 overflow-y-auto space-y-[30px] pt-[40px] scrollbar-hide">
+                {/* 이름 label과 상단 헤더 간격을 84px로 맞추기 위해 pt-[84px] 적용 */}
+                <div className="flex-1 overflow-y-auto space-y-[30px] pt-[84px] scrollbar-hide">
+                    {/* 이름 */}
+                    <SingleInput 
+                        label='이름' 
+                        placeholder='이름을 입력해 주세요' 
+                        {...register("name")} 
+                        error={errors.name?.message} 
+                    /> 
+
                     {/* 아이디 : 중복확인 버튼은 action 슬롯에 넣어 인풋과 자동 정렬 */}
                     <SingleInput
                         label='아이디'
@@ -193,15 +202,14 @@ export const UserInfoStep = ({ onNext }: UserInfoStepProps) => {
                         /> 
                     </div>
 
-                    <SingleInput label='이름' placeholder='이름을 입력해 주세요' {...register("name")} error={errors.name?.message} /> 
-
-                    <SingleInput 
+                    {/* 전화번호 관련 주석처리 */}
+                    {/* <SingleInput 
                         label='전화번호' 
                         helperText='하이픈(-) 없이 숫자만 입력해주세요' 
                         placeholder='전화번호를 입력해 주세요' 
                         {...register("phoneNum")}
                         error={errors.phoneNum?.message}
-                    /> 
+                    /> */}
                 </div>
 
                 {/* 3. 하단 버튼 구역 (고정) */}

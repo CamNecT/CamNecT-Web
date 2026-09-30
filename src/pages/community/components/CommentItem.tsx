@@ -230,13 +230,19 @@ const CommentItem = ({
                         className='inline-flex items-center justify-center gap-[7px] rounded-[5px] border border-[var(--ColorMain,#00C56C)] px-[8px] py-[4px] text-m-14 text-[var(--ColorMain,#00C56C)]'
                         onClick={() => onOpenAdoptPopup(comment)}
                       >
-                        <Icon name='checkCircle' className='h-5 w-5' />
+                        <Icon
+                          name='checkCircle'
+                          className='h-5 w-5 text-[var(--ColorMain,#00C56C)]'
+                        />
                         채택하기
                       </button>
                     ) : null}
                     {isAdoptedComment ? (
                       <span className='inline-flex items-center gap-[7px] rounded-[5px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[4px] text-r-12 text-[var(--ColorMain,#00C56C)]'>
-                        <Icon name='checkCircle' className='h-[16px] w-[16px]' />
+                        <Icon
+                          name='checkCircle'
+                          className='h-[16px] w-[16px] text-[var(--ColorMain,#00C56C)]'
+                        />
                         채택된 댓글
                       </span>
                     ) : null}

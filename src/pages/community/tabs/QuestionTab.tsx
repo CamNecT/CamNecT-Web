@@ -26,6 +26,7 @@ type QuestionTabProps = {
   onTagChange: (next: string | null) => void;
   adoptionFilter: string | null;
   onAdoptionFilterChange: (next: string | null) => void;
+  isAdmin?: boolean;
 };
 
 // 질문 탭: 필터 + 정렬 + 질문글 리스트
@@ -37,6 +38,7 @@ const QuestionTab = ({
   onTagChange,
   adoptionFilter,
   onAdoptionFilterChange,
+  isAdmin = false,
 }: QuestionTabProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { filterCategories, filterTags } = useTagList();
@@ -88,7 +90,7 @@ const QuestionTab = ({
             >
               <div className='flex flex-wrap items-center gap-[5px]'>
                 <span
-                  className={`inline-flex h-[22px] items-center justify-center rounded-[5px] border px-[10px] text-r-12 ${
+                  className={`inline-flex h-[24px] items-center justify-center rounded-[5px] border px-[10px] text-r-12 ${
                     post.isAdopted
                       ? 'border-[var(--ColorGray2,#A1A1A1)] text-[var(--ColorGray2,#A1A1A1)]'
                       : 'border-[var(--ColorMain,#00C56C)] text-[var(--ColorMain,#00C56C)]'
@@ -97,7 +99,7 @@ const QuestionTab = ({
                   {post.isAdopted ? '채택 완료' : '채택 전'}
                 </span>
                 {post.categories.map((category) => (
-                  <Category key={category} label={category} className='h-[20px] px-[6px]' />
+                  <Category key={category} label={category} className='px-[6px]' />
                 ))}
               </div>
 
@@ -186,7 +188,7 @@ const QuestionTab = ({
         selectionGuide='채택/일반 태그 각 1개'
       />
 
-      <WriteButton boardType='질문' />
+      <WriteButton boardType='질문' hasBottomNav={isAdmin} />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import type { 
+import type {
   MyProfileRequest, 
   MyProfileResponse,
   ProfileImageUpdateRequest,
@@ -13,6 +13,8 @@ import type {
   SettingInfoResponse,
   ChangePasswordRequest,
 } from "../api-types/profileApiTypes";
+import { getId } from "firebase/installations";
+import { installations } from "../shared/firebase";
 import { axiosInstance } from "./axiosInstance";
 
 // 마이페이지 조회 API [GET] (/api/profile/me)
@@ -92,7 +94,10 @@ export const getSettingInfo = async (userId: number) => {
 
 // 로그아웃 API [POST] (/api/auth/logout)
 export const logout = async (loginUserId: number) => {
-  const response = await axiosInstance.post("/api/auth/logout", null, {
+  // 현재 브라우저에 발급된 Firebase Installation ID(FID)
+  const deviceId = await getId(installations);
+
+  const response = await axiosInstance.post("/api/auth/logout", { deviceId }, {
     params: { loginUserId },
   });
   return response.data;

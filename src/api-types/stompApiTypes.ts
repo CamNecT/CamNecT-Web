@@ -1,44 +1,104 @@
-//STOMP 실시간 통신을 위한 DTO 
+// STOMP 실시간 통신을 위한 DTO
 
-// 1. [구독] 채팅방 목록 메시지 수신 (/sub/user/{userId}/rooms)
+// 1. [구독] 메시지 저장 성공 ACK (/user/queue/chat-acks)
+// 유저가 보낸 메시지가 서버 DB에 저장됐는지
+export interface StompMessageAck {
+    type: 'ACK'; // ACK 이벤트 구분값
+    messageId: number; // 서버(DB)에 저장된 메시지 ID
+    roomId: number; // 채팅방 ID
+    clientMessageId: string; // 프론트에서 요청 시 사용한 UUID
+    duplicate: boolean; // 같은 UUID·같은 내용 재전송으로 기존 메시지 기준 ACK이면 true
+}
+
+// 2. STOMP 오류가 발생한 작업 구분값
+export type StompSocketOperation =
+    | 'CONNECT'
+    | 'SUBSCRIBE'
+    | 'SEND_MESSAGE'
+    | 'LEAVE_ROOM'
+    | 'UNKNOWN';
+
+// 3. [구독] 메시지 전송·퇴장 애플리케이션 오류 (/user/queue/chat-errors)
+export interface StompSocketError {
+    type: 'ERROR'; // 오류 이벤트 구분값
+    status: number; // 상태 코드
+    code: number; // 프런트 분기용 오류 코드
+    message: string; // 사용자 안내 메시지
+    operation: StompSocketOperation; // 오류가 발생한 작업
+    roomId: number | null; // 관련 채팅방 ID
+    clientMessageId: string | null; // 관련 메시지 UUIDx
+}
+
+// 4. [구독] 채팅방 목록 메시지 수신 (/sub/user/{userId}/rooms)
 export interface StompChatRoomListResponse {
-    roomId: number;
-    lastMessage: string;
-    unreadCount: number;
-    time: string; // 마지막 메시지 시간 
-    totalUnreadCount: number; // 전체 안읽은 메시지 수 -> 전역 뱃지 초기화 용도
+    roomId: number; // 갱신할 채팅방 ID
+    lastMessage: string; // 마지막 메시지
+    unreadCount: number; // 해당 방의 안 읽은 메시지 수
+    time: string; // 마지막 메시지 시각
+    totalUnreadCount: number; // 전체 채팅방의 안 읽은 메시지 수
 }
- 
-// 2. [구독] 채팅방 내부 일반 메시지 (/sub/chat/room/{roomId})
+
+// 5. [구독] 채팅방 내부 일반 메시지 (/sub/chat/room/{roomId})
 export interface StompMessageResponse {
-    messageId: number;
-    roomId: number;
-    senderId: number;
-    sender: string;
-    receiverId: number;
-    receiver: string;
-    message: string;
-    read: boolean; // 읽음 여부
-    sendDate: string;
-    readAt: string | null; // 읽은 시각
+    messageId: number; // 서버 메시지 ID
+    roomId: number; // 채팅방 ID
+    clientMessageId: string | null; // 프론트가 생성한 UUID, 과거 메시지는 null 가능
+    senderId: number; // 발신자 ID
+    sender: string; // 발신자 이름
+    receiverId: number; // 수신자 ID
+    receiver: string; // 수신자 이름
+    message: string; // 메시지 내용
+    read: boolean; // 상대방 읽음 여부
+    sendDate: string; // 전송 시각
+    readAt: string | null; // 읽은 시각, 읽지 않았으면 null
 }
 
-// 3. [구독] 읽음 처리의 수신 데이터 (/sub/chat/room/{roomId})
+// 6. [구독] 채팅방 내부 읽음 이벤트 (/sub/chat/room/{roomId})
 export interface StompReadReceiptResponse {
-    roomId: number;
-    lastReadMessageId: number;
-    readAt: string;
-    type?: 'READ'; // 해당 optional 필드로 읽음여부 판단
+    roomId: number; // 채팅방 ID
+    lastReadMessageId: number; // 마지막으로 읽은 메시지 ID
+    readAt: string; // 읽음 처리 시각
+    type: 'READ'; // 일반 메시지와 읽음 이벤트를 구분하는 값
 }
 
-// 4. [발행] 메시지 보내기 (/pub/chat/message)
+// 7. [구독] 채팅방 종료 이벤트 (/sub/chat/room/{roomId})
+export interface StompChatRoomEndResponse {
+    type: 'ROOM_CLOSED'; 
+    roomId: number;
+}
+    
+// 8. [발행] 메시지 보내기 (/pub/chat/message)
 export interface StompMessageRequest {
-    roomId: number;
-    content: string;
+    roomId: number; // 채팅방 ID
+    content: string; // 메시지 내용, 공백 불가, 최대 16,000자
+    clientMessageId: string; // 논리 메시지마다 한 번 생성하고 재전송 시 재사용하는 UUID v4
 }
 
-// 5. Union Type: 같은 주소의 반환값이 두 타입 중 하나
-export type StompChatResponse = StompMessageResponse | StompReadReceiptResponse;
+// 9. 클라이언트에서 관리하는 전송 대기 메시지 상태
+// unconfirmed: 제한 시간 안에 ACK/ERROR를 받지 못해 서버 저장 여부를 아직 확정할 수 없는 상태
+export type StompPendingState = 'pending' | 'unconfirmed' | 'sent' | 'failed';
+
+// 전송 상태를 확정하지 못한 원인 또는 전송 실패 원인
+// offline : publish에 실패 (오프라인 상황)
+// timeout : publish 성공 but 10초간 응답 X / server : 서버에서의 에러 응답
+export type StompPendingFailureKind = 'offline' | 'timeout' | 'server';
+
+export interface StompPendingChatMessage {
+    roomId: string; // 프론트엔드 내부 채팅방 ID
+    content: string; // 최초 전송 내용
+    createdAt: string; // pending 메시지 생성 시간 (local 말풍선 생성시각)
+    lastAttemptAt: string | null; // 마지막 publish 시도 시각. 아직 publish하지 않았으면 null
+    clientMessageId: string; // 최초 생성한 UUID
+    serverMessageId?: number; // ACK로 확인한 서버 메시지 ID
+    state: StompPendingState; // 현재 전송 상태
+    publishAttempted: boolean; // 이 논리 메시지에 대해 실제 publish를 호출했는지 여부
+    retryCount: number; // 재시도 횟수
+    failureKind?: StompPendingFailureKind; // 전송 실패 원인
+    errorCode?: number; // 전송 실패 시 서버 오류 코드
+}
+
+// 10. 같은 채팅방 구독 주소로 수신되는 일반 메시지와 읽음 이벤트의 Union Type
+export type StompChatResponse = StompMessageResponse | StompReadReceiptResponse | StompChatRoomEndResponse;
 
 // 타입 가드: 수신된 데이터가 '읽음 처리 데이터'인지 판단
 // (data is StompReadReceiptResponse) : Type predicate (해당 함수가 true면 호출부에서 StompReadReceiptResponse 타입으로 추론)
@@ -47,3 +107,7 @@ export const isReadReceipt = (data: StompChatResponse): data is StompReadReceipt
     // boolean 반환해야 type predicate 사용 가능
     return (data as StompReadReceiptResponse).type === 'READ';
 };
+
+export const isEndReceipt = (data: StompChatResponse): data is StompChatRoomEndResponse => {
+    return (data as StompChatRoomEndResponse).type === 'ROOM_CLOSED';
+}

@@ -11,12 +11,14 @@ import Category from '../../components/Category';
 import Icon from '../../components/Icon';
 import ImagePopUp from '../../components/ImagePopUp';
 import PopUp from '../../components/Pop-up';
+import ReportModal from '../../components/report/ReportModal';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { BottomChat } from '../../layouts/BottomChat/BottomChat';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { loggedInUserProfile } from '../../mock/community';
+import { isAdminUserId } from '../../utils/admin';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { CommentItem } from '../../types/community';
 import { mapFlatCommentsToTree } from '../../utils/communityMapper';
@@ -53,6 +55,13 @@ type PopUpConfig = {
   onClick?: () => void;
 };
 
+type ReportTarget = {
+  userId: number;
+  userName: string;
+  targetId: number;
+  postType: 'COMMUNITY' | 'COMMUNITY_COMMENT';
+};
+
 const CommunityPostPage = () => {
   const { postId } = useParams();
   const [searchParams] = useSearchParams();
@@ -70,6 +79,7 @@ const CommunityPostPage = () => {
   const [selectedIsMine, setSelectedIsMine] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<'post' | 'comment'>('comment');
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
+  const [selectedCommentForOptions, setSelectedCommentForOptions] = useState<CommentItem | null>(null);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
   const { errorPopup, showCommunityError, closeCommunityError } =
@@ -78,6 +88,7 @@ const CommunityPostPage = () => {
     (error: unknown) => showCommunityError(error, 'postDetail'),
     [showCommunityError],
   );
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('URL 복사가 완료되었습니다');
   const [accessStatusOverride, setAccessStatusOverride] = useState<
@@ -118,6 +129,9 @@ const CommunityPostPage = () => {
     isLoading: isDetailLoading,
     hasLoadError: hasDetailLoadError,
   } = usePost({ postId, onError: handlePostDetailError });
+  const selectedTargetUserId = selectedTarget === 'post'
+    ? selectedPost?.author.id
+    : selectedCommentForOptions?.author.id;
   // 실제 본문/썸네일 노출 여부는 게시글 정책(accessType)이 아니라
   // 현재 사용자의 열람 결과인 accessStatus만을 기준으로 판단한다.
   const accessStatus =
@@ -398,7 +412,12 @@ const CommunityPostPage = () => {
               ariaLabel: '이전 페이지로 이동',
             }}
             rightActions={[
-              { icon: 'more_menu', onClick: () => {}, ariaLabel: '게시글 옵션 열기' },
+              {
+                icon: 'more_menu',
+                onClick: () => {},
+                ariaLabel: '게시글 옵션 열기',
+                style: { color: 'var(--ColorBlack,#202023)' },
+              },
             ]}
           />
         }
@@ -448,6 +467,7 @@ const CommunityPostPage = () => {
     setSelectedIsMine(comment.author.id === currentUserIdForOwnership);
     setSelectedTarget('comment');
     setSelectedCommentId(comment.id);
+    setSelectedCommentForOptions(comment);
     setIsOptionOpen(true);
   };
 
@@ -455,6 +475,7 @@ const CommunityPostPage = () => {
     setSelectedIsMine(selectedPost.author.id === currentUserIdForOwnership);
     setSelectedTarget('post');
     setSelectedCommentId(null);
+    setSelectedCommentForOptions(null);
     setIsOptionOpen(true);
   };
 
@@ -619,19 +640,20 @@ const CommunityPostPage = () => {
       await copyPostUrl();
     },
     'report-post': () => {
-      setPopUpConfig({
-        type: 'confirm',
-        title: '현재 제작 중이에요!',
-        content: '유저분들이 더 즐겁게 소통할 수 있도록\n꼼꼼히 준비해서 돌아올게요!',
-        onClick: closePopUp,
+      setReportTarget({
+        userId: Number(selectedPost.author.id),
+        userName: selectedPost.author.name,
+        targetId: Number(selectedPost.id),
+        postType: 'COMMUNITY',
       });
     },
     'report-comment': () => {
-      setPopUpConfig({
-        type: 'confirm',
-        title: '현재 제작 중이에요!',
-        content: '유저분들이 더 즐겁게 소통할 수 있도록\n꼼꼼히 준비해서 돌아올게요!',
-        onClick: closePopUp,
+      if (!selectedCommentForOptions) return;
+      setReportTarget({
+        userId: Number(selectedCommentForOptions.author.id),
+        userName: selectedCommentForOptions.author.name,
+        targetId: Number(selectedCommentForOptions.id),
+        postType: 'COMMUNITY_COMMENT',
       });
     },
     'view-author-profile': () => {},
@@ -783,7 +805,12 @@ const CommunityPostPage = () => {
             ariaLabel: '이전 페이지로 이동',
           }}
           rightActions={[
-            { icon: 'more_menu', onClick: handleOpenPostOptions, ariaLabel: '게시글 옵션 열기' },
+            {
+              icon: 'more_menu',
+              onClick: handleOpenPostOptions,
+              ariaLabel: '게시글 옵션 열기',
+              style: { color: 'var(--ColorBlack,#202023)' },
+            },
           ]}
         />
       }
@@ -855,7 +882,7 @@ const CommunityPostPage = () => {
             <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
               <button
                 type='button'
-                disabled={isPostMine}
+                disabled={isPostMine || isAdminUserId(selectedPost.author.id)}
                 className='flex items-center gap-[10px] text-left'
                 onClick={() =>
                   navigate(`/alumni/profile/${selectedPost.author.id}`, {
@@ -891,7 +918,7 @@ const CommunityPostPage = () => {
                   </div>
                 </div>
               </button>
-              {!isPostMine ? (
+              {!isPostMine && !isAdminUserId(selectedPost.author.id) ? (
                 <button
                   type='button'
                   className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
@@ -1044,8 +1071,19 @@ const CommunityPostPage = () => {
         onClose={() => setIsOptionOpen(false)}
         target={selectedTarget}
         isMine={selectedIsMine}
+        isAdminTarget={isAdminUserId(selectedTargetUserId)}
         onItemClick={handleOptionItemClick}
       />
+      {reportTarget && (
+        <ReportModal
+          isOpen={true}
+          onClose={() => setReportTarget(null)}
+          reportedUserId={reportTarget.userId}
+          reportedUserName={reportTarget.userName}
+          reportedPostId={reportTarget.targetId}
+          postType={reportTarget.postType}
+        />
+      )}
       {activePopUpConfig && (
         <PopUp
           isOpen={true}

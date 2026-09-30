@@ -12,7 +12,8 @@ export type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export interface VerificationItemType{
     id: string;
     userId: string;
-    phoneNum: string;
+    // phoneNum: string;
+    email: string;
     date: string; // 제출 날짜
     status: VerificationStatus;
 }
@@ -45,7 +46,8 @@ export const AdminVerificationList = () => {
         const filteredData: VerificationItemType[] = realDataList.map(item => ({
             id: String(item.submissionId),
             userId: item.username,
-            phoneNum: item.phoneNum,
+            // phoneNum: item.phoneNum,
+            email: item.email,
             date: formatDotDate(item.submittedAt), // YYYY.MM.DD로 변환
             status: item.status as VerificationStatus,
         }));

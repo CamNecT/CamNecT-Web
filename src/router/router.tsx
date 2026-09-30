@@ -9,9 +9,12 @@ import { RecruitWritePage } from "../pages/activity/RecruitWritePage";
 import { ActivityWritePage } from "../pages/activity/WritePage";
 import { AdminVerificationDetail } from "../pages/admin/AdminVerificationDetail";
 import { AdminVerificationList } from "../pages/admin/AdminVerificationList";
+import { AdminReportDetail } from "../pages/admin/AdminReportDetail";
+import { AdminReportList } from "../pages/admin/AdminReportList";
 import { AdminWritePage } from "../pages/admin/AdminWritePage";
 import { ExternalWritePage } from "../pages/admin/ExternalPostWritePage";
 import { JobWritePage } from "../pages/admin/JobPostWritePage";
+import { AdminCommunityPage } from "../pages/admin/AdminCommunityPage";
 import { AlumniSearchPage } from "../pages/alumni/AlumniPage";
 import { AlumniPortfolioDetailPage } from "../pages/alumni/portfolio/AlumniPortfolioDetailPage";
 import { AlumniPortfolioListPage } from "../pages/alumni/portfolio/AlumniPortfolioListPage";
@@ -45,6 +48,8 @@ import { Schedule } from "../pages/schedule/Schedule";
 import { ShopDetailPage } from "../pages/shop/ShopDetailPage";
 import { ShopPage } from "../pages/shop/ShopPage";
 import { AuthGuard } from "./AuthGuard";
+import { AdminGuard } from "./AdminGuard";
+import { AlumniProfileAccessGuard } from "./AlumniProfileAccessGuard";
 import { FindAccountPage } from "../pages/auth/FindAccountPage";
 
 export const router = createBrowserRouter([
@@ -88,6 +93,7 @@ export const router = createBrowserRouter([
                 children: [
                     {
                         path: "admin",
+                        element: <AdminGuard />,
                         children: [
                             {
                                 path: "school-verification",
@@ -96,6 +102,19 @@ export const router = createBrowserRouter([
                             {
                                 path: "school-verification/:id",
                                 element: <AdminVerificationDetail />,
+                            },
+                            {
+                                path: "reports",
+                                children: [
+                                    {
+                                        index: true,
+                                        element: <AdminReportList />,
+                                    },
+                                    {
+                                        path: ":caseId",
+                                        element: <AdminReportDetail />,
+                                    }
+                                ]
                             },
                             {
                                 path:"post",
@@ -131,7 +150,11 @@ export const router = createBrowserRouter([
                                         ]
                                     }
                                 ]
-                            }
+                            },
+                            {
+                                path: "community",
+                                element: <AdminCommunityPage />,
+                            },
                         ]
                     },
                 
@@ -160,15 +183,21 @@ export const router = createBrowserRouter([
                                 children: [
                                     {
                                         path: ":id",
-                                        element: <AlumniProfilePage />,
-                                    },
-                                    {
-                                        path: ":id/portfolio",
-                                        element: <AlumniPortfolioListPage />,
-                                    },
-                                    {
-                                        path: ":id/portfolio/:portfolioId",
-                                        element: <AlumniPortfolioDetailPage />,
+                                        element: <AlumniProfileAccessGuard />,
+                                        children: [
+                                            {
+                                                index: true,
+                                                element: <AlumniProfilePage />,
+                                            },
+                                            {
+                                                path: "portfolio",
+                                                element: <AlumniPortfolioListPage />,
+                                            },
+                                            {
+                                                path: "portfolio/:portfolioId",
+                                                element: <AlumniPortfolioDetailPage />,
+                                            },
+                                        ],
                                     }
                                 ]
                             },

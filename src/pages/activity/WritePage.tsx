@@ -594,10 +594,11 @@ export const ActivityWritePage = () => {
       </div>
       </div>
 
-      <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)} height='235px'>
+      <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)}>
         <div
-          className='flex h-full flex-col bg-[var(--Color_Gray_B,#FCFCFC)] px-[24px] pb-[56px]'
-          style={{ gap: '20px' }}
+          // 화면 하단을 덮는 모달이라 내비게이션 높이는 더하지 않는다. 여백 50px이 홈 인디케이터보다 크므로 max로 겹쳐 쓴다.
+          className='flex flex-col bg-[var(--Color_Gray_B,#FCFCFC)] px-[24px]'
+          style={{ gap: '20px', paddingBottom: 'max(50px, env(safe-area-inset-bottom, 0px))' }}
         >
           <span className='text-b-18' style={{ color: 'var(--ColorBlack, #202023)' }}>
             게시판 선택

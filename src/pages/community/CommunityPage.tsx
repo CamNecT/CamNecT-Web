@@ -17,6 +17,10 @@ import type { AxiosError } from 'axios';
 import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 
+type CommunityPageProps = {
+  isAdmin?: boolean;
+};
+
 const tabItems: TabItem[] = [
   { id: 'all', label: '전체' },
   { id: 'info', label: '정보' },
@@ -83,7 +87,7 @@ const mapSortKeyToApiSort = (sortKey: SortKey): Sort => {
 };
 
 
-export const CommunityPage = () => {
+export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.user?.id);
   const { mapTagNamesToIds } = useTagList();
@@ -465,6 +469,7 @@ export const CommunityPage = () => {
           onSortChange={setInfoSortKey}
           selectedTag={infoTag}
           onTagChange={setInfoTag}
+          isAdmin={isAdmin}
         />
       );
     if (activeTab === 'question')
@@ -477,6 +482,7 @@ export const CommunityPage = () => {
           onTagChange={setQuestionTag}
           adoptionFilter={questionAdoptionFilter}
           onAdoptionFilterChange={setQuestionAdoptionFilter}
+          isAdmin={isAdmin}
         />
       );
     return (
@@ -510,7 +516,7 @@ export const CommunityPage = () => {
                   aria-label='검색 닫기'
                   className='flex h-[28px] w-[28px] shrink-0 items-center justify-center'
                 >
-                  <Icon name='search' className='h-[28px] w-[28px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
+                  <Icon name='search' className='h-[24px] w-[24px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
                 </button>
                 <input
                   type='text'
@@ -522,14 +528,37 @@ export const CommunityPage = () => {
                   placeholder='제목, 내용 검색'
                   className='flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchOpen(false);
+                  }}
+                  aria-label='검색 닫기'
+                  className='flex h-[24px] w-[24px] shrink-0 items-center justify-center'
+                >
+                  <Icon
+                    name='x'
+                    className='h-[24px] w-[24px]'
+                    style={{ color: 'var(--ColorGray4,#A1A1A1)' }}
+                  />
+                </button>
               </div>
             </div>
           ) : (
             <MainHeader
               title='커뮤니티'
+              leftIcon={isAdmin ? 'empty' : undefined}
               leftAction={{
-                onClick: () => navigate('/home', { replace: true }),
-                ariaLabel: '홈으로 이동',
+                onClick: () => {
+                  if (isAdmin) {
+                    navigate(-1);
+                    return;
+                  }
+
+                  navigate('/home', { replace: true });
+                },
+                ariaLabel: isAdmin ? '이전 화면으로 이동' : '홈으로 이동',
               }}
               rightActions={
                 activeTab === 'all'
