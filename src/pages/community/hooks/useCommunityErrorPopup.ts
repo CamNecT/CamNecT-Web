@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useCallback, useState } from 'react';
 import type { CommunityErrorResponse } from '../../../api-types/communityApiTypes';
 import { getServerErrorCode } from '../../../utils/getServerErrorCode';
+import { shouldSkipLocalErrorUI } from '../../../utils/getGlobalNetworkErrorType';
 import {
   getCommunityErrorPopupConfig,
   type CommunityErrorAction,
@@ -9,7 +10,7 @@ import {
 } from '../utils/communityError';
 
 // 커뮤니티 API 오류를 동작별 팝업 UI로 변환하는 도메인 전용 hook이다.
-// 전역 오류 처리 도입 여부와 관계없이 네트워크 실패도 호출부에서 안내한다.
+// 전역 offline 오류는 App에 맡기고, 커뮤니티 오류 코드와 HTTP fallback만 이 계층에서 처리한다.
 export const useCommunityErrorPopup = () => {
   const [errorPopup, setErrorPopup] =
     useState<CommunityErrorPopupConfig | null>(null);
@@ -22,6 +23,7 @@ export const useCommunityErrorPopup = () => {
     (error: unknown, action: CommunityErrorAction) => {
       // 검색 조건 변경 등으로 취소한 요청은 사용자에게 실패로 안내하지 않는다.
       if (axios.isCancel(error)) return;
+      if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
 
       const axiosError = axios.isAxiosError<CommunityErrorResponse>(error)
         ? error

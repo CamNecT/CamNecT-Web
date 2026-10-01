@@ -1,5 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { useAuthStore } from "../store/useAuthStore";
+import { useGlobalOfflineStore } from "../store/useGlobalOfflineStore";
+import { getGlobalNetworkErrorType } from "../utils/getGlobalNetworkErrorType";
 import { clearClientSession } from "../utils/clearClientSession";
 import { getServerErrorCode } from "../utils/getServerErrorCode";
 import { refreshTokens } from "./refreshClient";
@@ -9,7 +11,7 @@ import { REFRESHABLE_ACCESS_TOKEN_ERROR_CODES, REFRESH_FAILURE_LOGOUT_ERROR_CODE
 export const axiosInstance = axios.create({
     // dev에서는 상대경로("")로 요청해 Vite proxy를 태우고, 프로덕션에서는 실제 백엔드 주소를 사용
     baseURL: import.meta.env.DEV ? "" : import.meta.env.VITE_API_BASE_URL,
-    timeout: 9500, // Vercel Proxy는 10초이상 응답 지연 시 504 에러 발생 
+    timeout: 9500, // Vercel Proxy는 10초이상 응답 지연 시 504 에러 발생
     headers: {
         "Content-Type": "application/json",
     }
@@ -136,7 +138,7 @@ export const refreshAccessToken = (refreshToken: string) => {
             // refreshPromise명시적 초기화 (자동 초기화 X)
             refreshPromise = null;
         });
-    
+
     return refreshPromise;
 }
 
@@ -165,10 +167,10 @@ axiosInstance.interceptors.response.use(
                 const originalRequest = error.config; // config : URL, HTTP method, header, body가 포함
                 const { refreshToken } = useAuthStore.getState();
 
-                const isAccessTokenError = 
-                    errorCode !== undefined && 
+                const isAccessTokenError =
+                    errorCode !== undefined &&
                     REFRESHABLE_ACCESS_TOKEN_ERROR_CODES.has(errorCode);
-                
+
                 // [Guard1] RTR이후 동일 API 재요청 오류시
                 if (originalRequest?._retry) {
                     // API 재요청 이후 accesstoken관련 오류
@@ -179,19 +181,19 @@ axiosInstance.interceptors.response.use(
                     // 그 외 일반오류
                     return Promise.reject(error);
                 }
-                
+
                 // refresh api 호출 조건
                 const shouldRefresh =
                     originalRequest
                     && refreshToken
                     && isAccessTokenError;
-                
+
                 // [Guard2] RTR 호출 및 동일 API 재호출
                 if (shouldRefresh) {
                     originalRequest._retry = true; // 해당 요청은 이미 재시도 중
 
                     await refreshAccessToken(refreshToken);
-                    
+
                     return axiosInstance(originalRequest); // API 재요청
                 }
 
@@ -199,6 +201,23 @@ axiosInstance.interceptors.response.use(
                 clearClientSession();
             }
         }
+        return Promise.reject(error);
+    }
+);
+
+// 브라우저가 명확히 offline인 네트워크 실패만 전역 상태로 전달
+// HTTP, timeout, 도메인 오류의 메시지와 UI는 결정하지 않고 각 호출부의 처리 책임을 유지
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const isOnline = typeof navigator === "undefined" || navigator.onLine;
+        const globalErrorType = getGlobalNetworkErrorType(error, isOnline);
+
+        if (globalErrorType === "offline") {
+            useGlobalOfflineStore.getState().setOffline();
+        }
+
+        // 전역 UI 표시 여부와 호출부의 실패 처리는 별개이므로 원본 rejection을 유지한다.
         return Promise.reject(error);
     }
 );

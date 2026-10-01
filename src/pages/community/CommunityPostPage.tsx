@@ -82,13 +82,13 @@ const CommunityPostPage = () => {
   const [selectedCommentForOptions, setSelectedCommentForOptions] = useState<CommentItem | null>(null);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
-  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const { errorPopup, showCommunityError, closeCommunityError } =
     useCommunityErrorPopup();
   const handlePostDetailError = useCallback(
     (error: unknown) => showCommunityError(error, 'postDetail'),
     [showCommunityError],
   );
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('URL 복사가 완료되었습니다');
   const [accessStatusOverride, setAccessStatusOverride] = useState<
@@ -433,7 +433,7 @@ const CommunityPostPage = () => {
             <p className='mt-[10px] whitespace-pre-line text-[14px] leading-[150%] text-[var(--ColorGray3,#646464)]'>
               {'인터넷 연결 상태를 확인한 뒤\n다시 시도해 주세요.'}
             </p>
-            {/* 상세 조회 실패 후 사용자가 직접 재시도할 수 있도록 요청 진입점을 유지한다. */}
+            {/* 전역 offline 팝업은 연결 안내만 담당하므로, 상세 요청은 사용자가 이 화면에서 명시적으로 재시도한다. */}
             <Button
               type='button'
               label='다시 시도'

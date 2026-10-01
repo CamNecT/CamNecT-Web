@@ -15,6 +15,7 @@ import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import {
   notificationIconAssets,
   type NotificationItem,
@@ -452,6 +453,8 @@ export const NotificationPage = () => {
 
   const queryErrorConfig = useMemo(() => {
     if (dismissedErrorAt === errorUpdatedAt) return null;
+    // 오프라인 안내는 전역 배너에 맡기되 서버 코드별 안내와 조회 재시도는 유지한다.
+    if (shouldSkipLocalErrorUI(notificationError, navigator.onLine)) return null;
     return getNotificationErrorPopupConfig(notificationError, 'list');
   }, [notificationError, errorUpdatedAt, dismissedErrorAt]);
 
@@ -477,6 +480,8 @@ export const NotificationPage = () => {
           queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
         } catch (error) {
           markAsUnread(notification.id);
+          // 오프라인에서도 읽음 상태는 복구하고, 중복 팝업만 생략한다.
+          if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
           setPopUpConfig(getNotificationErrorPopupConfig(error, 'read'));
           return;
         }
@@ -496,6 +501,7 @@ export const NotificationPage = () => {
           await validateNotificationDestination(destination, userIdParam as string | number);
         }
       } catch (error) {
+        if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
         setPopUpConfig(getNavigationErrorPopUpConfig(error, notification));
         return;
       }
@@ -528,7 +534,9 @@ export const NotificationPage = () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
     } catch (error) {
       setItems(previousItems);
-      setPopUpConfig(getNotificationErrorPopupConfig(error, 'readAll'));
+      if (!shouldSkipLocalErrorUI(error, navigator.onLine)) {
+        setPopUpConfig(getNotificationErrorPopupConfig(error, 'readAll'));
+      }
     } finally {
       pendingActionRef.current = false;
       setIsMarkingAllRead(false);
