@@ -59,7 +59,7 @@ export interface PortfolioDetailData {
   title: string;
   thumbnailUrl: string | null;
   startDate: string;    // "YYYY-MM-DD"
-  endDate: string;      // "YYYY-MM-DD"
+  endDate: string | null; // "YYYY-MM-DD" 또는 진행 중이면 null
   description: string;
   isPublic: boolean;
   isFavorite: boolean;
@@ -88,7 +88,7 @@ export interface PortfolioCreateRequest {
   projectTitle: string;
   description: string;
   startedAt: string;
-  endedAt: string;
+  endedAt: string | null;
   project_role: string;
   techStack: string[];
   review: string;
@@ -100,7 +100,7 @@ export interface PortfolioUpdateRequest {
   projectTitle: string;
   description: string;
   startedAt: string;
-  endedAt: string;
+  endedAt: string | null;
   project_role: string;
   techStack: string[];
   review: string;

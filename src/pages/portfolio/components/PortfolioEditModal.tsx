@@ -85,8 +85,8 @@ export default function PortfolioEditModal({
     const [content, setContent] = useState('');
     const [startYear, setStartYear] = useState(new Date().getFullYear());
     const [startMonth, setStartMonth] = useState(1);
-    const [endYear, setEndYear] = useState(new Date().getFullYear());
-    const [endMonth, setEndMonth] = useState(1);
+    const [endYear, setEndYear] = useState<number | undefined>(new Date().getFullYear());
+    const [endMonth, setEndMonth] = useState<number | undefined>(1);
     const [role, setRole] = useState('');
     const [skills, setSkills] = useState('');
     const [problemSolution, setProblemSolution] = useState('');
@@ -115,6 +115,10 @@ export default function PortfolioEditModal({
     const initialDataRef = useRef<{
         title: string;
         content: string;
+        startYear: number;
+        startMonth: number;
+        endYear?: number;
+        endMonth?: number;
         role: string;
         skills: string;
         problemSolution: string;
@@ -133,6 +137,10 @@ export default function PortfolioEditModal({
         return (
             title !== initial.title ||
             content !== initial.content ||
+            startYear !== initial.startYear ||
+            startMonth !== initial.startMonth ||
+            endYear !== initial.endYear ||
+            endMonth !== initial.endMonth ||
             role !== initial.role ||
             skills !== initial.skills ||
             problemSolution !== initial.problemSolution ||
@@ -140,7 +148,7 @@ export default function PortfolioEditModal({
             attachmentFiles.length !== initial.attachmentFiles.length ||
             attachmentFiles.some((f, i) => f.url !== initial.attachmentFiles[i]?.url)
         );
-    }, [title, content, role, skills, problemSolution, thumbnailImage, attachmentFiles]);
+    }, [title, content, startYear, startMonth, endYear, endMonth, role, skills, problemSolution, thumbnailImage, attachmentFiles]);
 
     // useModalHistory 훅 사용
     useModalHistory(onClose, hasUnsavedChanges, () => setShowCloseWarning(true));
@@ -168,6 +176,10 @@ export default function PortfolioEditModal({
             initialDataRef.current = {
                 title: '',
                 content: '',
+                startYear: new Date().getFullYear(),
+                startMonth: 1,
+                endYear: new Date().getFullYear(),
+                endMonth: 1,
                 role: '',
                 skills: '',
                 problemSolution: '',
@@ -190,7 +202,9 @@ export default function PortfolioEditModal({
         setStartYear(startY);
         setStartMonth(startM);
 
-        const [endY, endM] = portfolioData.endDate.split('-').map(Number);
+        const [endY, endM] = portfolioData.endDate
+            ? portfolioData.endDate.split('-').map(Number)
+            : [undefined, undefined];
         setEndYear(endY);
         setEndMonth(endM);
 
@@ -224,6 +238,10 @@ export default function PortfolioEditModal({
         initialDataRef.current = {
             title: portfolioData.title,
             content: portfolioData.description,
+            startYear: startY,
+            startMonth: startM,
+            endYear: endY,
+            endMonth: endM,
             role: portfolioData.assignedRole[0] || '',
             skills: portfolioData.techStack.join(', '),
             problemSolution: portfolioData.review || '',
@@ -533,7 +551,9 @@ export default function PortfolioEditModal({
                 projectTitle: title.trim(),
                 description: content.trim(),
                 startedAt: `${startYear}-${String(startMonth).padStart(2, '0')}-01`,
-                endedAt: `${endYear}-${String(endMonth).padStart(2, '0')}-01`,
+                endedAt: endYear && endMonth
+                    ? `${endYear}-${String(endMonth).padStart(2, '0')}-01`
+                    : null,
                 project_role: role.trim(),
                 techStack: parseTechStack(skills),
                 review: problemSolution.trim(),
@@ -738,7 +758,7 @@ export default function PortfolioEditModal({
                                         {showStartYearDropdown && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {years
-                                                .filter(year => year <= endYear)
+                                                .filter(year => endYear === undefined || year <= endYear)
                                                 .map((year) => (
                                                 <button
                                                 key={year}
@@ -770,7 +790,7 @@ export default function PortfolioEditModal({
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {months
                                                 .filter(month => {
-                                                if (endYear === startYear) {
+                                                if (endYear === startYear && endMonth !== undefined) {
                                                     return month <= endMonth;
                                                 }
                                                 return true;
@@ -803,12 +823,27 @@ export default function PortfolioEditModal({
                                             onClick={() => setShowEndYearDropdown(!showEndYearDropdown)}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
-                                            <span className="text-r-16-hn text-gray-750">{endYear}년</span>
+                                            <span className="text-r-16-hn text-gray-750">
+                                                {endYear ? `${endYear}년` : '현재'}
+                                            </span>
                                             <Icon name="arrow_down" 
                                             className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`}/>
                                         </button>
                                         {showEndYearDropdown && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
+                                            <button
+                                                onClick={() => {
+                                                    setEndYear(undefined);
+                                                    setEndMonth(undefined);
+                                                    setShowEndYearDropdown(false);
+                                                    setShowEndMonthDropdown(false);
+                                                }}
+                                                className={`flex w-full p-[15px] border-gray-150 border-b text-r-16-hn ${
+                                                    endYear === undefined ? 'text-primary' : 'text-gray-650'
+                                                }`}
+                                            >
+                                                현재
+                                            </button>
                                             {years
                                                 .filter(year => year >= startYear)
                                                 .map((year) => (
@@ -816,6 +851,7 @@ export default function PortfolioEditModal({
                                                 key={year}
                                                 onClick={() => {
                                                     setEndYear(year);
+                                                    setEndMonth(endMonth ?? 12);
                                                     setShowEndYearDropdown(false);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
@@ -829,6 +865,7 @@ export default function PortfolioEditModal({
                                         )}
                                         </div>
 
+                                        {endYear !== undefined && (
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
                                             onClick={() => setShowEndMonthDropdown(!showEndMonthDropdown)}
@@ -864,6 +901,7 @@ export default function PortfolioEditModal({
                                             </div>
                                         )}
                                         </div>
+                                        )}
 
                                         <span className="flex-1 text-r-14-hn text-gray-650 min-w-[25px] max-w-[65px]">까지</span>
                                     </div>

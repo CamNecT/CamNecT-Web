@@ -180,7 +180,7 @@ export const PortfolioDetailPage = ({
     }
 
     const startDate = parseDate(portfolio.startDate);
-    const endDate = parseDate(portfolio.endDate);
+    const endDate = portfolio.endDate ? parseDate(portfolio.endDate) : null;
 
     return (
         <div className="min-h-dvh bg-white">
@@ -235,7 +235,9 @@ export const PortfolioDetailPage = ({
                                     <div className="flex items-center gap-[10px]">
                                         <span className="text-m-14-hn text-gray-750 min-w-[77px]">프로젝트 기간</span>
                                         <span className="text-r-12-hn text-gray-650">
-                                            {startDate.year}.{String(startDate.month).padStart(2, '0')} - {endDate.year}.{String(endDate.month).padStart(2, '0')}
+                                            {startDate.year}.{String(startDate.month).padStart(2, '0')} - {endDate
+                                                ? `${endDate.year}.${String(endDate.month).padStart(2, '0')}`
+                                                : '현재'}
                                         </span>
                                     </div>
 
