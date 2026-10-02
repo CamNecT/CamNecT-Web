@@ -22,6 +22,7 @@ import PointBox from './components/PointBox';
 import RecommendBox from './components/RecommendBox';
 import { homeGreetingUser } from './homeData';
 import { mapHomeResponseToViewModel } from './homeMapper';
+import { getNotificationErrorPopupConfig } from './utils/notificationError';
 
 type PopUpConfig = {
     title: string;
@@ -73,6 +74,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
 export const HomePage = () => {
     const navigate = useNavigate();
     const [isErrorDismissed, setIsErrorDismissed] = useState(false);
+    const [dismissedUnreadErrorAt, setDismissedUnreadErrorAt] = useState<number | null>(null);
     const [isRecommendExpanded, setIsRecommendExpanded] = useState(false);
     const hasUnreadNotificationsFromStore = useNotificationStore((state) =>
         state.items.some((notice) => !notice.isRead),
@@ -143,7 +145,7 @@ export const HomePage = () => {
         staleTime: 60 * 1000,
     });
 
-    const { data: unreadCountResponse, error: unreadCountError } = useQuery({
+    const { data: unreadCountResponse, error: unreadCountError, errorUpdatedAt: unreadErrorUpdatedAt } = useQuery({
         queryKey: ['notificationsUnreadCount', userIdParam],
         queryFn: () =>
             requestNotificationUnreadCount({ userId: userIdParam as string | number }),
@@ -177,10 +179,11 @@ export const HomePage = () => {
         typeof unreadCount === 'number' ? unreadCount > 0 : hasUnreadNotificationsFromStore;
 
     const popUpConfig = useMemo(() => {
-        if (isErrorDismissed) return null;
-        const status = getErrorStatus(homeError) ?? getErrorStatus(unreadCountError);
-        return getErrorPopUpConfig(status);
-    }, [homeError, unreadCountError, isErrorDismissed]);
+        const homePopup = isErrorDismissed ? null : getErrorPopUpConfig(getErrorStatus(homeError));
+        if (homePopup) return homePopup;
+        if (dismissedUnreadErrorAt === unreadErrorUpdatedAt) return null;
+        return getNotificationErrorPopupConfig(unreadCountError, 'unreadCount');
+    }, [homeError, unreadCountError, isErrorDismissed, dismissedUnreadErrorAt, unreadErrorUpdatedAt]);
 
     // 숨겨진 추천 동문이 있으면 먼저 펼치고, 모두 보이는 상태에서는 동문찾기 페이지로 이동합니다.
     const handleRecommendMoreClick = () => {
@@ -348,6 +351,7 @@ export const HomePage = () => {
                     content={popUpConfig.content}
                     onClick={() => {
                         setIsErrorDismissed(true);
+                        setDismissedUnreadErrorAt(unreadErrorUpdatedAt);
                     }}
                 />
             )}
