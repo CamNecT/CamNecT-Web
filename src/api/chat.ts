@@ -54,7 +54,17 @@ export const requestChatRoomExit = async (data: ChatRoomExitRequest) => {
     return response.data;
 }
 
-// 5. 커피챗 요청 수락/거절 API [POST] (/api/request/respond)
+// 5. 채팅방 종료 및 나가기 API [PATCH] (/api/chat/room/{roomId}/complete-exit)
+export const requestChatRoomCompleteExit = async (data: ChatRoomExitRequest) => {
+    const { roomId, userId } = data;
+    
+    const response = await axiosInstance.patch<ChatRoomExitResponse>(`/api/chat/room/${roomId}/complete-exit`, {
+        params: { userId }
+    });
+    return response.data;
+}
+
+// 6. 커피챗 요청 수락/거절 API [POST] (/api/request/respond)
 export const requestChatRespond = async (data: ChatRespondRequest) => {
     const { userId, ...body } = data;
     
@@ -64,7 +74,7 @@ export const requestChatRespond = async (data: ChatRespondRequest) => {
     return response.data;
 }
 
-// 6. 커피챗 요청 상세 조회 API [GET] (/api/request/{requestId})
+// 7. 커피챗 요청 상세 조회 API [GET] (/api/request/{requestId})
 export const viewChatRequestDetail = async (data: ChatRequestDetailRequest) => {
     const { userId, requestId } = data;
     
@@ -74,7 +84,7 @@ export const viewChatRequestDetail = async (data: ChatRequestDetailRequest) => {
     return response.data;
 }
 
-// 7. 커피챗 요청 목록 조회 API [GET] (/api/request/list)
+// 8. 커피챗 요청 목록 조회 API [GET] (/api/request/list)
 export const viewChatRequestList = async (data: ChatRequestListRequest) => {
     const { userId, type } = data;
     
@@ -84,7 +94,7 @@ export const viewChatRequestList = async (data: ChatRequestListRequest) => {
     return response.data;
 }
 
-// 8. (게시글 별) 팀원 모집 전체 삭제  API [DELETE] (/api/request/all/team-recruit/{recruitmentId})
+// 9. (게시글 별) 팀원 모집 전체 삭제  API [DELETE] (/api/request/all/team-recruit/{recruitmentId})
 export const deleteAllTeamRecruit = async (data: DeleteAllTeamRecruitRequest) => {
     const { userId, recruitmentId } = data;
     
@@ -94,7 +104,7 @@ export const deleteAllTeamRecruit = async (data: DeleteAllTeamRecruitRequest) =>
     return response.data;
 }
 
-// 9. 커피챗 요청 전체 삭제 API [DELETE] (/api/request/all/coffee-chat)
+// 10. 커피챗 요청 전체 삭제 API [DELETE] (/api/request/all/coffee-chat)
 export const deleteAllChatRequest = async (data: DeleteAllChatRequest) => {
     const { userId } = data;
     
