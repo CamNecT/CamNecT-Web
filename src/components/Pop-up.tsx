@@ -1,9 +1,16 @@
 import type { ReactNode } from 'react';
 import Button from './Button';
 import PressableMotion from './PressableMotion';
+import BoardTypeToggle from './BoardTypeToggle';
 
 // 팝업 유형: 안내/경고/확인/로딩
 export type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
+
+type PopUpCheckbox = {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+};
 
 // 공통 팝업 props (유형별로 필요한 값만 사용)
 type PopUpProps = {
@@ -21,6 +28,7 @@ type PopUpProps = {
   onLeftClick?: () => void;
   onRightClick?: () => void;
   onClick?: () => void;
+  checkbox?: PopUpCheckbox; // 팝업의 체크박스 옵션
 };
 
 const PopUp = ({
@@ -36,8 +44,11 @@ const PopUp = ({
   onLeftClick,
   onRightClick,
   onClick,
+  checkbox
 }: PopUpProps) => {
   if (!isOpen) return null;
+
+  const hasWarningCheckbox = type === 'warning' && Boolean(checkbox);
 
   // 유형별 텍스트 정렬
   const contentAlign =
@@ -96,7 +107,12 @@ const PopUp = ({
     }
 
     return (
-      <div className={`flex flex-col justify-center h-[clamp(85px,10vw,100px)] gap-[15px] px-[15px] pt-[10px] ${contentAlign}`}>
+      <div className={`flex flex-col ${
+        hasWarningCheckbox
+        ? 'gap-[7px]'
+        : 'h-[clamp(85px,10vw,100px)] justify-center gap-[15px] px-[15px] pt-[10px]'
+      } ${contentAlign}`}
+      >
         {type === 'error' ? (
           <div className='flex flex-col gap-[10px]'>
             {isRenderableNode(normalizedTitle) && (
@@ -115,8 +131,30 @@ const PopUp = ({
             <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>{normalizedTitle}</div>
           )
         )}
+
         {isRenderableNode(contentWithWarningPrefix) && (
-          <div className='text-r-14 whitespace-pre-wrap text-[var(--ColorGray3,#646464)]'>{contentWithWarningPrefix}</div>
+          <div className={hasWarningCheckbox ? 'flex flex-col gap-[10px]' : undefined}>
+            <div className='text-center text-r-14 tracking-[-0.56px] whitespace-pre-wrap text-[var(--ColorGray6,#646464)]'>
+              {contentWithWarningPrefix}
+            </div>
+
+            {hasWarningCheckbox && checkbox && (
+            <div
+              className= 'flex items-center justify-center gap-[7px]'
+            >
+              <BoardTypeToggle
+                selected={checkbox.checked}
+                label={checkbox.label}
+                onClick={() => checkbox.onChange(!checkbox.checked)}
+                variant='neutral'
+              />
+                
+              <span className='text-center text-r-14 tracking-[-0.56px] whitespace-pre-wrap text-[var(--ColorGray6,#646464)]'>
+                {checkbox.label}
+              </span>
+            </div>
+            )}
+          </div>
         )}
       </div>
     );
@@ -197,10 +235,13 @@ const PopUp = ({
       aria-modal='true'
     >
       {/* 모달 본체: clamp로 반응형 너비, 최소 높이 보장 */}
-      <div className='flex w-[clamp(260px,85vw,324px)] min-h-[200px] flex-col px-[20px] py-[20px] rounded-[20px] bg-[var(--ColorWhite,#FFF)] shadow-[0_12px_30px_rgba(0,0,0,0.16)]'>
+      <div className='flex min-h-[200px] w-[clamp(260px,85vw,325px)] flex-col rounded-[20px] bg-[var(--ColorWhite,#FFF)] px-[20px] py-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.16)]'>
         {renderContent()}
+
         {/* 버튼 영역을 하단에 고정 */}
-        <div className='mt-auto'>{renderButtons()}</div>
+        <div className={hasWarningCheckbox ? 'mt-[15px]' : 'mt-auto'}>
+          {renderButtons()}
+        </div>
       </div>
     </div>
   );
