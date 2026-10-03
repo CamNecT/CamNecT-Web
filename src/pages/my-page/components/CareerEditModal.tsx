@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Icon from "../../../components/Icon";
 import { type CareerItem } from "../../../types/mypage/mypageTypes";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
@@ -30,6 +30,8 @@ interface CareerModalProps {
 }
 
 type View = 'list' | 'add' | 'edit';
+type EndDateMode = 'unselected' | 'current' | 'date';
+type CareerDropdown = 'startYear' | 'startMonth' | 'endYear' | 'endMonth' | null;
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -54,19 +56,32 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         endMonth: undefined,
     });
 
-    const [showStartYearDropdown, setShowStartYearDropdown] = useState(false);
-    const [showStartMonthDropdown, setShowStartMonthDropdown] = useState(false);
-    const [showEndYearDropdown, setShowEndYearDropdown] = useState(false);
-    const [showEndMonthDropdown, setShowEndMonthDropdown] = useState(false);
+    const [endDateMode, setEndDateMode] = useState<EndDateMode>('unselected');
+    const [openDropdown, setOpenDropdown] = useState<CareerDropdown>(null);
+    const periodDropdownRef = useRef<HTMLDivElement>(null);
     
     const [newPosition, setNewPosition] = useState('');
 
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    useEffect(() => {
+        if (openDropdown === null) return;
+
+        const handleOutsidePointerDown = (event: PointerEvent) => {
+            if (!periodDropdownRef.current?.contains(event.target as Node)) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    }, [openDropdown]);
 
     // 변경사항 추적 (리스트 전체 추적)
     const hasListChanges: boolean = useMemo(() => {
@@ -81,7 +96,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
             return false;
         }
         if (currentView === 'add') {
-            return !!(formData.organization.trim());
+            return endDateMode !== 'unselected' && !!(formData.organization.trim());
         }
         if (currentView === 'edit' && editingId !== null) {
             const original = listCareers.find(c => c.id === editingId);
@@ -89,7 +104,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
             return JSON.stringify(formData) !== JSON.stringify(original);
         }
         return false;
-    }, [formData, currentView, editingId, listCareers]);
+    }, [formData, currentView, editingId, listCareers, endDateMode]);
 
     const saveMutation = useMutation({
         mutationFn: async () => {
@@ -165,9 +180,11 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
             positions: [],
             startYear: currentYear,
             startMonth: 1,
-            endYear: currentYear,
-            endMonth: 12,
+            endYear: undefined,
+            endMonth: undefined,
         });
+        setEndDateMode('unselected');
+        setOpenDropdown(null);
         setNewPosition('');
         setCurrentView('add');
     };
@@ -177,6 +194,8 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         const career = listCareers.find(c => c.id === id);
         if (career) {
             setFormData(career);
+            setEndDateMode(career.endYear === undefined ? 'current' : 'date');
+            setOpenDropdown(null);
             setNewPosition('');
             setCurrentView('edit');
         }
@@ -440,25 +459,25 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                             </div>
 
                             {/* 기간 */}
-                            <div className="w-full flex flex-col gap-[10px]">
+                            <div ref={periodDropdownRef} className="w-full flex flex-col gap-[10px]">
                                 <span className="text-sb-16-hn text-gray-900">기간</span>
                                 
                                 {/* 시작 */}
                                 <div className="flex gap-[10px] items-center">
                                     <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowStartYearDropdown(!showStartYearDropdown)}
+                                            onClick={() => setOpenDropdown(current => current === 'startYear' ? null : 'startYear')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.startYear}년</span>
                                             <Icon name="arrow_down" 
-                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`}/>
+                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'startYear' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showStartYearDropdown && (
+                                        {openDropdown === 'startYear' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                                 {years
                                                     .filter(year => {
-                                                        if (formData.endYear) {
+                                                        if (endDateMode === 'date' && formData.endYear) {
                                                             return year <= formData.endYear; // 종료 연도 이하만
                                                         }
                                                         return true;
@@ -467,8 +486,16 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                                     <button
                                                         key={year}
                                                         onClick={() => {
-                                                            setFormData({ ...formData, startYear: year });
-                                                            setShowStartYearDropdown(false);
+                                                            const currentMonthLimit = year === currentYear ? currentMonth : 12;
+                                                            const endMonthLimit = endDateMode === 'date' && formData.endYear === year && formData.endMonth
+                                                                ? formData.endMonth
+                                                                : 12;
+                                                            setFormData({
+                                                                ...formData,
+                                                                startYear: year,
+                                                                startMonth: Math.min(formData.startMonth ?? 1, currentMonthLimit, endMonthLimit),
+                                                            });
+                                                            setOpenDropdown(null);
                                                         }}
                                                         className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                             formData.startYear === year ? 'text-primary' : 'text-gray-650'
@@ -483,28 +510,32 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
 
                                     <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowStartMonthDropdown(!showStartMonthDropdown)}
+                                            onClick={() => setOpenDropdown(current => current === 'startMonth' ? null : 'startMonth')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.startMonth}월</span>
                                             <Icon name="arrow_down" 
-                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartMonthDropdown ? 'rotate-180' : ''}`}/>
+                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'startMonth' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showStartMonthDropdown && (
+                                        {openDropdown === 'startMonth' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                                 {MONTHS
                                                     .filter(month => {
-                                                        if (formData.endYear === formData.startYear && formData.endMonth) {
-                                                            return month <= formData.endMonth; // 종료 월 이하만
-                                                        }
-                                                        return true;
+                                                        const isBeforeOrInCurrentMonth =
+                                                            formData.startYear !== currentYear || month <= currentMonth;
+                                                        const isBeforeOrInEndMonth =
+                                                            endDateMode !== 'date' ||
+                                                            formData.endYear !== formData.startYear ||
+                                                            !formData.endMonth ||
+                                                            month <= formData.endMonth;
+                                                        return isBeforeOrInCurrentMonth && isBeforeOrInEndMonth;
                                                     })
                                                     .map((month) => (
                                                     <button
                                                         key={month}
                                                         onClick={() => {
                                                             setFormData({ ...formData, startMonth: month });
-                                                            setShowStartMonthDropdown(false);
+                                                            setOpenDropdown(null);
                                                         }}
                                                         className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                             formData.startMonth === month ? 'text-primary' : 'text-gray-650'
@@ -524,24 +555,29 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                 <div className="flex gap-[10px] items-center">
                                     <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowEndYearDropdown(!showEndYearDropdown)}
+                                            onClick={() => setOpenDropdown(current => current === 'endYear' ? null : 'endYear')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
-                                            <span className="text-r-16-hn text-gray-750">
-                                                {formData.endYear ? `${formData.endYear}년` : '현재'}
+                                            <span className={`text-r-16-hn ${endDateMode === 'unselected' ? 'text-gray-350' : 'text-gray-750'}`}>
+                                                {endDateMode === 'unselected'
+                                                    ? '종료 연도'
+                                                    : endDateMode === 'current'
+                                                        ? '현재'
+                                                        : `${formData.endYear}년`}
                                             </span>
                                             <Icon name="arrow_down" 
-                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`}/>
+                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'endYear' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showEndYearDropdown && (
+                                        {openDropdown === 'endYear' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                                 <button
                                                     onClick={() => {
+                                                        setEndDateMode('current');
                                                         setFormData({ ...formData, endYear: undefined, endMonth: undefined });
-                                                        setShowEndYearDropdown(false);
+                                                        setOpenDropdown(null);
                                                     }}
                                                     className={`flex w-full p-[15px] border-gray-150 border-b text-r-16-hn ${
-                                                        !formData.endYear ? 'text-primary' : 'text-gray-650'
+                                                        endDateMode === 'current' ? 'text-primary' : 'text-gray-650'
                                                     }`}
                                                 >
                                                     현재
@@ -557,11 +593,17 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                                     <button
                                                         key={year}
                                                         onClick={() => {
-                                                            setFormData({ ...formData, endYear: year, endMonth: formData.endMonth || 12 });
-                                                            setShowEndYearDropdown(false);
+                                                            const minimumMonth = year === formData.startYear ? formData.startMonth ?? 1 : 1;
+                                                            const maximumMonth = year === currentYear ? currentMonth : 12;
+                                                            const nextEndMonth = formData.endMonth && formData.endMonth >= minimumMonth && formData.endMonth <= maximumMonth
+                                                                ? formData.endMonth
+                                                                : maximumMonth;
+                                                            setEndDateMode('date');
+                                                            setFormData({ ...formData, endYear: year, endMonth: nextEndMonth });
+                                                            setOpenDropdown(null);
                                                         }}
                                                         className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
-                                                            formData.endYear === year ? 'text-primary' : 'text-gray-650'
+                                                            endDateMode === 'date' && formData.endYear === year ? 'text-primary' : 'text-gray-650'
                                                         }`}
                                                     >
                                                         {year}년
@@ -571,31 +613,32 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                         )}
                                     </div>
 
-                                    {formData.endYear && (
+                                    {endDateMode === 'date' && formData.endYear ? (
                                         <div className="flex-1 relative min-w-[110px]">
                                             <button
-                                                onClick={() => setShowEndMonthDropdown(!showEndMonthDropdown)}
+                                                onClick={() => setOpenDropdown(current => current === 'endMonth' ? null : 'endMonth')}
                                                 className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                             >
                                                 <span className="text-r-16-hn text-gray-750">{formData.endMonth}월</span>
                                                 <Icon name="arrow_down" 
-                                                    className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndMonthDropdown ? 'rotate-180' : ''}`}/>
+                                                    className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'endMonth' ? 'rotate-180' : ''}`}/>
                                             </button>
-                                            {showEndMonthDropdown && (
+                                            {openDropdown === 'endMonth' && (
                                                 <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                                     {MONTHS
                                                         .filter(month => {
-                                                            if (formData.endYear === formData.startYear && formData.startMonth !== undefined) {
-                                                                return month >= formData.startMonth; // 시작 월 이상만
-                                                            }
-                                                            return true;
+                                                            const isAfterOrInStartMonth =
+                                                                formData.endYear !== formData.startYear || month >= (formData.startMonth ?? 1);
+                                                            const isBeforeOrInCurrentMonth =
+                                                                formData.endYear !== currentYear || month <= currentMonth;
+                                                            return isAfterOrInStartMonth && isBeforeOrInCurrentMonth;
                                                         })
                                                         .map((month) => (
                                                         <button
                                                             key={month}
                                                             onClick={() => {
                                                                 setFormData({ ...formData, endMonth: month });
-                                                                setShowEndMonthDropdown(false);
+                                                                setOpenDropdown(null);
                                                             }}
                                                             className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                                 formData.endMonth === month ? 'text-primary' : 'text-gray-650'
@@ -607,7 +650,18 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                                 </div>
                                             )}
                                         </div>
-                                    )}
+                                    ) : endDateMode === 'unselected' ? (
+                                        <div className="flex-1 relative min-w-[110px]">
+                                            <button
+                                                type="button"
+                                                disabled
+                                                className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between"
+                                            >
+                                                <span className="text-r-16-hn text-gray-350">종료 월</span>
+                                                <Icon name="arrow_down" className="w-[24px] h-[24px] block shrink-0 opacity-40" />
+                                            </button>
+                                        </div>
+                                    ) : null}
 
                                     <span className="flex-1 text-r-14-hn text-gray-650 min-w-[25px] max-w-[65px]">까지</span>
                                 </div>
