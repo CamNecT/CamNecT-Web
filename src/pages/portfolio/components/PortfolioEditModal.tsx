@@ -106,14 +106,12 @@ export default function PortfolioEditModal({
     const [showCloseWarning, setShowCloseWarning] = useState(false);
     const [confirm, setConfirm] = useState(false);
 
-    const [showStartYearDropdown, setShowStartYearDropdown] = useState(false);
-    const [showStartMonthDropdown, setShowStartMonthDropdown] = useState(false);
-    const [showEndYearDropdown, setShowEndYearDropdown] = useState(false);
-    const [showEndMonthDropdown, setShowEndMonthDropdown] = useState(false);
+    const [openPeriodDropdown, setOpenPeriodDropdown] = useState<PeriodDropdown>(null);
 
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const pdfInputRef = useRef<HTMLInputElement>(null);
+    const periodDropdownRef = useRef<HTMLDivElement>(null);
 
     //초기 데이터 저장
     const initialDataRef = useRef<{
@@ -267,6 +265,7 @@ export default function PortfolioEditModal({
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
+            setOpenPeriodDropdown(null);
             initializedForRef.current = null;
             initialDataRef.current = null;
         }
@@ -275,6 +274,19 @@ export default function PortfolioEditModal({
             document.body.style.overflow = '';
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        if (openPeriodDropdown === null) return;
+
+        const handleOutsidePointerDown = (event: PointerEvent) => {
+            if (!periodDropdownRef.current?.contains(event.target as Node)) {
+                setOpenPeriodDropdown(null);
+            }
+        };
+
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    }, [openPeriodDropdown]);
 
     //컴포넌트가 unmount될 때 blob을 해제
     useEffect(() => {
@@ -754,7 +766,7 @@ export default function PortfolioEditModal({
                             
                             <div className="px-[25px] py-[20px] flex flex-col gap-[20px]">
                                 {/* 프로젝트 기간 */}
-                                <div className="flex flex-col gap-[10px]">
+                                <div ref={periodDropdownRef} className="flex flex-col gap-[10px]">
                                     <span className="text-sb-16-hn text-gray-900">
                                         프로젝트 기간 (필수)
                                     </span>
