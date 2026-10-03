@@ -601,8 +601,13 @@ export default function PortfolioEditModal({
     const problemLength = problemSolution.length;
 
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const togglePeriodDropdown = (dropdown: Exclude<PeriodDropdown, null>) => {
+        setOpenPeriodDropdown((current) => current === dropdown ? null : dropdown);
+    };
 
     // 파일 타입 구분
     const imageFiles = attachmentFiles.filter(f => 
@@ -758,23 +763,29 @@ export default function PortfolioEditModal({
                                     <div className="flex gap-[10px] items-center">
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowStartYearDropdown(!showStartYearDropdown)}
+                                            onClick={() => togglePeriodDropdown('startYear')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{startYear}년</span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openPeriodDropdown === 'startYear' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showStartYearDropdown && (
+                                        {openPeriodDropdown === 'startYear' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {years
-                                                .filter(year => endYear === undefined || year <= endYear)
+                                                .filter(year => endDateMode !== 'date' || endYear === undefined || year <= endYear)
                                                 .map((year) => (
                                                 <button
                                                 key={year}
                                                 onClick={() => {
+                                                    const currentMonthLimit = year === currentYear ? currentMonth : 12;
+                                                    const endMonthLimit =
+                                                        endDateMode === 'date' && endYear === year && endMonth !== undefined
+                                                            ? endMonth
+                                                            : 12;
                                                     setStartYear(year);
-                                                    setShowStartYearDropdown(false);
+                                                    setStartMonth(Math.min(startMonth, currentMonthLimit, endMonthLimit));
+                                                    setOpenPeriodDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                     startYear === year ? 'text-primary' : 'text-gray-650'
@@ -789,28 +800,32 @@ export default function PortfolioEditModal({
 
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowStartMonthDropdown(!showStartMonthDropdown)}
+                                            onClick={() => togglePeriodDropdown('startMonth')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{startMonth}월</span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartMonthDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openPeriodDropdown === 'startMonth' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showStartMonthDropdown && (
+                                        {openPeriodDropdown === 'startMonth' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {months
                                                 .filter(month => {
-                                                if (endYear === startYear && endMonth !== undefined) {
-                                                    return month <= endMonth;
-                                                }
-                                                return true;
+                                                const isBeforeOrInCurrentMonth =
+                                                    startYear !== currentYear || month <= currentMonth;
+                                                const isBeforeOrInEndMonth =
+                                                    endDateMode !== 'date' ||
+                                                    endYear !== startYear ||
+                                                    endMonth === undefined ||
+                                                    month <= endMonth;
+                                                return isBeforeOrInCurrentMonth && isBeforeOrInEndMonth;
                                                 })
                                                 .map((month) => (
                                                 <button
                                                 key={month}
                                                 onClick={() => {
                                                     setStartMonth(month);
-                                                    setShowStartMonthDropdown(false);
+                                                    setOpenPeriodDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                     startMonth === month ? 'text-primary' : 'text-gray-650'
@@ -885,31 +900,30 @@ export default function PortfolioEditModal({
                                         )}
                                         </div>
 
-                                        {endYear !== undefined && (
+                                        {endDateMode === 'date' && endYear !== undefined ? (
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowEndMonthDropdown(!showEndMonthDropdown)}
+                                            onClick={() => togglePeriodDropdown('endMonth')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{endMonth}월</span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndMonthDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openPeriodDropdown === 'endMonth' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showEndMonthDropdown && (
+                                        {openPeriodDropdown === 'endMonth' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {months
                                                 .filter(month => {
-                                                if (endYear === startYear) {
-                                                    return month >= startMonth;
-                                                }
-                                                return true;
+                                                const isAfterOrInStartMonth = endYear !== startYear || month >= startMonth;
+                                                const isBeforeOrInCurrentMonth = endYear !== currentYear || month <= currentMonth;
+                                                return isAfterOrInStartMonth && isBeforeOrInCurrentMonth;
                                                 })
                                                 .map((month) => (
                                                 <button
                                                 key={month}
                                                 onClick={() => {
                                                     setEndMonth(month);
-                                                    setShowEndMonthDropdown(false);
+                                                    setOpenPeriodDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                     endMonth === month ? 'text-primary' : 'text-gray-650'
