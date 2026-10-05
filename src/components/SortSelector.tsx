@@ -7,6 +7,7 @@ import Toggle from './Toggle/Toggle';
 type SortSelectorProps<SortKey extends string> = {
   sortKey: SortKey;
   sortLabels: Record<SortKey, string>;
+  modalLabels?: Record<SortKey, string>; // BottomSheetModal용 라벨
   onChange: (next: SortKey) => void;
   modalTitle?: string;
   buttonClassName?: string;
@@ -15,12 +16,14 @@ type SortSelectorProps<SortKey extends string> = {
 const SortSelector = <SortKey extends string>({
   sortKey,
   sortLabels,
+  modalLabels,
   onChange,
   modalTitle = '정렬',
   buttonClassName = 'text-r-14 text-[var(--ColorGray2,#A1A1A1)]',
 }: SortSelectorProps<SortKey>) => {
   const [isOpen, setIsOpen] = useState(false);
   const sortKeys = Object.keys(sortLabels) as SortKey[];
+  const displayLabels = modalLabels ?? sortLabels;
 
   return (
     <>
@@ -51,7 +54,7 @@ const SortSelector = <SortKey extends string>({
                     setIsOpen(false);
                   }}
                 >
-                  {sortLabels[key]}
+                  {displayLabels[key]}
                 </PressableMotion>
                 <BoardTypeToggle
                   selected={sortKey === key}
@@ -59,7 +62,7 @@ const SortSelector = <SortKey extends string>({
                     onChange(key);
                     setIsOpen(false);
                   }}
-                  label={sortLabels[key]}
+                  label={displayLabels[key]}
                 />
               </div>
             ))}
