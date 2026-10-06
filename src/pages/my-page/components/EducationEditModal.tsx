@@ -36,6 +36,8 @@ interface EducationModalProps {
 }
 
 type View = 'list' | 'add' | 'edit';
+type EndYearMode = 'unselected' | 'current' | 'date';
+type EducationDropdown = 'status' | 'startYear' | 'endYear' | null;
 
 class EducationValidationError extends Error {
     constructor(message: string) {
@@ -130,9 +132,8 @@ export default function EducationModal({ userId, educations, visibility, onClose
         endYear: undefined,
     });
 
-    const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-    const [showStartYearDropdown, setShowStartYearDropdown] = useState(false);
-    const [showEndYearDropdown, setShowEndYearDropdown] = useState(false);
+    const [endYearMode, setEndYearMode] = useState<EndYearMode>('unselected');
+    const [openDropdown, setOpenDropdown] = useState<EducationDropdown>(null);
 
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
@@ -149,6 +150,20 @@ export default function EducationModal({ userId, educations, visibility, onClose
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    useEffect(() => {
+        if (openDropdown === null) return;
+
+        const handleOutsidePointerDown = (event: PointerEvent) => {
+            const target = event.target;
+            if (!(target instanceof Element) || !target.closest('[data-education-dropdown]')) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    }, [openDropdown]);
 
     useEffect(() => {
         if (!showSchoolSuggestions) return;
@@ -180,7 +195,11 @@ export default function EducationModal({ userId, educations, visibility, onClose
             return false;
         }
         if (currentView === 'add') {
-            return !!(formData.school.trim() || formData.status !== 'ATTENDING' || formData.startYear !== currentYear);
+            return endYearMode !== 'unselected' && !!(
+                formData.school.trim() ||
+                formData.status !== 'ATTENDING' ||
+                formData.startYear !== currentYear
+            );
         }
         if (currentView === 'edit' && editingId !== null) {
             const original = listEducations.find(e => e.id === editingId);
@@ -195,7 +214,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
             );
         }
         return false;
-    }, [formData, currentView, editingId, listEducations, currentYear]);
+    }, [formData, currentView, editingId, listEducations, currentYear, endYearMode]);
 
     const saveMutation = useMutation({
         mutationFn: async () => {
@@ -302,6 +321,8 @@ export default function EducationModal({ userId, educations, visibility, onClose
             startYear: currentYear,
             endYear: undefined,
         });
+        setEndYearMode('unselected');
+        setOpenDropdown(null);
         setSchoolSearchQuery("");
         setCurrentView('add');
     };
@@ -311,6 +332,8 @@ export default function EducationModal({ userId, educations, visibility, onClose
         const edu = listEducations.find(e => e.id === id);
         if (edu) {
             setFormData(edu);
+            setEndYearMode(edu.endYear === undefined ? 'current' : 'date');
+            setOpenDropdown(null);
             setSchoolSearchQuery(
                 formatEducationSchoolName(edu.school, edu.campusName, edu.campusId)
             );
@@ -592,25 +615,25 @@ export default function EducationModal({ userId, educations, visibility, onClose
                             </div>
 
                             {/* education 상태 */}
-                            <div className="relative flex flex-col gap-[10px]">
+                            <div data-education-dropdown className="relative flex flex-col gap-[10px]">
                                 <span className="text-sb-16-hn text-gray-900">재학 상태</span>
                                 <button
-                                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                                    onClick={() => setOpenDropdown(current => current === 'status' ? null : 'status')}
                                     className="w-full p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                 >
                                     <span className="text-r-16-hn text-gray-750">{getStatusLabel(formData.status)}</span>
                                     <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'status' ? 'rotate-180' : ''}`}/>
                                 </button>
 
-                                {showStatusDropdown && (
+                                {openDropdown === 'status' && (
                                     <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                         {STATUS_OPTIONS.map((option) => (
                                             <button
                                                 key={option.value}
                                                 onClick={() => {
                                                     setFormData({ ...formData, status: option.value });
-                                                    setShowStatusDropdown(false);
+                                                    setOpenDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                     formData.status === option.value ? 'text-primary' : 'text-gray-650'
@@ -628,22 +651,22 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                 <span className="text-sb-16-hn text-gray-900">재학 기간</span>
                                 <div className="flex gap-[7px] justify-center items-center">
                                     {/* 시작 연도 */}
-                                    <div className="flex-1 relative min-w-[110px]">
+                                    <div data-education-dropdown className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowStartYearDropdown(!showStartYearDropdown)}
+                                            onClick={() => setOpenDropdown(current => current === 'startYear' ? null : 'startYear')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.startYear}년</span>
                                             
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'startYear' ? 'rotate-180' : ''}`}/>
                                         </button>
 
-                                        {showStartYearDropdown && (
+                                        {openDropdown === 'startYear' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                                 {years
                                                     .filter(year => {
-                                                        if (formData.endYear) {
+                                                        if (endYearMode === 'date' && formData.endYear) {
                                                             return year <= formData.endYear;
                                                         }
                                                         return true;
@@ -653,7 +676,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                                         key={year}
                                                         onClick={() => {
                                                             setFormData({ ...formData, startYear: year });
-                                                            setShowStartYearDropdown(false);
+                                                            setOpenDropdown(null);
                                                         }}
                                                         className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                             formData.startYear === year ? 'text-primary' : 'text-gray-650'
@@ -669,25 +692,32 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                     <div className="w-[15px] h-0 border-[2px] rounded-full border-gray-750"/>
 
                                     {/* 종료 연도 */}
-                                    <div className="flex-1 relative min-w-[110px]">
+                                    <div data-education-dropdown className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowEndYearDropdown(!showEndYearDropdown)}
+                                            onClick={() => setOpenDropdown(current => current === 'endYear' ? null : 'endYear')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
-                                            <span className="text-r-16-hn text-gray-750">{formData.endYear ? `${formData.endYear}년` : '현재'}</span>
+                                            <span className={`text-r-16-hn ${endYearMode === 'unselected' ? 'text-gray-350' : 'text-gray-750'}`}>
+                                                {endYearMode === 'unselected'
+                                                    ? '종료 연도'
+                                                    : endYearMode === 'current'
+                                                        ? '현재'
+                                                        : `${formData.endYear}년`}
+                                            </span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'endYear' ? 'rotate-180' : ''}`}/>
                                         </button>
 
-                                        {showEndYearDropdown && (
+                                        {openDropdown === 'endYear' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                                 <button
                                                     onClick={() => {
+                                                        setEndYearMode('current');
                                                         setFormData({ ...formData, endYear: undefined });
-                                                        setShowEndYearDropdown(false);
+                                                        setOpenDropdown(null);
                                                     }}
                                                     className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
-                                                        !formData.endYear ? 'text-primary' : 'text-gray-650'
+                                                        endYearMode === 'current' ? 'text-primary' : 'text-gray-650'
                                                     }`}
                                                 >
                                                     현재
@@ -703,11 +733,12 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                                     <button
                                                         key={year}
                                                         onClick={() => {
+                                                            setEndYearMode('date');
                                                             setFormData({ ...formData, endYear: year });
-                                                            setShowEndYearDropdown(false);
+                                                            setOpenDropdown(null);
                                                         }}
                                                         className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
-                                                            formData.endYear === year ? 'text-primary' : 'text-gray-650'
+                                                            endYearMode === 'date' && formData.endYear === year ? 'text-primary' : 'text-gray-650'
                                                         }`}
                                                     >
                                                         {year}년
