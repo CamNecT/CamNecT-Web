@@ -6,7 +6,7 @@ import MainBoxCarousel from '../components/MainBoxCarousel';
 import { formatTimeAgo } from '../time';
 
 type MainTabProps = {
-  tagName: string;
+  tagName?: string;
   recommendedPosts: InfoPost[];
   unansweredQuestions: QuestionPost[];
   onViewWaitingQuestions: () => void;
@@ -24,8 +24,9 @@ const MainTab = ({
       {/* 상단 히어로 영역: 전공 해시태그 + 안내 문구 + 캐러셀 */}
       <div className='flex flex-col bg-white' style={{ padding: '30px 0', gap: '25px' }}>
         <section className='flex flex-col' style={{ padding: '0 25px', gap: '3px' }}>
-          <div className='text-b-20' style={{ color: 'var(--ColorMain, #00C56C)' }}>
-            #{tagName}
+          {/* 응답 전이나 태그가 없는 경우 목 값을 노출하지 않고 높이를 유지한다. */}
+          <div className='min-h-[1lh] text-b-20' style={{ color: 'var(--ColorMain, #00C56C)' }}>
+            {tagName ? `#${tagName}` : null}
           </div>
           <div className='text-m-16' style={{ color: 'var(--ColorBlack, #202023)' }}>
             동문들의 경험과 조언을 확인해보세요!

@@ -266,6 +266,7 @@ const CommunityPostPage = () => {
 
   // 댓글 상태/액션 묶음
   const {
+    isSubmittingComment,
     commentContent,
     setCommentContent,
     commentList,
@@ -313,6 +314,14 @@ const CommunityPostPage = () => {
       } catch (error) {
         showCommunityError(error, 'commentCreate');
       }
+    },
+    onSubmitCommentError: () => {
+      setPopUpConfig({
+        type: 'error',
+        title: '댓글 등록에 실패했습니다.',
+        content: '잠시 후 다시 시도해 주세요.',
+        buttonText: '확인',
+      });
     },
     onDeleteCommentApi: async (commentId) => {
       if (!userId) return;
@@ -1055,7 +1064,7 @@ const CommunityPostPage = () => {
           content={commentContent}
           onChange={setCommentContent}
           onSubmit={handleSubmitComment}
-          disabled={isLockedQuestion}
+          disabled={isLockedQuestion || isSubmittingComment}
           replyTargetName={replyTarget?.name}
           focusToken={replyFocusToken}
           maxLength={5000}
