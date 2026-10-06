@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { viewChatRequestDetail, viewChatRoomDetail } from '../../api/chat';
 import { axiosInstance } from '../../api/axiosInstance';
@@ -23,6 +23,7 @@ import {
 } from './notificationData';
 import { mapNotificationResponseToItems } from './notificationMapper';
 import { resolveNotificationDestination } from './notificationRouting';
+import { getNotificationErrorPopupConfig } from './utils/notificationError';
 
 type PopUpConfig = {
   title: string;
@@ -43,32 +44,6 @@ const getErrorStatus = (error: unknown) => {
   if (!error || typeof error !== 'object') return null;
   const response = (error as { response?: { status?: number } }).response;
   return typeof response?.status === 'number' ? response.status : null;
-};
-
-const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
-  if (!status) return null;
-  if (status === 403) {
-    return {
-      title: '접근 권한이 없습니다',
-      content:
-        '요청한 내용을 볼 권한이 없어요.',
-    };
-  }
-  if (status === 404) {
-    return {
-      title: '페이지를 찾을 수 없습니다',
-      content:
-        '요청한 페이지를 찾을 수 없어요.',
-    };
-  }
-  if (status === 500) {
-    return {
-      title: '시스템 오류가 발생했습니다',
-      content:
-        '잠시 후 다시 시도해 주세요.',
-    };
-  }
-  return null;
 };
 
 // 알림 종류별로 사용자가 다음 행동을 알 수 있도록 이동 실패 문구를 구체화한다.
@@ -129,36 +104,6 @@ const getFallbackNavigationPopUpConfig = (notification?: NotificationItem): PopU
           '연결된 화면을 열 수 없어요.',
       };
   }
-};
-
-// 읽음 처리는 UI를 먼저 갱신하기 때문에 실패 시 되돌릴 수 있는 문구를 별도로 관리한다.
-const getReadErrorPopUpConfig = (status: number | null, isAll = false): PopUpConfig => {
-  if (status === 403) {
-    return {
-      title: '알림을 읽음 처리할 수 없어요',
-      content: '이 알림을 변경할 권한이 없어요.',
-    };
-  }
-  if (status === 404) {
-    return {
-      title: isAll ? '읽을 알림을 찾지 못했어요' : '알림을 찾지 못했어요',
-      content: isAll
-        ? '목록에 없는 알림이 포함되어 있어요.'
-        : '이미 삭제되었거나 목록에 없는 알림이에요.',
-    };
-  }
-  if (status === 500) {
-    return {
-      title: '알림 처리에 실패했어요',
-      content:
-        '서버 오류로 알림 상태를 바꾸지 못했어요.',
-    };
-  }
-  return {
-    title: isAll ? '모든 알림을 읽음 처리하지 못했어요' : '알림을 읽음 처리하지 못했어요',
-    content:
-      '네트워크 상태를 확인한 뒤 다시 시도해 주세요.',
-  };
 };
 
 // 서버 검증 실패와 앱 내부에서 만든 이동 불가 사유를 같은 팝업 형태로 맞춘다.
@@ -481,7 +426,9 @@ export const NotificationPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
-  const [isErrorDismissed, setIsErrorDismissed] = useState(false);
+  const [dismissedErrorAt, setDismissedErrorAt] = useState<number | null>(null);
+  // 개별 읽음과 전체 읽음이 겹치면 실패 복구가 다른 요청의 결과를 덮어쓸 수 있다.
+  const pendingActionRef = useRef(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const userId = useAuthStore((state) => state.user?.id);
   const userIdParam = resolveUserIdParam(userId);
@@ -491,7 +438,7 @@ export const NotificationPage = () => {
   const markAsUnread = useNotificationStore((state) => state.markAsUnread);
   const setItems = useNotificationStore((state) => state.setItems);
 
-  const { data: notificationResponse, error: notificationError, isLoading } = useQuery({
+  const { data: notificationResponse, error: notificationError, errorUpdatedAt, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['notifications', userIdParam],
     queryFn: () => requestNotifications({ userId: userIdParam as string | number, size: 20 }),
     enabled: hasValidUserId,
@@ -505,66 +452,73 @@ export const NotificationPage = () => {
   }, [notificationResponse, setItems]);
 
   const queryErrorConfig = useMemo(() => {
-    if (isErrorDismissed) return null;
-    // 브라우저 offline은 App 전역 팝업이 담당하므로 알림 조회용 로컬 팝업과 중복시키지 않는다.
+    if (dismissedErrorAt === errorUpdatedAt) return null;
+    // 오프라인 안내는 전역 배너에 맡기되 서버 코드별 안내와 조회 재시도는 유지한다.
     if (shouldSkipLocalErrorUI(notificationError, navigator.onLine)) return null;
-    const status = getErrorStatus(notificationError);
-    return getErrorPopUpConfig(status);
-  }, [notificationError, isErrorDismissed]);
+    return getNotificationErrorPopupConfig(notificationError, 'list');
+  }, [notificationError, errorUpdatedAt, dismissedErrorAt]);
 
   const handleNotificationClick = async (notification: NotificationItem) => {
-    setPopUpConfig(null);
-    const destination = resolveNotificationDestination(notification);
+    if (pendingActionRef.current) return;
+    pendingActionRef.current = true;
+    try {
+      setPopUpConfig(null);
+      const destination = resolveNotificationDestination(notification);
 
-    // 개별 알림은 낙관적으로 읽음 처리하고, API 실패 시 원래 상태로 되돌린다.
-    if (!notification.isRead && hasValidUserId) {
-      markAsRead(notification.id);
+      // 개별 알림은 낙관적으로 읽음 처리하고, API 실패 시 원래 상태로 되돌린다.
+      if (!notification.isRead && hasValidUserId) {
+        markAsRead(notification.id);
 
-      try {
-        await requestNotificationRead({
-          userId: userIdParam as string | number,
-          id: notification.id,
-        });
-        // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
-        queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
-        // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
-        queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
-      } catch (error) {
-        markAsUnread(notification.id);
-        if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
-        setPopUpConfig(getReadErrorPopUpConfig(getErrorStatus(error)));
+        try {
+          await requestNotificationRead({
+            userId: userIdParam as string | number,
+            id: notification.id,
+          });
+          // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
+          queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
+          // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
+          queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
+        } catch (error) {
+          markAsUnread(notification.id);
+          // 오프라인에서도 읽음 상태는 복구하고, 중복 팝업만 생략한다.
+          if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
+          setPopUpConfig(getNotificationErrorPopupConfig(error, 'read'));
+          return;
+        }
+      }
+
+      if (notification.type === 'pointUse' || notification.type === 'pointEarn') {
         return;
       }
-    }
 
-    if (notification.type === 'pointUse' || notification.type === 'pointEarn') {
-      return;
-    }
-
-    if (!destination) {
-      setPopUpConfig(getFallbackNavigationPopUpConfig(notification));
-      return;
-    }
-
-    try {
-      if (hasValidUserId) {
-        await validateNotificationDestination(destination, userIdParam as string | number);
+      if (!destination) {
+        setPopUpConfig(getFallbackNavigationPopUpConfig(notification));
+        return;
       }
-    } catch (error) {
-      if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
-      setPopUpConfig(getNavigationErrorPopUpConfig(error, notification));
-      return;
-    }
 
-    navigate(destination);
+      try {
+        if (hasValidUserId) {
+          await validateNotificationDestination(destination, userIdParam as string | number);
+        }
+      } catch (error) {
+        if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
+        setPopUpConfig(getNavigationErrorPopUpConfig(error, notification));
+        return;
+      }
+
+      navigate(destination);
+    } finally {
+      pendingActionRef.current = false;
+    }
   };
 
   const handleMarkAllAsRead = async () => {
-    if (!hasValidUserId || isMarkingAllRead) return;
+    if (!hasValidUserId || pendingActionRef.current) return;
 
     if (!items.some((item) => !item.isRead)) return;
 
     setPopUpConfig(null);
+    pendingActionRef.current = true;
     setIsMarkingAllRead(true);
 
     // 전체 읽음도 즉시 화면에 반영하되, read-all API 실패 시 이전 목록을 복구한다.
@@ -581,9 +535,10 @@ export const NotificationPage = () => {
     } catch (error) {
       setItems(previousItems);
       if (!shouldSkipLocalErrorUI(error, navigator.onLine)) {
-        setPopUpConfig(getReadErrorPopUpConfig(getErrorStatus(error), true));
+        setPopUpConfig(getNotificationErrorPopupConfig(error, 'readAll'));
       }
     } finally {
+      pendingActionRef.current = false;
       setIsMarkingAllRead(false);
     }
   };
@@ -612,6 +567,19 @@ export const NotificationPage = () => {
       }
     >
       <section className="w-full flex-1 bg-white flex flex-col">
+        {notificationError && (
+          <div role="alert" className="px-[25px] py-[20px] text-center">
+            <p className="text-r-14">알림을 불러오지 못했어요.</p>
+            <button
+              type="button"
+              className="mt-[10px] text-m-16 disabled:opacity-50"
+              disabled={isFetching}
+              onClick={() => void refetch()}
+            >
+              {isFetching ? '불러오는 중' : '다시 시도'}
+            </button>
+          </div>
+        )}
         {items.length > 0 ? (
           items.map((notification) => (
             <div
@@ -644,7 +612,7 @@ export const NotificationPage = () => {
             </div>
           ))
         ) : (
-          !isLoading && (
+          !isLoading && !notificationError && (
             <div className="flex flex-1 flex-col items-center justify-center text-center pb-[100px]">
               <p className="text-r-18 text-gray-700">
                 아직 도착한 알림이 없어요
@@ -661,7 +629,7 @@ export const NotificationPage = () => {
           content={activePopUpConfig.content}
           onClick={() => {
             setPopUpConfig(null);
-            setIsErrorDismissed(true);
+            setDismissedErrorAt(errorUpdatedAt);
           }}
         />
       )}
