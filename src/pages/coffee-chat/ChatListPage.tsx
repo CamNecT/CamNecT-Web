@@ -8,6 +8,7 @@ import { MainHeader } from '../../layouts/headers/MainHeader';
 import type { ChatRoomListItemType } from '../../types/coffee-chat/coffeeChatTypes';
 import { ChatList } from './components/ChatList';
 import SortSelector from '../../components/SortSelector';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type SortKey = 'all' | 'active' | 'closed';
 
@@ -141,35 +142,70 @@ export const ChatListPage = () => {
       }
     >
       {/* 검색영역 */}
-      {!isEditMode && (
-        <search className="w-full px-[25px] py-[20px] ">
-          <div className="relative">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"
-            className="absolute left-[19px] top-[50%] translate-y-[-50%]">
-              <path
-                d="M18.7508 18.7508L13.5538 13.5538M13.5538 13.5538C14.9604 12.1472 15.7506 10.2395 15.7506 8.25028C15.7506 6.26108 14.9604 4.35336 13.5538 2.94678C12.1472 1.54021 10.2395 0.75 8.25028 0.75C6.26108 0.75 4.35336 1.54021 2.94678 2.94678C1.54021 4.35336 0.75 6.26108 0.75 8.25028C0.75 10.2395 1.54021 12.1472 2.94678 13.5538C4.35336 14.9604 6.26108 15.7506 8.25028 15.7506C10.2395 15.7506 12.1472 14.9604 13.5538 13.5538Z"
-                stroke="#646464"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"/>
-            </svg>
-            <input
-              type="text"
-              name="searchTags"
-              placeholder="채팅방, 대화 내용 검색"
-              aria-label="채팅방 또는 대화 내용 검색"
-              value={searchQuery}
-              onChange={(e) => {
-                  setSearchQuery(e.target.value)
-              }}
-              className="w-full h-[40px] pl-[52px] pr-[19px] py-[8px] rounded-[30px] bg-gray-150 text-gray-750 text-r-16 placeholder:text-gray-650 focus:outline-none"
-            />
-          </div>
-        </search>
+      <AnimatePresence initial={false}>
+        {!isEditMode && (
+          <motion.div
+            key="chat-search"
+            // 검색 영역이 다시 나타날때 시작상태
+            initial={{
+              height: 0,
+              opacity: 0,
+            }}
+            // 검색 영역이 존재할 때의 최종 상태
+            animate={{
+              height: 'auto',
+              opacity: 1,
+            }}
+            // 검색 영역이 사라질 때의 최종 상태
+            exit={{
+              height: 0,
+              opacity: 0,
+            }}
+            transition={{
+              duration: 0.2,
+              ease: 'easeInOut',
+            }}
+            className="overflow-hidden"
+          >
+            <search className="w-full px-[25px] py-[20px] ">
+              <div className="relative">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none"
+                className="absolute left-[19px] top-[50%] translate-y-[-50%]">
+                  <path
+                    d="M18.7508 18.7508L13.5538 13.5538M13.5538 13.5538C14.9604 12.1472 15.7506 10.2395 15.7506 8.25028C15.7506 6.26108 14.9604 4.35336 13.5538 2.94678C12.1472 1.54021 10.2395 0.75 8.25028 0.75C6.26108 0.75 4.35336 1.54021 2.94678 2.94678C1.54021 4.35336 0.75 6.26108 0.75 8.25028C0.75 10.2395 1.54021 12.1472 2.94678 13.5538C4.35336 14.9604 6.26108 15.7506 8.25028 15.7506C10.2395 15.7506 12.1472 14.9604 13.5538 13.5538Z"
+                    stroke="#646464"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"/>
+                </svg>
+                <input
+                  type="text"
+                  name="searchTags"
+                  placeholder="채팅방, 대화 내용 검색"
+                  aria-label="채팅방 또는 대화 내용 검색"
+                  value={searchQuery}
+                  onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                  }}
+                  className="w-full h-[40px] pl-[52px] pr-[19px] py-[8px] rounded-[30px] bg-gray-150 text-gray-750 text-r-16 placeholder:text-gray-650 focus:outline-none"
+                />
+              </div>
+            </search>
+          </motion.div>
       )}
+      </AnimatePresence>
 
       {/* 정렬 영역 */}
-      <div className={`flex w-full items-center justify-between px-[25px] pb-[10px] ${isEditMode ? 'pt-[15px]' : ''}`}>
+      <motion.div
+        animate={{
+          paddingTop: isEditMode ? 15 : 0,
+        }}
+        transition={{
+          duration: 0.2,
+          ease: 'easeInOut',
+        }}
+        className="flex w-full items-center justify-between px-[25px] pb-[10px]"
+      >
         {!isEditMode ? (
           <>
             <SortSelector
@@ -202,10 +238,9 @@ export const ChatListPage = () => {
             }  
           </>
         )}
-        
-      </div>
-
-     <ul>
+      </motion.div>
+      
+      <ul>
       {visibleChatRoomList.map((chatRoom) => (
         <ChatList
           key={chatRoom.roomId}
