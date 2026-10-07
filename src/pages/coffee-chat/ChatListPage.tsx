@@ -31,12 +31,13 @@ const tabs = [
 export const ChatListPage = () => {
   const [activeId, setActiveId] = useState<ChatRoomListItemType>('COFFEE_CHAT');
   const [sortKey, setSortKey] = useState<SortKey>('all'); // 진행 중 상태가 기본
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set()); // 선택된 채팅방 id들 (삭제 용도)
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading } = useChatRooms(activeId);
   const chatRooms = data?.chatRooms ?? [];
   const requestExists = data?.requestExists ?? false;
-
-  const [searchQuery, setSearchQuery] = useState('');
 
   const navigate = useNavigate();
 
@@ -78,9 +79,46 @@ export const ChatListPage = () => {
     navigate(`/chat/${roomId}`);
   };
 
-  const handleSortKeychange = (key: SortKey) => {
+  const handleSortKeyChange = (key: SortKey) => {
     setSortKey(key);
   }
+
+  const handleEditModeChange = () => {
+    setIsEditMode((prev) => !prev);
+
+    if (isEditMode) {
+      setSelectedRoomIds(new Set()); // 편집모드로 바뀌면 선택 해제
+    }
+  }
+
+  const handleSelectRoom = (roomId: string) => {
+    // 이미 선택된 방이라면 해제
+    if(selectedRoomIds.has(roomId)) {
+      setSelectedRoomIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(roomId);
+        return newSet;
+      })
+    } else {
+      // 선택된 방이 아니라면 선택 추가
+      setSelectedRoomIds((prev) => new Set(prev).add(roomId));
+    }
+  }
+
+  const handleChatListItemClick = (
+    roomId: string,
+    isClosed: boolean,
+  ) => {
+    if (isEditMode) {
+      if (isClosed) {
+        handleSelectRoom(roomId);
+      }
+
+      return;
+    }
+
+    handleChatRoomClick(roomId);
+  };
 
   return (
     <FullLayout
@@ -103,45 +141,68 @@ export const ChatListPage = () => {
       }
     >
       {/* 검색영역 */}
-      <search className="w-full px-[25px] py-[20px] ">
-        <div className="relative">
+      {!isEditMode && (
+        <search className="w-full px-[25px] py-[20px] ">
+          <div className="relative">
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none"
             className="absolute left-[19px] top-[50%] translate-y-[-50%]">
-                <path
-                    d="M18.7508 18.7508L13.5538 13.5538M13.5538 13.5538C14.9604 12.1472 15.7506 10.2395 15.7506 8.25028C15.7506 6.26108 14.9604 4.35336 13.5538 2.94678C12.1472 1.54021 10.2395 0.75 8.25028 0.75C6.26108 0.75 4.35336 1.54021 2.94678 2.94678C1.54021 4.35336 0.75 6.26108 0.75 8.25028C0.75 10.2395 1.54021 12.1472 2.94678 13.5538C4.35336 14.9604 6.26108 15.7506 8.25028 15.7506C10.2395 15.7506 12.1472 14.9604 13.5538 13.5538Z"
-                    stroke="#646464"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"/>
+              <path
+                d="M18.7508 18.7508L13.5538 13.5538M13.5538 13.5538C14.9604 12.1472 15.7506 10.2395 15.7506 8.25028C15.7506 6.26108 14.9604 4.35336 13.5538 2.94678C12.1472 1.54021 10.2395 0.75 8.25028 0.75C6.26108 0.75 4.35336 1.54021 2.94678 2.94678C1.54021 4.35336 0.75 6.26108 0.75 8.25028C0.75 10.2395 1.54021 12.1472 2.94678 13.5538C4.35336 14.9604 6.26108 15.7506 8.25028 15.7506C10.2395 15.7506 12.1472 14.9604 13.5538 13.5538Z"
+                stroke="#646464"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"/>
             </svg>
             <input
-                type="text"
-                name="searchTags"
-                placeholder="채팅방, 대화 내용 검색"
-                aria-label="채팅방 또는 대화 내용 검색"
-                value={searchQuery}
-                onChange={(e) => {
+              type="text"
+              name="searchTags"
+              placeholder="채팅방, 대화 내용 검색"
+              aria-label="채팅방 또는 대화 내용 검색"
+              value={searchQuery}
+              onChange={(e) => {
                   setSearchQuery(e.target.value)
-                }}
-                className="w-full h-[40px] pl-[52px] pr-[19px] py-[8px] rounded-[30px] bg-gray-150 text-gray-750 text-r-16 placeholder:text-gray-650 focus:outline-none"
+              }}
+              className="w-full h-[40px] pl-[52px] pr-[19px] py-[8px] rounded-[30px] bg-gray-150 text-gray-750 text-r-16 placeholder:text-gray-650 focus:outline-none"
             />
-        </div>
-      </search>
+          </div>
+        </search>
+      )}
 
       {/* 정렬 영역 */}
-      <div className='flex w-full items-center justify-between px-[25px] pb-[10px]'>
-        <SortSelector
-          sortKey={sortKey}
-          sortLabels={sortLabels}
-          modalLabels={modalSortLabels}
-          modalTitle="대화 상태"
-          onChange={handleSortKeychange}
-        />
+      <div className={`flex w-full items-center justify-between px-[25px] pb-[10px] ${isEditMode ? 'pt-[15px]' : ''}`}>
+        {!isEditMode ? (
+          <>
+            <SortSelector
+              sortKey={sortKey}
+              sortLabels={sortLabels}
+              modalLabels={modalSortLabels}
+              modalTitle="대화 상태"
+              onChange={handleSortKeyChange}
+            />
 
-        {/* todo 편집 버튼 구현 */}
-        <button className="text-m-14 tracking-[-0.56px] text-gray-750">
-          편집
-        </button>
+            <button className="text-m-14 tracking-[-0.56px] text-gray-750" onClick={handleEditModeChange}>
+              편집
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="text-m-14 tracking-[-0.56px] text-gray-750">{selectedRoomIds.size}개 선택됨</span>
+
+              {
+                // todo 삭제 버튼 다중 삭제 API 연결
+              selectedRoomIds.size > 0 ? (
+                <button className="text-red text-center text-sb-16-hn leading-[140%] tracking-[-0.4px]" onClick={handleEditModeChange}>
+                  삭제
+                </button>
+                ) : (
+                <button className="text-gray-750 text-center text-m-16-hn leading-[140%] tracking-[-0.4px]" onClick={handleEditModeChange}>
+                  취소
+                </button>
+              )
+            }  
+          </>
+        )}
+        
       </div>
 
      <ul>
@@ -151,7 +212,14 @@ export const ChatListPage = () => {
           chatRoom={chatRoom}
           isClosed={chatRoom.isClosed}
           searchQuery={searchQuery}
-          onClick={() => handleChatRoomClick(chatRoom.roomId)}
+          isEditMode={isEditMode}
+          isSelected={selectedRoomIds.has(chatRoom.roomId)}
+          onClick={() =>
+            handleChatListItemClick(
+              chatRoom.roomId,
+              chatRoom.isClosed === true,
+            )
+          }
         />
       ))}
       </ul>
