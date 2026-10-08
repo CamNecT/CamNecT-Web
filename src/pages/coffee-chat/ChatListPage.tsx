@@ -39,6 +39,7 @@ export const ChatListPage = () => {
   const { data, isLoading } = useChatRooms(activeId);
   const chatRooms = data?.chatRooms ?? [];
   const requestExists = data?.requestExists ?? false;
+  const hasClosedRoom = chatRooms.some((chatRoom) => chatRoom.isClosed);
 
   const navigate = useNavigate();
 
@@ -204,7 +205,7 @@ export const ChatListPage = () => {
           duration: 0.2,
           ease: 'easeInOut',
         }}
-        className="flex w-full items-center justify-between px-[25px] pb-[10px]"
+        className="flex w-full items-center justify-between px-[25px] pb-[15px]"
       >
         {!isEditMode ? (
           <>
@@ -215,10 +216,11 @@ export const ChatListPage = () => {
               modalTitle="대화 상태"
               onChange={handleSortKeyChange}
             />
-
+          {sortKey !== 'active' && hasClosedRoom && (
             <button className="text-m-14 tracking-[-0.56px] text-gray-750" onClick={handleEditModeChange}>
               편집
             </button>
+          )}
           </>
         ) : (
           <>
