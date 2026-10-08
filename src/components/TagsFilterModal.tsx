@@ -137,6 +137,24 @@ const TagsFilterModalContent = ({
     setSelectedTags(selectedTags.filter((tag) => tag !== tagName));
   };
 
+  const canSelectTag = (tagName: string) => {
+    if (selectedTags.includes(tagName)) return true;
+
+    const selectionGroup = selectionGroups.find((group) =>
+      group.tagNames.includes(tagName),
+    );
+    if (selectionGroup) {
+      const selectedInGroup = selectedTags.filter((tag) =>
+        selectionGroup.tagNames.includes(tag),
+      );
+      if (selectedInGroup.length >= selectionGroup.maxSelected) {
+        return selectionGroup.maxSelected === 1;
+      }
+    }
+
+    return selectedTags.length < maxSelected;
+  };
+
   const dedupedCategories = useMemo(() => {
     const seenTagNames = new Set<string>();
     return categories.map(category => ({
@@ -215,10 +233,14 @@ const TagsFilterModalContent = ({
                 className='h-[40px] w-full rounded-[30px] bg-gray-150 py-[8px] pl-[52px] pr-[19px] text-r-16 text-gray-750 placeholder:text-gray-650 focus:outline-none'
               />
             </div>
+            {selectedTags.length >= maxSelected && (
+              <p className='pl-[5px] pt-[8px] text-r-12-hn text-gray-650'>
+                최대 {maxSelected}개까지만 선택 가능합니다.
+              </p>
+            )}
           </section>
 
-          {selectedTags.length < maxSelected ? (
-            <section className='min-h-0 flex-1 overflow-y-auto pb-[40px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+          <section className='min-h-0 flex-1 overflow-y-auto pb-[40px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
               <div className='flex w-full flex-col'>
                 {filteredExtraCategories.map((category) => (
                   <div
@@ -229,18 +251,26 @@ const TagsFilterModalContent = ({
                       {category.name}
                     </span>
                     <div className='flex flex-wrap gap-[7px]'>
-                      {category.tags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          onClick={() => toggleTag(tag.name)}
-                          className={`h-[30px] rounded-[5px] border px-[15px] py-[5px] ${selectedTags.includes(tag.name)
-                              ? 'border-primary bg-green-50 text-m-14-hn text-primary'
-                              : 'border-gray-650 bg-white text-r-14-hn text-gray-650'
-                            }`}
-                        >
-                          {tag.name}
-                        </button>
-                      ))}
+                      {category.tags.map((tag) => {
+                        const isSelected = selectedTags.includes(tag.name);
+                        const isDisabled = !canSelectTag(tag.name);
+
+                        return (
+                          <button
+                            key={tag.id}
+                            disabled={isDisabled}
+                            onClick={() => toggleTag(tag.name)}
+                            className={`h-[30px] rounded-[5px] border px-[15px] py-[5px] ${isSelected
+                                ? 'border-primary bg-green-50 text-m-14-hn text-primary'
+                                : isDisabled
+                                  ? 'cursor-not-allowed border-gray-250 bg-gray-100 text-r-14-hn text-gray-350'
+                                  : 'border-gray-650 bg-white text-r-14-hn text-gray-650'
+                              }`}
+                          >
+                            {tag.name}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -253,28 +283,31 @@ const TagsFilterModalContent = ({
                       {category.name}
                     </span>
                     <div className='flex flex-wrap gap-[7px]'>
-                      {category.tags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          onClick={() => toggleTag(tag.name)}
-                          className={`h-[30px] rounded-[5px] border px-[15px] py-[5px] ${selectedTags.includes(tag.name)
-                              ? 'border-primary bg-green-50 text-m-14-hn text-primary'
-                              : 'border-gray-650 bg-white text-r-14-hn text-gray-650'
-                            }`}
-                        >
-                          {tag.name}
-                        </button>
-                      ))}
+                      {category.tags.map((tag) => {
+                        const isSelected = selectedTags.includes(tag.name);
+                        const isDisabled = !canSelectTag(tag.name);
+
+                        return (
+                          <button
+                            key={tag.id}
+                            disabled={isDisabled}
+                            onClick={() => toggleTag(tag.name)}
+                            className={`h-[30px] rounded-[5px] border px-[15px] py-[5px] ${isSelected
+                                ? 'border-primary bg-green-50 text-m-14-hn text-primary'
+                                : isDisabled
+                                  ? 'cursor-not-allowed border-gray-250 bg-gray-100 text-r-14-hn text-gray-350'
+                                  : 'border-gray-650 bg-white text-r-14-hn text-gray-650'
+                              }`}
+                          >
+                            {tag.name}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
-            </section>
-          ) : (
-            <div className='flex flex-1 flex-col items-center justify-center gap-[10px] pb-[40px]'>
-              <p className='text-r-16 text-gray-650'>최대 {maxSelected}개까지만 선택 가능합니다.</p>
-            </div>
-          )}
+          </section>
         </section>
     </div>
   );

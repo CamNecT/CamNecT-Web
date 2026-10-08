@@ -167,6 +167,7 @@ export default function TagEditModal({ userId, tagIds, onClose }: TagEditModalPr
     };
 
     const filteredCategories = getFilteredCategories();
+    const isSelectionLimitReached = selectedTagIds.length >= 5;
 
     return (
         <div className="flex items-center justify-center fixed inset-0 z-50 bg-white">
@@ -258,39 +259,46 @@ export default function TagEditModal({ userId, tagIds, onClose }: TagEditModalPr
                                             className="w-full h-[40px] pl-[52px] pr-[19px] py-[8px] rounded-[30px] bg-gray-150 text-gray-750 text-r-14 placeholder:text-gray-650 focus:outline-none"
                                         />
                                     </div>
+                                    {isSelectionLimitReached && (
+                                        <p className="pt-[8px] pl-[5px] text-r-12-hn text-gray-650">
+                                            최대 5개까지만 선택 가능합니다.
+                                        </p>
+                                    )}
                                 </section>
 
                                 {/*태그 리스트*/}
-                                {selectedTagIds.length < 5 ? (
-                                    <section className="flex-1 min-h-0 overflow-y-auto pb-[40px]">
-                                        <div className="w-full flex flex-col">
-                                            {filteredCategories.map(category => (
-                                                <div key={category.id} className="w-full flex flex-col gap-[15px] pt-[20px] pb-[15px] border-b border-gray-250 last:border-none">
-                                                    <span className="text-sb-16-hn text-gray-900">{category.name}</span>
-                                                    <div className="flex flex-wrap gap-[7px]">
-                                                        {category.tags.map(tag => (
+                                <section className="flex-1 min-h-0 overflow-y-auto pb-[40px]">
+                                    <div className="w-full flex flex-col">
+                                        {filteredCategories.map(category => (
+                                            <div key={category.id} className="w-full flex flex-col gap-[15px] pt-[20px] pb-[15px] border-b border-gray-250 last:border-none">
+                                                <span className="text-sb-16-hn text-gray-900">{category.name}</span>
+                                                <div className="flex flex-wrap gap-[7px]">
+                                                    {category.tags.map(tag => {
+                                                        const isSelected = selectedTagIds.includes(tag.id);
+                                                        const isDisabled = isSelectionLimitReached && !isSelected;
+
+                                                        return (
                                                             <button
                                                                 key={tag.id}
+                                                                disabled={isDisabled}
                                                                 onClick={() => toggleTag(tag.id)}
                                                                 className={`h-[30px] px-[15px] py-[5px] rounded-[5px] border ${
-                                                                    selectedTagIds.includes(tag.id)
+                                                                    isSelected
                                                                         ? 'text-m-14-hn bg-green-50 text-primary border-primary'
-                                                                        : 'text-r-14-hn bg-white text-gray-650 border-gray-650'
+                                                                        : isDisabled
+                                                                            ? 'cursor-not-allowed bg-gray-100 text-r-14-hn text-gray-350 border-gray-250'
+                                                                            : 'text-r-14-hn bg-white text-gray-650 border-gray-650'
                                                                 }`}
                                                             >
                                                                 {tag.name}
                                                             </button>
-                                                        ))}
-                                                    </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </section>
-                                ): (
-                                    <div className="flex flex-1 flex-col items-center justify-center gap-[10px] pb-[40px]">
-                                        <p className="text-r-16 text-gray-650">최대 5개까지만 선택 가능합니다.</p>
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
+                                </section>
                             </section>
                         </div>
                     </HeaderLayout>
