@@ -692,7 +692,7 @@ export const WritePage = () => {
                 </header>
 
                 {/* 글쓰기 본문 영역 */}
-                <section className='flex w-full flex-1 flex-col px-[25px] overflow-y-auto'>
+                <section className='flex min-h-0 w-full flex-1 flex-col px-[25px] overflow-y-auto'>
                     {/* 제목 입력 */}
                     <div
                         className='flex w-full flex-col'
@@ -777,6 +777,19 @@ export const WritePage = () => {
 
                 {/* 하단 사진 추가/미리보기 영역 */}
                 <div className='w-full shrink-0 bg-white'>
+                    {/* 오류 안내도 하단 영역의 높이에 포함해 본문과 첨부 미리보기를 가리지 않는다.
+                        여러 오류가 함께 발생해도 한 줄을 유지하며 가로 스크롤로 전체 내용을 확인한다. */}
+                    {fieldErrors.attachments ? (
+                        <div className='px-[25px] pb-[8px]'>
+                            <div
+                                role='alert'
+                                tabIndex={0}
+                                className='overflow-x-auto whitespace-nowrap text-r-12 text-[var(--Color_Red,#FF3838)]'
+                            >
+                                {fieldErrors.attachments}
+                            </div>
+                        </div>
+                    ) : null}
                     <div className='flex w-full px-[25px]' style={{ paddingBottom: isKeyboardUp ? '10px' : '25px' }}>
                         <div className='flex w-full items-center overflow-x-auto' style={{ gap: '12px' }}>
                             {/* 사진 추가 버튼 */}
@@ -931,11 +944,6 @@ export const WritePage = () => {
                             onChange={handleAttachmentChange}
                         />
                     </div>
-                    {fieldErrors.attachments ? (
-                        <div className='px-[25px] pb-[8px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
-                            {fieldErrors.attachments}
-                        </div>
-                    ) : null}
                 </div>
             </div>
             </div>
