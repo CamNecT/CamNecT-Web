@@ -295,9 +295,9 @@ const CommunityPostPage = () => {
     isAdopted,
     adoptedCommentId: selectedPost?.adoptedCommentId,
     onSubmitCommentApi: async ({ content, parentCommentId }) => {
-      if (!userId || !postId) return;
+      if (!userId || !postId) return false;
       const numericUserId = Number(userId);
-      if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
+      if (!Number.isInteger(numericUserId) || numericUserId < 1) return false;
       const numericParentId = parentCommentId ? Number(parentCommentId) : null;
       try {
         await createCommunityComment({
@@ -311,8 +311,10 @@ const CommunityPostPage = () => {
           },
         });
         await refreshComments();
+        return true;
       } catch (error) {
         showCommunityError(error, 'commentCreate');
+        return false;
       }
     },
     onSubmitCommentError: () => {

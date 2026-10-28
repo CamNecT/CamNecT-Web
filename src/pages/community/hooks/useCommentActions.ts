@@ -39,7 +39,7 @@ type UseCommentActionsParams = {
   onSubmitCommentApi?: (payload: {
     content: string;
     parentCommentId: string | null;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   onSubmitCommentError?: () => void;
   onDeleteCommentApi?: (commentId: string) => Promise<void>;
   onUpdateCommentApi?: (payload: { commentId: string; content: string }) => Promise<void>;
@@ -132,10 +132,12 @@ export const useCommentActions = ({
       submittingCommentRef.current = true;
       setIsSubmittingComment(true);
       try {
-        await onSubmitCommentApi({
+        const didSubmit = await onSubmitCommentApi({
           content: commentContent,
           parentCommentId: replyTarget?.id ?? null,
         });
+        // 페이지에서 오류 팝업을 처리해도 등록 성공을 명시한 경우에만 초안을 비운다.
+        if (!didSubmit) return;
         setCommentContent('');
         setReplyTarget(null);
       } catch {
