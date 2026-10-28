@@ -17,7 +17,6 @@ import { useToast } from '../../hooks/useToast';
 import { BottomChat } from '../../layouts/BottomChat/BottomChat';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
-import { loggedInUserProfile } from '../../mock/community';
 import { isAdminUserId } from '../../utils/admin';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { CommentItem } from '../../types/community';
@@ -67,12 +66,11 @@ const CommunityPostPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
-  const currentUser = {
-    ...loggedInUserProfile,
-    id: authUser?.id ?? loggedInUserProfile.id,
-    name: authUser?.name ?? loggedInUserProfile.name,
-  };
-  const currentUserIdForOwnership = authUser?.id ?? loggedInUserProfile.id;
+  // 인증 정보가 없을 때 가상 사용자로 소유권을 판단하거나 댓글 작성자를 만들지 않는다.
+  const currentUser = authUser
+    ? { id: authUser.id, name: authUser.name ?? '', major: '', studentId: '' }
+    : null;
+  const currentUserIdForOwnership = authUser?.id;
   const userId = authUser?.id;
   // 옵션/팝업/이미지 실패 등 화면 단일 상태
   const [isOptionOpen, setIsOptionOpen] = useState(false);

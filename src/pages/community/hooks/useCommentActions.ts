@@ -29,7 +29,7 @@ const sanitizeCommentContent = (value: string) =>
     .join('');
 
 type UseCommentActionsParams = {
-  currentUser: CommentAuthor;
+  currentUser: CommentAuthor | null;
   initialComments?: CommentItem[];
   resetKey?: string;
   isLockedQuestion: boolean;
@@ -149,6 +149,7 @@ export const useCommentActions = ({
       }
       return;
     }
+    if (!currentUser) return;
     const now = new Date();
     const newComment: CommentItem = {
       id: `comment-${generateId()}`,
