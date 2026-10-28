@@ -7,7 +7,6 @@ import { MainHeader } from '../../layouts/headers/MainHeader';
 import InfoTab from './tabs/InfoTab';
 import MainTab from './tabs/MainTab';
 import QuestionTab from './tabs/QuestionTab';
-import { loggedInUserMajor } from '../../mock/community';
 import { getCommunityHome, getCommunityPosts } from '../../api/community';
 import type { CommunityPostItem, Sort, Tab } from '../../api-types/communityApiTypes';
 import { mapToInfoPost, mapToQuestionPost } from '../../utils/communityMapper';
@@ -487,7 +486,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
       );
     return (
       <MainTab
-        tagName={mainState.tagName ?? loggedInUserMajor}
+        tagName={mainState.tagName}
         recommendedPosts={recommendedPosts}
         unansweredQuestions={unansweredQuestions}
         onViewWaitingQuestions={() => {
