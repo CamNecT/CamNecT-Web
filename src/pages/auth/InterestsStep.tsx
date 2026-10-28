@@ -1,7 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { requestProfileOnboarding, requestTagList } from "../../api/auth";
+import { requestProfileOnboarding, requestSignupTagList } from "../../api/auth";
+import type { ProfileOnboardingResponse } from "../../api-types/authApiTypes";
 import Button from "../../components/Button";
 import ButtonWhite from "../../components/ButtonWhite";
 import PopUp from "../../components/Pop-up";
@@ -10,10 +11,10 @@ import { useSignupStore } from "../../store/useSignupStore";
 import TagsChooseModal from "./components/TagsChooseModal";
 
 interface InterestsStepProps {
-    onNext: () => void;
+    onComplete: (status: ProfileOnboardingResponse['status']) => void;
 }
 
-export const InterestsStep = ({ onNext }: InterestsStepProps) => {
+export const InterestsStep = ({ onComplete }: InterestsStepProps) => {
 
     const { profileImageKey, selfIntroduction } = useSignupStore(
         useShallow((state) => ({
@@ -32,7 +33,7 @@ export const InterestsStep = ({ onNext }: InterestsStepProps) => {
     // 태그 불러오기 
     const {data: tagList, isLoading, isError} = useQuery({
         queryKey: ["tagList"],
-        queryFn: () => requestTagList(),
+        queryFn: () => requestSignupTagList(),
     });
 
     // 서버 데이터가 바뀔때만 API 통신 
@@ -93,14 +94,14 @@ export const InterestsStep = ({ onNext }: InterestsStepProps) => {
         setIsSubmitting(true);
         try {
             // 프로필 이미지, 자기소개, 관심태그 전송 API 호출
-            await sendProfileInfo.mutateAsync({
+            const result = await sendProfileInfo.mutateAsync({
                 userId: userId || 0,
                 profileImageKey,
                 bio: selfIntroduction,
                 tagIds: selectedTags, // [number, number, ...]
             });
 
-            onNext();
+            onComplete(result.status);
         } catch {
             setShowErrorPopUp(true);
         } finally {

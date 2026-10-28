@@ -1,13 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PopUp from '../../components/Pop-up';
-import { useGifticonProductQuery, useGifticonPurchaseMutation } from '../../hooks/useGifticonQuery';
+import {
+  useGifticonListQuery,
+  useGifticonProductQuery,
+  useGifticonPurchaseMutation,
+} from '../../hooks/useGifticonQuery';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePointStore } from '../../store/usePointStore';
 import { BottomBuy } from './components/BottomBuy';
 import { PurchaseBottomSheet } from './components/PurchaseBottomSheet';
+import { useGifticonErrorPopup } from './hooks/useGifticonErrorPopup';
 
 const formatPoint = (value: number) => value.toLocaleString('ko-KR');
 
@@ -16,13 +21,16 @@ export const ShopDetailPage = () => {
   const { productId } = useParams();
 
   const { user } = useAuthStore();
-  const { data: gifticonProduct } = useGifticonProductQuery(productId);
+  const gifticonListQuery = useGifticonListQuery();
+  const gifticonProductQuery = useGifticonProductQuery(productId);
+  const { data: gifticonList, isLoading: isGifticonListLoading } = gifticonListQuery;
+  const { data: gifticonProduct, isLoading: isProductLoading } = gifticonProductQuery;
   const { mutate: purchaseProduct, isPending: isPurchasePending } = useGifticonPurchaseMutation();
+  const { errorPopup, showGifticonError, closeGifticonError } = useGifticonErrorPopup();
   const product = gifticonProduct;
 
-  // 전역 포인트 및 핸드폰 번호 (ShopPage 진입 시 gifticonList API에서 동기화됨)
+  // 포인트는 ShopPage 진입 시 gifticonList API에서 전역 스토어에 동기화됩니다.
   const point = usePointStore((state) => state.point);
-  const phoneNum = usePointStore((state) => state.phoneNum);
   const getPoint = usePointStore((state) => state.getPoint);
   
   // 구매 수량 및 구매 플로우 상태
@@ -36,17 +44,55 @@ export const ShopDetailPage = () => {
     content: string;
     rightButtonText: string;
   } | null>(null);
+  const purchasePendingRef = useRef(false);
+  const purchaseAttemptRef = useRef<{ key: string; clientRequestId: string } | null>(null);
 
-  // 상품이 없을 때 
+  useEffect(() => {
+    if (gifticonProductQuery.isError) {
+      showGifticonError(gifticonProductQuery.error, 'detail');
+      return;
+    }
+    if (gifticonListQuery.isError) {
+      showGifticonError(gifticonListQuery.error, 'home');
+    }
+  }, [
+    gifticonListQuery.error,
+    gifticonListQuery.isError,
+    gifticonProductQuery.error,
+    gifticonProductQuery.isError,
+    showGifticonError,
+  ]);
+
+  if (isProductLoading || isGifticonListLoading) {
+    return <PopUp isOpen={true} type='loading' />;
+  }
+
+  // 조회가 끝난 뒤에도 상품이 없으면 잘못된 상품 경로로 처리합니다.
   if (!product) {
     return (
       <HeaderLayout headerSlot={<MainHeader title='기프티콘 샵' />}>
         <section className='flex flex-col px-[25px] py-[20px]'>
           <p className='text-m-14 text-[var(--ColorGray3,#646464)]'>상품을 찾을 수 없습니다.</p>
         </section>
+        {errorPopup && (
+          <PopUp
+            isOpen={true}
+            type='error'
+            title={errorPopup.title}
+            content={errorPopup.content}
+            buttonText='다시 시도'
+            onClick={() => {
+              closeGifticonError();
+              void Promise.all([gifticonProductQuery.refetch(), gifticonListQuery.refetch()]);
+            }}
+          />
+        )}
       </HeaderLayout>
     );
   }
+
+  const requiredPoint = product.point * quantity;
+  const isInsufficientPoint = point < requiredPoint;
 
   const openPurchaseSheet = () => {
     setIsPurchasing(true);
@@ -60,6 +106,7 @@ export const ShopDetailPage = () => {
   };
 
   const handleBuyClick = () => {
+    if (!product.active) return;
     if (!isPurchasing) {
       openPurchaseSheet();
       return;
@@ -75,6 +122,8 @@ export const ShopDetailPage = () => {
   // 상품 구매 함수
   const handleConfirmPurchase = () => {
     if (!user || !product) return;
+    // mutation 상태가 렌더링되기 전 같은 tick에서 발생하는 연속 구매 요청도 차단합니다.
+    if (purchasePendingRef.current || isPurchasePending) return;
 
     const totalRequiredPoint = product.point * quantity;
     const currentPoint = getPoint();
@@ -89,30 +138,45 @@ export const ShopDetailPage = () => {
       return;
     }
 
+    const recipientEmail = gifticonList?.email || undefined;
+    const purchaseKey = `${product.id}:${quantity}:${totalRequiredPoint}:${recipientEmail ?? ''}`;
+    if (purchaseAttemptRef.current?.key !== purchaseKey) {
+      purchaseAttemptRef.current = {
+        key: purchaseKey,
+        clientRequestId: crypto.randomUUID(),
+      };
+    }
+
+    // 응답 유실 후 재시도에도 같은 ID를 사용해야 서버가 중복 포인트 차감을 막을 수 있습니다.
+    const clientRequestId = purchaseAttemptRef.current.clientRequestId;
+    purchasePendingRef.current = true;
+
     // 서버로 구매 요청 전송
     purchaseProduct({
       productId: product.id,
       quantity: quantity,
       spendPoints: totalRequiredPoint,
-      clientRequestId: crypto.randomUUID(),
-      recipientName: user.name || "사용자",
-      recipientPhone: phoneNum, // 전역 스토어에서 가져온 핸드폰 번호
+      clientRequestId,
+      recipientEmail,
       giftMessage: null,
     }, {
       onSuccess: () => {
+        purchaseAttemptRef.current = null;
         setConfirmPopUpConfig(null);
         setIsSheetOpen(false);
         setIsPurchasing(false);
         // 성공 시 ShopPage로 이동 (useGifticonPurchaseMutation 내부에서 포인트 차감 및 쿼리 무효화 처리됨)
         navigate('/shop', { state: { purchaseSuccess: true } });
       },
-      onError: () => {
+      onError: (error) => {
         setConfirmPopUpConfig(null);
-        setPopUpConfig({
-          title: '구매에 실패했어요',
-          content: '잠시 후 다시 시도해 주세요.',
-        });
-      }
+        showGifticonError(error, 'purchase');
+        // 서버 검증 실패 시 클라이언트의 포인트가 오래된 값일 수 있어 최신 잔액을 다시 받습니다.
+        void gifticonListQuery.refetch();
+      },
+      onSettled: () => {
+        purchasePendingRef.current = false;
+      },
     });
   };
 
@@ -152,6 +216,9 @@ export const ShopDetailPage = () => {
           <span className='text-[24px] font-bold leading-[normal] text-[var(--ColorMain,#00C56C)]'>
             {formatPoint(product.point)} Point
           </span>
+          {!product.active && (
+            <span className='text-m-14 text-gray-650'>현재 판매가 종료된 상품입니다.</span>
+          )}
         </div>
 
         <div className='flex flex-col gap-[10px] px-[25px] py-[15px] flex-1'>
@@ -159,7 +226,7 @@ export const ShopDetailPage = () => {
             - 구매일로부터 교환권 지급까지 평균 3일 정도 소요될 수 있습니다.
           </span>
           <span className='text-r-12 text-[var(--ColorGray2,#A1A1A1)]'>
-            - 교환권은 등록된 번호로 문자 발송됩니다.
+            - 교환권은 등록된 이메일로 발송됩니다.
           </span>
           <span className='text-r-12 text-[var(--ColorGray2,#A1A1A1)]'>
             - 구매 불가 시 이메일로 알림발송 됩니다.
@@ -169,7 +236,11 @@ export const ShopDetailPage = () => {
           </span>
         </div>
       </section>
-      <BottomBuy onClick={handleBuyClick} />
+      <BottomBuy
+        onClick={handleBuyClick}
+        // 첫 클릭으로 구매 정보를 확인할 수 있게 하고, 바텀시트가 열린 뒤 부족한 경우에만 구매를 막습니다.
+        disabled={!product.active || (isPurchasing && isInsufficientPoint)}
+      />
       <PurchaseBottomSheet
         isOpen={isSheetOpen}
         onClose={closePurchaseSheet}
@@ -178,7 +249,7 @@ export const ShopDetailPage = () => {
         onIncrease={handleIncrease}
         myPoint={point}
         requiredPoint={product.point}
-        bottomOffset='calc(105px)'
+        bottomOffset='100px'
       />
       {confirmPopUpConfig && (
         <PopUp
@@ -199,6 +270,15 @@ export const ShopDetailPage = () => {
           title={popUpConfig.title}
           content={popUpConfig.content}
           onClick={() => setPopUpConfig(null)}
+        />
+      )}
+      {errorPopup && (
+        <PopUp
+          isOpen={true}
+          type='error'
+          title={errorPopup.title}
+          content={errorPopup.content}
+          onClick={closeGifticonError}
         />
       )}
     </HeaderLayout>

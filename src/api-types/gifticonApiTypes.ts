@@ -9,7 +9,7 @@ export interface GifticonProduct {
 
 export interface GifticonHomeData {
     myPoint: number;
-    phoneNum: string;
+    email: string;
     products: GifticonProduct[];
     lastSyncedAt: string;
 }
@@ -43,9 +43,9 @@ export interface GifticonPurchaseRequest {
     quantity: number;
     spendPoints: number;
     clientRequestId: string;
-    recipientName: string;
-    recipientPhone: string;
-    giftMessage: string | null;
+    recipientName?: string;
+    recipientEmail?: string;
+    giftMessage?: string | null;
 }
 
 export interface GifticonPurchaseData {
@@ -57,4 +57,10 @@ export interface GifticonPurchaseResponse {
     status: number;
     message: string;
     data: GifticonPurchaseData;
+}
+
+export interface GifticonErrorResponse {
+    status: number;
+    code: number;
+    message: string;
 }

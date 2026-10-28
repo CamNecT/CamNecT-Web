@@ -46,3 +46,13 @@ export const DEFINITELY_UNSENT_ERROR_CODES = new Set<number>([
     STOMP_ERROR_CODES.chat.roomNotFound,
     STOMP_ERROR_CODES.chat.duplicateIdConflict,
 ]);
+
+// STOMP 연결 종류 후 바로 로그아웃 할 코드 모음
+export const STOMP_SESSION_LOGOUT_ERROR_CODES = new Set<number>([
+    STOMP_ERROR_CODES.connection.sessionRevoked,       // 41103
+    STOMP_ERROR_CODES.connection.notAccessToken,       // 41106
+    STOMP_ERROR_CODES.connection.malformedAuthHeader,  // 41109
+    STOMP_ERROR_CODES.connection.accountRestricted,    // 41302
+    STOMP_ERROR_CODES.connection.accountWithdrawn,     // 41303
+    STOMP_ERROR_CODES.connection.accountInactive,      // 41304
+]);

@@ -52,8 +52,12 @@ export const VerificationItem = ({ item }: VerificationItemProps) => {
                     <span className="text-gray-900 text-sb-16-hn tracking-[-0.64px]">
                         {item.userId}
                     </span>
-                    <span className="text-gray-650 text-r-14-hn tracking-[-0.56px]">
+                    {/* 전화번호 주석 처리 및 이메일 표시 */}
+                    {/* <span className="text-gray-650 text-r-14-hn tracking-[-0.56px]">
                         {item.phoneNum}
+                    </span> */}
+                    <span className="text-gray-650 text-r-14-hn tracking-[-0.56px]">
+                        {item.email}
                     </span>
                 </div>
             </div>

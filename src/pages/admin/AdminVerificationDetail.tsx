@@ -135,11 +135,18 @@ export const AdminVerificationDetail = () => {
                         >
                             {item?.userId || "Unknown"}
                         </span>
-                        <span 
+                        {/* 전화번호 주석 처리 및 이메일 표시 */}
+                        {/* <span 
                             className="text-gray-750 text-m-16 font-medium"
                             style={{ letterSpacing: '-0.4px' }}
                         >
                             {item?.phoneNum || "010-0000-0000"}
+                        </span> */}
+                        <span 
+                            className="text-gray-750 text-m-16 font-medium"
+                            style={{ letterSpacing: '-0.4px' }}
+                        >
+                            {item?.email}
                         </span>
                     </div>
                     </div>

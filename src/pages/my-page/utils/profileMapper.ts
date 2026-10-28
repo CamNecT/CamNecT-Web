@@ -1,6 +1,7 @@
 import type { MyProfileData } from "../../../api-types/profileApiTypes";
 import type { EducationItem, CareerItem, CertificateItem } from "..//../../types/mypage/mypageTypes";
 import type { Portfolio } from "..//../../types/portfolio/portfolioTypes";
+import { findCampusMappingById, findInstitutionMappingsByName } from "../../../constants/institutionCampusMapping";
 
 export const mapToPortfolios = (data: MyProfileData): Portfolio[] => {
   return data.portfolioProjectList.map(p => ({
@@ -19,11 +20,15 @@ export const mapToEducations = (data: MyProfileData): EducationItem[] => {
   return data.educations.map(e => {
     const startYear = parseInt(e.startDate.split('-')[0]);
     const endYear = e.endDate ? parseInt(e.endDate.split('-')[0]) : undefined;
+    const campusMapping = e.campusId ? findCampusMappingById(e.campusId) : undefined;
+    const institutionMapping = campusMapping ?? findInstitutionMappingsByName(e.schoolName)[0];
     
     return {
       id: e.educationId.toString(),
       school: e.schoolName,
-      major: e.majorName || '',
+      institutionId: institutionMapping?.institutionId,
+      campusId: e.campusId,
+      campusName: e.campusName,
       startYear,
       endYear,
       status: e.status,

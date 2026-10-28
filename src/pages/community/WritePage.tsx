@@ -13,14 +13,16 @@ import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
 import TagsFilterModal from '../../components/TagsFilterModal';
+import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { useTagList } from '../../hooks/useTagList';
 import { EmptyLayout } from '../../layouts/EmptyLayout';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { CommunityPostDetail } from '../../types/community';
 import { mapToCommunityPostDetail } from '../../utils/communityMapper';
-import { mapToCommunityPost } from './utils/post';
 import { getFileName } from '../../utils/getFileName';
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
+import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
 
 // 프론트에서도 Community Bean Validation과 동일한 경계를 적용해 불필요한 업로드/요청을 막는다.
 const MAX_TITLE_LENGTH = 200;
@@ -78,6 +80,7 @@ export const WritePage = () => {
     const { filterCategories, filterTags, mapTagNamesToIds, mapTagIdToName, mapTagIdsToNames } = useTagList();
 
     const [editPost, setEditPost] = useState<CommunityPostDetail | null>(null);
+    const [hasEditLoadError, setHasEditLoadError] = useState(false);
     const didInitEditRef = useRef(false);
     // 수정 전 첨부파일 목록과 비교해서 변경 여부를 판단하기 위해 보관한다.
     const originalAttachmentKeysRef = useRef<string[]>([]);
@@ -108,6 +111,11 @@ export const WritePage = () => {
     const [isCancelWarningOpen, setIsCancelWarningOpen] = useState(false);
     const [errorPopUp, setErrorPopUp] = useState<{ title: string; content: string } | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const {
+        errorPopup: communityErrorPopup,
+        showCommunityError,
+        closeCommunityError,
+    } = useCommunityErrorPopup();
     type AttachmentItem = {
         id: string;
         file: File;
@@ -153,6 +161,7 @@ export const WritePage = () => {
         ? '수정된 내용으로 저장됩니다.'
         : '입력한 내용으로 게시글이 등록됩니다.';
     const isSubmitEnabled =
+        (!isEditMode || Boolean(editPost)) &&
         Boolean(boardType) &&
         title.trim().length > 0 &&
         content.trim().length > 0 &&
@@ -175,7 +184,10 @@ export const WritePage = () => {
         if (Array.from(title).some(isControlCharacter)) nextErrors.title = '제목에는 줄바꿈이나 제어문자를 사용할 수 없습니다.';
         if (!content.trim()) nextErrors.content = '본문을 입력해 주세요.';
         if (content.length > MAX_CONTENT_LENGTH) nextErrors.content = `본문은 ${MAX_CONTENT_LENGTH.toLocaleString()}자 이하로 입력해 주세요.`;
-        if (selectedTags.length > 5 || new Set(selectedTags).size !== selectedTags.length) {
+        // 목록에 태그 없는 새 글이 생기지 않도록 등록 시 최소 한 개를 요구한다.
+        if (!isEditMode && selectedTags.length === 0) {
+            nextErrors.tagIds = '태그를 최소 1개 이상 선택해 주세요.';
+        } else if (selectedTags.length > 5 || new Set(selectedTags).size !== selectedTags.length) {
             nextErrors.tagIds = '태그는 중복 없이 최대 5개까지 선택할 수 있습니다.';
         }
         if (existingAttachments.length + newAttachments.length > MAX_ATTACHMENTS) {
@@ -312,6 +324,7 @@ export const WritePage = () => {
         didInitEditRef.current = false;
         originalAttachmentKeysRef.current = [];
         setEditPost(null);
+        setHasEditLoadError(false);
     }, [postId]);
 
     useEffect(() => {
@@ -326,15 +339,19 @@ export const WritePage = () => {
                 if (!isActive) return;
                 setEditPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
             })
-            .catch(() => {
+            .catch((error) => {
                 if (!isActive) return;
-                setEditPost(mapToCommunityPost(postId));
+                // 수정 원본 조회 실패 시 mock/빈 값으로 PATCH가 진행되면 실제 게시글을 덮어쓸 수 있으므로
+                // 원본은 null로 유지하고 오류 안내를 닫은 뒤 커뮤니티 목록으로 이동시킨다.
+                setEditPost(null);
+                setHasEditLoadError(true);
+                showCommunityError(error, 'postEditLoad');
             });
 
         return () => {
             isActive = false;
         };
-    }, [isEditMode, postId, userId, mapTagIdToName]);
+    }, [isEditMode, postId, userId, mapTagIdToName, showCommunityError]);
 
     useEffect(() => {
         if (!isEditMode || !editPost || didInitEditRef.current) return;
@@ -433,6 +450,7 @@ export const WritePage = () => {
 
     // 완료 버튼 -> 확인 모달 오픈
     const handleSubmit = () => {
+        if (isEditMode && !editPost) return;
         if (!validateForm()) return;
         setIsConfirmOpen(true);
     };
@@ -440,11 +458,16 @@ export const WritePage = () => {
     // 확인 모달에서 "네" 클릭 시 메인으로 이동
     // 작성/수정 확정 처리
     const handleConfirm = async () => {
+        if (isEditMode && !editPost) return;
         if (!userId) {
             console.warn('로그인 정보가 없습니다. 다시 로그인해 주세요.');
             return;
         }
         if (isSubmitting) return;
+        if (!validateForm()) {
+            setIsConfirmOpen(false);
+            return;
+        }
         const numericUserId = Number(userId);
         if (!Number.isInteger(numericUserId) || numericUserId < 1) {
             console.warn('로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.');
@@ -589,19 +612,19 @@ export const WritePage = () => {
                 }
                 return;
             }
-            const errorCode = axiosError.response?.data?.code;
-            if (errorCode === 43060) {
+            const errorCode = getServerErrorCode(axiosError);
+            if (errorCode === COMMUNITY_ERROR_CODES.invalidTag) {
                 setFieldErrors({ tagIds: '유효하지 않은 태그가 포함되어 있습니다.' });
                 return;
             }
-            if (errorCode === 49021 || errorCode === 49022) {
+            if (
+                errorCode === COMMUNITY_ERROR_CODES.invalidAttachmentMetadata ||
+                errorCode === COMMUNITY_ERROR_CODES.duplicateAttachmentKey
+            ) {
                 setFieldErrors({ attachments: '첨부파일 정보를 다시 확인해 주세요.' });
                 return;
             }
-            setErrorPopUp({
-                title: '게시글 저장 오류',
-                content: axiosError.response?.data?.message ?? '잠시 후 다시 시도해 주세요.',
-            });
+            showCommunityError(error, isEditMode ? 'postUpdate' : 'postCreate');
         } finally {
             setIsSubmitting(false);
             setIsConfirmOpen(false);
@@ -741,7 +764,7 @@ export const WritePage = () => {
                             }
                         />
                         {fieldErrors.tagIds ? (
-                            <span className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
+                            <span role='alert' className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
                                 {fieldErrors.tagIds}
                             </span>
                         ) : null}
@@ -950,11 +973,12 @@ export const WritePage = () => {
 
             {/* 게시판 선택 모달 */}
             {!isEditMode && (
-                <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)} height='235px'>
+                <BottomSheetModal isOpen={isBoardOpen} onClose={() => closeBoardSelector(true)}>
                     <div
                         className='flex w-full flex-col'
                         style={{
-                            padding: '10px 24px 56px',
+                            // 화면 하단을 덮는 모달이라 내비게이션 높이는 더하지 않는다. 여백 50px이 홈 인디케이터보다 크므로 max로 겹쳐 쓴다.
+                            padding: '10px 24px max(50px, env(safe-area-inset-bottom, 0px))',
                             background: 'var(--Color_Gray_B, #FCFCFC)',
                             gap: '20px',
                         }}
@@ -1005,13 +1029,19 @@ export const WritePage = () => {
                 onLeftClick={handleCancelConfirm}
                 onRightClick={handleCancelDismiss}
             />
-            {errorPopUp && (
+            {(communityErrorPopup ?? errorPopUp) && (
                 <PopUp
                     isOpen={true}
-                    type='confirm'
-                    title={errorPopUp.title}
-                    content={errorPopUp.content}
-                    onClick={() => setErrorPopUp(null)}
+                    type='error'
+                    title={(communityErrorPopup ?? errorPopUp)?.title}
+                    content={(communityErrorPopup ?? errorPopUp)?.content}
+                    onClick={() => {
+                        closeCommunityError();
+                        setErrorPopUp(null);
+                        if (hasEditLoadError) {
+                            navigate('/community', { replace: true });
+                        }
+                    }}
                 />
             )}
 
@@ -1021,6 +1051,7 @@ export const WritePage = () => {
                 onClose={() => setIsFilterOpen(false)}
                 onSave={(next) => {
                     setSelectedTags(next);
+                    setFieldErrors((previous) => ({ ...previous, tagIds: '' }));
                     setIsFilterOpen(false);
                 }}
                 categories={filterCategories}

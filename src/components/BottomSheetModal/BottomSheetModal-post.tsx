@@ -58,7 +58,7 @@ const BottomSheetModalPost = ({
 
   return (
     <BottomSheetModal isOpen={isOpen} onClose={onClose} height='auto'>
-      <div className='flex min-h-[200px] flex-col px-[clamp(16px,6vw,25px)] pt-[30px]'>
+      <div className='flex flex-col px-[clamp(16px,6vw,25px)] pt-[30px] pb-[max(50px,env(safe-area-inset-bottom,0px))]'>
         <div className='flex flex-col divide-y divide-[var(--ColorGray1,#ECECEC)]'>
           {items.map((item) => (
             <button

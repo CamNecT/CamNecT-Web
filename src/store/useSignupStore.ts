@@ -8,7 +8,7 @@ interface SignupStore {
     username: string;
     password: string;
     name: string;
-    phoneNum: string;
+    // phoneNum: string;
     agreements: {
         serviceTerms: boolean;
         privacyTerms: boolean;
@@ -20,7 +20,7 @@ interface SignupStore {
     isVerificationSubmitted: boolean;
 
     // UI 상태 
-    verificationType: 'email' | 'phone'; // 휴대폰인증 안함
+    // verificationType: 'email' | 'phone'; // 휴대폰인증 안함
     emailVerified: boolean;
     // phoneVerified: boolean;
 
@@ -29,9 +29,9 @@ interface SignupStore {
     setUsername: (username: string) => void;
     setPassword: (password: string) => void;
     setName: (name: string) => void;
-    setPhoneNum: (phoneNum: string) => void;
+    // setPhoneNum: (phoneNum: string) => void;
     setAgreements: (agreements: {serviceTerms: boolean, privacyTerms: boolean}) => void;
-    setVerificationType: (verificationType: 'email' | 'phone') => void;
+    // setVerificationType: (verificationType: 'email' | 'phone') => void;
     setEmailVerified: (emailVerified: boolean) => void;
     setSelfIntroduction: (selfIntroduction: string | null) => void;
     setProfileImage: (profileImage: File | null) => void;
@@ -51,12 +51,12 @@ const initialState = {
     username: '',
     password: '',   
     name: '',
-    phoneNum: '',
+    // phoneNum: '',
     agreements: {
         serviceTerms: false,
         privacyTerms: false,
     },
-    verificationType: 'email' as const,
+    // verificationType: 'email' as const,
     emailVerified: false,
     selfIntroduction: '',
     profileImage: null as File | null,
@@ -74,9 +74,9 @@ export const useSignupStore = create<SignupStore>((set, get) => ({
     setUsername: (username: string) => set({ username }),
     setPassword: (password: string) => set({ password }),
     setName: (name: string) => set({ name }),
-    setPhoneNum: (phoneNum: string) => set({ phoneNum }),
+    // setPhoneNum: (phoneNum: string) => set({ phoneNum }),
     setAgreements: (agreements: {serviceTerms: boolean, privacyTerms: boolean}) => set({ agreements }),
-    setVerificationType: (verificationType: 'email' | 'phone') => set({ verificationType }),
+    // setVerificationType: (verificationType: 'email' | 'phone') => set({ verificationType }),
     setEmailVerified: (emailVerified: boolean) => set({ emailVerified }),
     // setPhoneVerified: (phoneVerified: boolean) => set({ phoneVerified }),
     setSelfIntroduction: (selfIntroduction: string | null) => set({ selfIntroduction }),
@@ -93,7 +93,7 @@ export const useSignupStore = create<SignupStore>((set, get) => ({
             username: state.username,
             password: state.password,
             name: state.name,
-            phoneNum: state.phoneNum,
+            // phoneNum: state.phoneNum,
             agreements: state.agreements,
         };
     },

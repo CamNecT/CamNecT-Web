@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Icon from "../../../components/Icon";
 import { type CertificateItem } from "../../../types/mypage/mypageTypes";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
@@ -30,6 +30,7 @@ interface CertificateModalProps {
 }
 
 type View = 'list' | 'add' | 'edit';
+type CertificateDropdown = 'year' | 'month' | null;
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -48,18 +49,32 @@ export default function CertificateModal({ userId, certificates, visibility, onC
     const [formData, setFormData] = useState<Partial<CertificateItem>>({
         name: '',
         acquiredYear: new Date().getFullYear(),
-        acquiredMonth: 1,
+        acquiredMonth: new Date().getMonth() + 1,
     });
 
-    const [showYearDropdown, setShowYearDropdown] = useState(false);
-    const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+    const [openDropdown, setOpenDropdown] = useState<CertificateDropdown>(null);
+    const dateDropdownRef = useRef<HTMLDivElement>(null);
 
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    useEffect(() => {
+        if (openDropdown === null) return;
+
+        const handleOutsidePointerDown = (event: PointerEvent) => {
+            if (!dateDropdownRef.current?.contains(event.target as Node)) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    }, [openDropdown]);
 
     // 변경사항 추적 (리스트 전체 추적)
     const hasListChanges: boolean = useMemo(() => {
@@ -160,8 +175,9 @@ export default function CertificateModal({ userId, certificates, visibility, onC
         setFormData({
             name: '',
             acquiredYear: currentYear,
-            acquiredMonth: 1,
+            acquiredMonth: currentMonth,
         });
+        setOpenDropdown(null);
         setCurrentView('add');
     };
 
@@ -170,6 +186,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
         const cert = listCertificates.find(c => c.id === id);
         if (cert) {
             setFormData(cert);
+            setOpenDropdown(null);
             setCurrentView('edit');
         }
     };
@@ -382,27 +399,33 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                             </div>
 
                             {/* 취득 일자 */}
-                            <div className="w-full flex flex-col gap-[10px]">
+                            <div ref={dateDropdownRef} className="w-full flex flex-col gap-[10px]">
                                 <span className="text-sb-16-hn text-gray-900">취득 일자</span>
                                 <div className="flex gap-[7px] items-center">
                                     {/* 연도 */}
                                     <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowYearDropdown(!showYearDropdown)}
+                                            onClick={() => setOpenDropdown(current => current === 'year' ? null : 'year')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.acquiredYear}년</span>
                                             <Icon name="arrow_down" 
-                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`}/>
+                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'year' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showYearDropdown && (
+                                        {openDropdown === 'year' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                                 {years.map((year) => (
                                                     <button
                                                         key={year}
                                                         onClick={() => {
-                                                            setFormData({ ...formData, acquiredYear: year });
-                                                            setShowYearDropdown(false);
+                                                            setFormData({
+                                                                ...formData,
+                                                                acquiredYear: year,
+                                                                acquiredMonth: year === currentYear
+                                                                    ? Math.min(formData.acquiredMonth ?? currentMonth, currentMonth)
+                                                                    : formData.acquiredMonth,
+                                                            });
+                                                            setOpenDropdown(null);
                                                         }}
                                                         className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                             formData.acquiredYear === year ? 'text-primary' : 'text-gray-650'
@@ -418,21 +441,23 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                                     {/* 월 */}
                                     <div className="flex-1 relative min-w-[82px]">
                                         <button
-                                            onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+                                            onClick={() => setOpenDropdown(current => current === 'month' ? null : 'month')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{formData.acquiredMonth}월</span>
                                             <Icon name="arrow_down" 
-                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showMonthDropdown ? 'rotate-180' : ''}`}/>
+                                                className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openDropdown === 'month' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showMonthDropdown && (
+                                        {openDropdown === 'month' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
-                                                {MONTHS.map((month) => (
+                                                {MONTHS
+                                                    .filter(month => formData.acquiredYear !== currentYear || month <= currentMonth)
+                                                    .map((month) => (
                                                     <button
                                                         key={month}
                                                         onClick={() => {
                                                             setFormData({ ...formData, acquiredMonth: month });
-                                                            setShowMonthDropdown(false);
+                                                            setOpenDropdown(null);
                                                         }}
                                                         className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                             formData.acquiredMonth === month ? 'text-primary' : 'text-gray-650'

@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 import Card from '../../../components/Card';
 import Category from '../../../components/Category';
 import Icon from '../../../components/Icon';
+import defaultProfileImg from '../../../assets/image/defaultProfileImg.png';
 import type { InfoPost } from '../../../types/community';
 import { formatTimeAgo } from '../time';
 
 type MainBoxPost = InfoPost & {
-  authorProfileImageUrl?: string;
   postImageUrl?: string;
 };
 
@@ -31,19 +31,16 @@ const MainBox = ({ post }: MainBoxProps) => {
         <div className='flex flex-col' style={{ gap: '15px' }}>
           <div className='flex flex-col' style={{ gap: '10px' }}>
             <div className='flex' style={{ gap: '15px' }}>
-              {post.authorProfileImageUrl ? (
-                <img
-                  src={post.authorProfileImageUrl}
-                  alt={`${post.author.name} 프로필`}
-                  className='h-[48px] w-[48px] rounded-full object-cover'
-                />
-              ) : (
-                <div
-                  className='h-[48px] w-[48px] rounded-full'
-                  style={{ backgroundColor: '#D5D5D5' }}
-                  aria-hidden
-                />
-              )}
+              <img
+                // API 목록 매퍼가 작성자 정보와 프로필 이미지를 author 객체에 함께 보존한다.
+                src={post.author.profileImageUrl ?? defaultProfileImg}
+                alt={`${post.author.name} 프로필`}
+                className='h-[48px] w-[48px] rounded-full object-cover'
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = defaultProfileImg;
+                }}
+              />
               <div className='flex flex-col justify-center' style={{ gap: '3px' }}>
                 <div className='text-sb-14' style={{ color: 'var(--ColorBlack, #202023)' }}>
                   {post.author.name}

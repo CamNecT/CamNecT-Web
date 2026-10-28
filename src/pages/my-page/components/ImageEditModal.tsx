@@ -22,7 +22,7 @@ export default function ImageEditModal({ isOpen, onClose, onSelect, onDelete }: 
 
     return (
         <BottomSheetModal isOpen={isOpen} onClose={onClose} height="auto">
-            <div className="w-full px-[25px] pt-[10px] pb-[30px] flex flex-col">
+            <div className="w-full px-[25px] pt-[10px] pb-[max(50px,env(safe-area-inset-bottom,0px))] flex flex-col">
                 <button
                     onClick={handleAlbumSelect}
                     className="flex items-center gap-[15px] pl-[10px] py-[15px] border-b border-gray-150"

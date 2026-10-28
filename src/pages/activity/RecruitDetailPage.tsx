@@ -352,7 +352,7 @@ export const RecruitDetailPage = () => {
         </div>
 
         <BottomSheetModal isOpen={isOptionOpen} onClose={() => setIsOptionOpen(false)} height='auto'>
-            <div className='flex min-h-[150px] flex-col px-[clamp(16px,6vw,25px)] pt-[30px] pb-[30px]'>
+            <div className='flex flex-col px-[clamp(16px,6vw,25px)] pt-[30px] pb-[max(50px,env(safe-area-inset-bottom,0px))]'>
                 <div className='flex flex-col divide-y divide-gray-150'>
                     {optionItems.map((item) => (
                         <button

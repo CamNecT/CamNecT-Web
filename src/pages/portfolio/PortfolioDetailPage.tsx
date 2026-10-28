@@ -180,7 +180,7 @@ export const PortfolioDetailPage = ({
     }
 
     const startDate = parseDate(portfolio.startDate);
-    const endDate = parseDate(portfolio.endDate);
+    const endDate = portfolio.endDate ? parseDate(portfolio.endDate) : null;
 
     return (
         <div className="min-h-dvh bg-white">
@@ -235,20 +235,22 @@ export const PortfolioDetailPage = ({
                                     <div className="flex items-center gap-[10px]">
                                         <span className="text-m-14-hn text-gray-750 min-w-[77px]">프로젝트 기간</span>
                                         <span className="text-r-12-hn text-gray-650">
-                                            {startDate.year}.{String(startDate.month).padStart(2, '0')} - {endDate.year}.{String(endDate.month).padStart(2, '0')}
+                                            {startDate.year}.{String(startDate.month).padStart(2, '0')} - {endDate
+                                                ? `${endDate.year}.${String(endDate.month).padStart(2, '0')}`
+                                                : '현재'}
                                         </span>
                                     </div>
 
                                     {/* 프로젝트 역할 */}
                                     <div className="flex items-center gap-[10px]">
                                         <span className="text-m-14-hn text-gray-750 min-w-[77px]">프로젝트 역할</span>
-                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.assignedRole[0] || ""}</span>
+                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.assignedRole.join(', ')}</span>
                                     </div>
 
                                     {/* 사용 기술 */}
                                     <div className="flex items-center gap-[10px]">
                                         <span className="text-m-14-hn text-gray-750 min-w-[77px]">사용 기술</span>
-                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.techStack[0] || ""}</span>
+                                        <span className="text-r-12-hn text-gray-650 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.techStack.join(', ')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -338,7 +340,7 @@ export const PortfolioDetailPage = ({
                         onClose={() => setIsMenuOpen(false)}
                         height="auto"
                     >
-                        <div className="px-[25px] pb-[40px]">
+                        <div className="px-[25px] pb-[max(50px,env(safe-area-inset-bottom,0px))]">
                             {/* 프로젝트 수정 */}
                             <button
                                 onClick={() => {setIsMenuOpen(false); setIsModalOpen(true);}}

@@ -15,12 +15,12 @@ export const BottomNavButton = ({ icon, activeIcon, label, isActive, handleNavCl
     const showBadge = label === "커피챗" && totalUnreadCount > 0;
 
     return (
-        <li className="max-w-[74px] w-full h-full flex justify-center">
+        <li className="max-w-[74px] flex-1 min-w-0 h-full flex justify-center">
             <PressableMotion
                 as="button"
                 intensity="soft"
                 type="button"
-                className="flex w-[74px] flex-col items-center justify-center gap-1.5 relative cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex w-full h-full flex-col items-center justify-center gap-1.5 relative cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 aria-label={label}
                 onClick={handleNavClick}
             >

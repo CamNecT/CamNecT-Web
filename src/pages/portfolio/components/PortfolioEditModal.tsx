@@ -21,6 +21,22 @@ const MAX_SIZE_MB = 10;
 const THUMBNAIL_MAX_SIZE_MB = 5;
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/jpg'];
 const ALLOWED_FILE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf', 'image/jpg'];
+const MAX_TECH_STACK_COUNT = 10;
+const MAX_TECH_STACK_ITEM_LENGTH = 20;
+
+const parseTechStack = (value: string) =>
+    value
+        .split(',')
+        .map((skill) => skill.trim())
+        .filter(Boolean);
+
+type PopupError = {
+    title: string;
+    content: string;
+};
+
+type EndDateMode = 'unselected' | 'current' | 'date';
+type PeriodDropdown = 'startYear' | 'startMonth' | 'endYear' | 'endMonth' | null;
 
 interface PortfolioEditModalProps {
     isOpen: boolean;
@@ -72,8 +88,9 @@ export default function PortfolioEditModal({
     const [content, setContent] = useState('');
     const [startYear, setStartYear] = useState(new Date().getFullYear());
     const [startMonth, setStartMonth] = useState(1);
-    const [endYear, setEndYear] = useState(new Date().getFullYear());
-    const [endMonth, setEndMonth] = useState(1);
+    const [endDateMode, setEndDateMode] = useState<EndDateMode>('unselected');
+    const [endYear, setEndYear] = useState<number | undefined>();
+    const [endMonth, setEndMonth] = useState<number | undefined>();
     const [role, setRole] = useState('');
     const [skills, setSkills] = useState('');
     const [problemSolution, setProblemSolution] = useState('');
@@ -84,24 +101,27 @@ export default function PortfolioEditModal({
     // 모달 상태
     const [isFileAddModalOpen, setIsFileAddModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<PopupError | null>(null);
     const [showValidationPopup, setShowValidationPopup] = useState(false);
     const [showCloseWarning, setShowCloseWarning] = useState(false);
     const [confirm, setConfirm] = useState(false);
 
-    const [showStartYearDropdown, setShowStartYearDropdown] = useState(false);
-    const [showStartMonthDropdown, setShowStartMonthDropdown] = useState(false);
-    const [showEndYearDropdown, setShowEndYearDropdown] = useState(false);
-    const [showEndMonthDropdown, setShowEndMonthDropdown] = useState(false);
+    const [openPeriodDropdown, setOpenPeriodDropdown] = useState<PeriodDropdown>(null);
 
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const pdfInputRef = useRef<HTMLInputElement>(null);
+    const periodDropdownRef = useRef<HTMLDivElement>(null);
 
     //초기 데이터 저장
     const initialDataRef = useRef<{
         title: string;
         content: string;
+        startYear: number;
+        startMonth: number;
+        endDateMode: EndDateMode;
+        endYear?: number;
+        endMonth?: number;
         role: string;
         skills: string;
         problemSolution: string;
@@ -120,6 +140,11 @@ export default function PortfolioEditModal({
         return (
             title !== initial.title ||
             content !== initial.content ||
+            startYear !== initial.startYear ||
+            startMonth !== initial.startMonth ||
+            endDateMode !== initial.endDateMode ||
+            endYear !== initial.endYear ||
+            endMonth !== initial.endMonth ||
             role !== initial.role ||
             skills !== initial.skills ||
             problemSolution !== initial.problemSolution ||
@@ -127,7 +152,7 @@ export default function PortfolioEditModal({
             attachmentFiles.length !== initial.attachmentFiles.length ||
             attachmentFiles.some((f, i) => f.url !== initial.attachmentFiles[i]?.url)
         );
-    }, [title, content, role, skills, problemSolution, thumbnailImage, attachmentFiles]);
+    }, [title, content, startYear, startMonth, endDateMode, endYear, endMonth, role, skills, problemSolution, thumbnailImage, attachmentFiles]);
 
     // useModalHistory 훅 사용
     useModalHistory(onClose, hasUnsavedChanges, () => setShowCloseWarning(true));
@@ -138,14 +163,15 @@ export default function PortfolioEditModal({
 
         if (!isEditMode) {
             // 생성 모드 - 한 번만 초기화
-            if (initializedForRef.current !== 'create') return;
+            if (initializedForRef.current === 'create') return;
             
             setTitle('');
             setContent('');
             setStartYear(new Date().getFullYear());
             setStartMonth(1);
-            setEndYear(new Date().getFullYear());
-            setEndMonth(1);
+            setEndDateMode('unselected');
+            setEndYear(undefined);
+            setEndMonth(undefined);
             setRole('');
             setSkills('');
             setProblemSolution('');
@@ -155,6 +181,9 @@ export default function PortfolioEditModal({
             initialDataRef.current = {
                 title: '',
                 content: '',
+                startYear: new Date().getFullYear(),
+                startMonth: 1,
+                endDateMode: 'unselected',
                 role: '',
                 skills: '',
                 problemSolution: '',
@@ -177,12 +206,16 @@ export default function PortfolioEditModal({
         setStartYear(startY);
         setStartMonth(startM);
 
-        const [endY, endM] = portfolioData.endDate.split('-').map(Number);
+        const [endY, endM] = portfolioData.endDate
+            ? portfolioData.endDate.split('-').map(Number)
+            : [undefined, undefined];
+        const initialEndDateMode: EndDateMode = portfolioData.endDate ? 'date' : 'current';
+        setEndDateMode(initialEndDateMode);
         setEndYear(endY);
         setEndMonth(endM);
 
         setRole(portfolioData.assignedRole[0] || '');
-        setSkills(portfolioData.techStack[0] || '');
+        setSkills(portfolioData.techStack.join(', '));
         setProblemSolution(portfolioData.review || '');
 
         // 썸네일
@@ -211,8 +244,13 @@ export default function PortfolioEditModal({
         initialDataRef.current = {
             title: portfolioData.title,
             content: portfolioData.description,
+            startYear: startY,
+            startMonth: startM,
+            endDateMode: initialEndDateMode,
+            endYear: endY,
+            endMonth: endM,
             role: portfolioData.assignedRole[0] || '',
-            skills: portfolioData.techStack[0] || '',
+            skills: portfolioData.techStack.join(', '),
             problemSolution: portfolioData.review || '',
             thumbnailImage: thumbnail,
             attachmentFiles: attachments,
@@ -227,6 +265,7 @@ export default function PortfolioEditModal({
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
+            setOpenPeriodDropdown(null);
             initializedForRef.current = null;
             initialDataRef.current = null;
         }
@@ -235,6 +274,19 @@ export default function PortfolioEditModal({
             document.body.style.overflow = '';
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        if (openPeriodDropdown === null) return;
+
+        const handleOutsidePointerDown = (event: PointerEvent) => {
+            if (!periodDropdownRef.current?.contains(event.target as Node)) {
+                setOpenPeriodDropdown(null);
+            }
+        };
+
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    }, [openPeriodDropdown]);
 
     //컴포넌트가 unmount될 때 blob을 해제
     useEffect(() => {
@@ -256,20 +308,29 @@ export default function PortfolioEditModal({
         if (!file) return;
 
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-            setError('이미지는 webp / jpeg / jpg / png 형식만 업로드 가능합니다.');
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: '이미지는 webp / jpeg / jpg / png 형식만 업로드 가능합니다.',
+            });
             e.target.value = '';
             return;
         }
 
         if (file.size > THUMBNAIL_MAX_SIZE_MB  * 1024 * 1024) {
-            setError(`이미지가 파일 용량 제한을 초과합니다. (최대 ${THUMBNAIL_MAX_SIZE_MB }MB)`);
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: `이미지가 파일 용량 제한을 초과합니다. (최대 ${THUMBNAIL_MAX_SIZE_MB }MB)`,
+            });
             e.target.value = '';
             return;
         }
 
         const prepared = prepareFile(file);
         if (!prepared) {
-            setError('파일을 업로드할 수 없어요. 형식/용량을 확인해주세요.');
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: '파일을 업로드할 수 없어요. 형식/용량을 확인해주세요.',
+            });
             e.target.value = '';
             return;
         }
@@ -335,7 +396,10 @@ export default function PortfolioEditModal({
         }
 
         if (errorMsg) {
-            setError(errorMsg);
+            setError({
+                title: '업로드할 수 없는 파일',
+                content: errorMsg,
+            });
         }
 
         e.target.value = '';
@@ -355,6 +419,7 @@ export default function PortfolioEditModal({
         const missing: string[] = [];
         if (!title.trim()) missing.push('포트폴리오 제목');
         if (!content.trim()) missing.push('포트폴리오 개요');
+        if (endDateMode === 'unselected') missing.push('프로젝트 기간');
         if (!role.trim()) missing.push('프로젝트 역할');
         if (!skills.trim()) missing.push('사용 기술');
         if (!thumbnailImage) missing.push('대표 이미지');
@@ -373,9 +438,35 @@ export default function PortfolioEditModal({
         const missing = getMissingFields();
         if (missing.length > 0) {
             setShowValidationPopup(true);
-        } else {
-            setConfirm(true);
+            return;
         }
+
+        const techStack = parseTechStack(skills);
+        if (techStack.length === 0) {
+            setError({
+                title: '사용 기술을 확인해주세요',
+                content: '사용 기술을 한 개 이상 입력해주세요.',
+            });
+            return;
+        }
+
+        if (techStack.length > MAX_TECH_STACK_COUNT) {
+            setError({
+                title: '사용 기술을 확인해주세요',
+                content: `사용 기술은 최대 ${MAX_TECH_STACK_COUNT}개까지 입력할 수 있습니다.`,
+            });
+            return;
+        }
+
+        if (techStack.some((skill) => skill.length > MAX_TECH_STACK_ITEM_LENGTH)) {
+            setError({
+                title: '사용 기술을 확인해주세요',
+                content: `각 사용 기술은 ${MAX_TECH_STACK_ITEM_LENGTH}자 이하로 입력해주세요.`,
+            });
+            return;
+        }
+
+        setConfirm(true);
     };
 
     const handleSave = async () => {
@@ -482,9 +573,11 @@ export default function PortfolioEditModal({
                 projectTitle: title.trim(),
                 description: content.trim(),
                 startedAt: `${startYear}-${String(startMonth).padStart(2, '0')}-01`,
-                endedAt: `${endYear}-${String(endMonth).padStart(2, '0')}-01`,
+                endedAt: endDateMode === 'date' && endYear && endMonth
+                    ? `${endYear}-${String(endMonth).padStart(2, '0')}-01`
+                    : null,
                 project_role: role.trim(),
-                techStack: [skills.trim()],  // 단일 문자열을 배열로
+                techStack: parseTechStack(skills),
                 review: problemSolution.trim(),
                 thumbnailKey,
                 attachmentKeys,
@@ -500,7 +593,10 @@ export default function PortfolioEditModal({
             onClose();
         } catch (error) {
             console.error('저장 실패:', error);
-            setError('포트폴리오 저장에 실패했습니다. 다시 시도해주세요.');
+            setError({
+                title: '포트폴리오 저장 실패',
+                content: '포트폴리오 저장에 실패했습니다. 다시 시도해주세요.',
+            });
         } finally {
             setIsSaving(false);
         }
@@ -517,8 +613,13 @@ export default function PortfolioEditModal({
     const problemLength = problemSolution.length;
 
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const togglePeriodDropdown = (dropdown: Exclude<PeriodDropdown, null>) => {
+        setOpenPeriodDropdown((current) => current === dropdown ? null : dropdown);
+    };
 
     // 파일 타입 구분
     const imageFiles = attachmentFiles.filter(f => 
@@ -556,7 +657,7 @@ export default function PortfolioEditModal({
                     }
                 >
 
-                    <div className="w-full max-w-screen-sm h-dvh bg-white animate-slide-up flex flex-col pb-[50px]">
+                    <div className="w-full max-w-screen-sm flex-1 min-h-0 bg-white animate-slide-up flex flex-col">
                         {/* 로딩 오버레이 */}
                         {(isLoadingDetail  || isSaving) && (
                             <div className="absolute inset-0 z-50">
@@ -571,8 +672,8 @@ export default function PortfolioEditModal({
                             <div className="absolute inset-0 z-50">
                                 <PopUp
                                     type="error"
-                                    title='업로드할 수 없는 파일'
-                                    content={error}
+                                    title={error.title}
+                                    content={error.content}
                                     isOpen={true}
                                     rightButtonText='확인'
                                     onClick={() => setError(null)}
@@ -665,7 +766,7 @@ export default function PortfolioEditModal({
                             
                             <div className="px-[25px] py-[20px] flex flex-col gap-[20px]">
                                 {/* 프로젝트 기간 */}
-                                <div className="flex flex-col gap-[10px]">
+                                <div ref={periodDropdownRef} className="flex flex-col gap-[10px]">
                                     <span className="text-sb-16-hn text-gray-900">
                                         프로젝트 기간 (필수)
                                     </span>
@@ -674,23 +775,29 @@ export default function PortfolioEditModal({
                                     <div className="flex gap-[10px] items-center">
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowStartYearDropdown(!showStartYearDropdown)}
+                                            onClick={() => togglePeriodDropdown('startYear')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{startYear}년</span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartYearDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openPeriodDropdown === 'startYear' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showStartYearDropdown && (
+                                        {openPeriodDropdown === 'startYear' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {years
-                                                .filter(year => year <= endYear)
+                                                .filter(year => endDateMode !== 'date' || endYear === undefined || year <= endYear)
                                                 .map((year) => (
                                                 <button
                                                 key={year}
                                                 onClick={() => {
+                                                    const currentMonthLimit = year === currentYear ? currentMonth : 12;
+                                                    const endMonthLimit =
+                                                        endDateMode === 'date' && endYear === year && endMonth !== undefined
+                                                            ? endMonth
+                                                            : 12;
                                                     setStartYear(year);
-                                                    setShowStartYearDropdown(false);
+                                                    setStartMonth(Math.min(startMonth, currentMonthLimit, endMonthLimit));
+                                                    setOpenPeriodDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                     startYear === year ? 'text-primary' : 'text-gray-650'
@@ -705,28 +812,32 @@ export default function PortfolioEditModal({
 
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowStartMonthDropdown(!showStartMonthDropdown)}
+                                            onClick={() => togglePeriodDropdown('startMonth')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{startMonth}월</span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showStartMonthDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openPeriodDropdown === 'startMonth' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showStartMonthDropdown && (
+                                        {openPeriodDropdown === 'startMonth' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {months
                                                 .filter(month => {
-                                                if (endYear === startYear) {
-                                                    return month <= endMonth;
-                                                }
-                                                return true;
+                                                const isBeforeOrInCurrentMonth =
+                                                    startYear !== currentYear || month <= currentMonth;
+                                                const isBeforeOrInEndMonth =
+                                                    endDateMode !== 'date' ||
+                                                    endYear !== startYear ||
+                                                    endMonth === undefined ||
+                                                    month <= endMonth;
+                                                return isBeforeOrInCurrentMonth && isBeforeOrInEndMonth;
                                                 })
                                                 .map((month) => (
                                                 <button
                                                 key={month}
                                                 onClick={() => {
                                                     setStartMonth(month);
-                                                    setShowStartMonthDropdown(false);
+                                                    setOpenPeriodDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                     startMonth === month ? 'text-primary' : 'text-gray-650'
@@ -746,26 +857,52 @@ export default function PortfolioEditModal({
                                     <div className="flex gap-[10px] items-center">
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowEndYearDropdown(!showEndYearDropdown)}
+                                            onClick={() => togglePeriodDropdown('endYear')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
-                                            <span className="text-r-16-hn text-gray-750">{endYear}년</span>
+                                            <span className={`text-r-16-hn ${endDateMode === 'unselected' ? 'text-gray-350' : 'text-gray-750'}`}>
+                                                {endDateMode === 'unselected'
+                                                    ? '종료 연도'
+                                                    : endDateMode === 'current'
+                                                        ? '현재'
+                                                        : `${endYear}년`}
+                                            </span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndYearDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openPeriodDropdown === 'endYear' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showEndYearDropdown && (
+                                        {openPeriodDropdown === 'endYear' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
+                                            <button
+                                                onClick={() => {
+                                                    setEndDateMode('current');
+                                                    setEndYear(undefined);
+                                                    setEndMonth(undefined);
+                                                    setOpenPeriodDropdown(null);
+                                                }}
+                                                className={`flex w-full p-[15px] border-gray-150 border-b text-r-16-hn ${
+                                                    endDateMode === 'current' ? 'text-primary' : 'text-gray-650'
+                                                }`}
+                                            >
+                                                현재
+                                            </button>
                                             {years
                                                 .filter(year => year >= startYear)
                                                 .map((year) => (
                                                 <button
                                                 key={year}
                                                 onClick={() => {
+                                                    const minimumMonth = year === startYear ? startMonth : 1;
+                                                    const maximumMonth = year === currentYear ? currentMonth : 12;
+                                                    const nextEndMonth = endMonth && endMonth >= minimumMonth && endMonth <= maximumMonth
+                                                        ? endMonth
+                                                        : maximumMonth;
+                                                    setEndDateMode('date');
                                                     setEndYear(year);
-                                                    setShowEndYearDropdown(false);
+                                                    setEndMonth(nextEndMonth);
+                                                    setOpenPeriodDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
-                                                    endYear === year ? 'text-primary' : 'text-gray-650'
+                                                    endDateMode === 'date' && endYear === year ? 'text-primary' : 'text-gray-650'
                                                 }`}
                                                 >
                                                 {year}년
@@ -775,30 +912,30 @@ export default function PortfolioEditModal({
                                         )}
                                         </div>
 
+                                        {endDateMode === 'date' && endYear !== undefined ? (
                                         <div className="flex-1 relative min-w-[110px]">
                                         <button
-                                            onClick={() => setShowEndMonthDropdown(!showEndMonthDropdown)}
+                                            onClick={() => togglePeriodDropdown('endMonth')}
                                             className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between focus:outline-none"
                                         >
                                             <span className="text-r-16-hn text-gray-750">{endMonth}월</span>
                                             <Icon name="arrow_down" 
-                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${showEndMonthDropdown ? 'rotate-180' : ''}`}/>
+                                            className={`w-[24px] h-[24px] block shrink-0 transition-transform ${openPeriodDropdown === 'endMonth' ? 'rotate-180' : ''}`}/>
                                         </button>
-                                        {showEndMonthDropdown && (
+                                        {openPeriodDropdown === 'endMonth' && (
                                             <div className="absolute top-full left-0 right-0 bg-gray-100 border border-gray-150 rounded-[5px] z-10 max-h-[200px] overflow-y-auto">
                                             {months
                                                 .filter(month => {
-                                                if (endYear === startYear) {
-                                                    return month >= startMonth;
-                                                }
-                                                return true;
+                                                const isAfterOrInStartMonth = endYear !== startYear || month >= startMonth;
+                                                const isBeforeOrInCurrentMonth = endYear !== currentYear || month <= currentMonth;
+                                                return isAfterOrInStartMonth && isBeforeOrInCurrentMonth;
                                                 })
                                                 .map((month) => (
                                                 <button
                                                 key={month}
                                                 onClick={() => {
                                                     setEndMonth(month);
-                                                    setShowEndMonthDropdown(false);
+                                                    setOpenPeriodDropdown(null);
                                                 }}
                                                 className={`flex w-full p-[15px] border-gray-150 border-b last:border-b-0 text-r-16-hn ${
                                                     endMonth === month ? 'text-primary' : 'text-gray-650'
@@ -810,6 +947,18 @@ export default function PortfolioEditModal({
                                             </div>
                                         )}
                                         </div>
+                                        ) : endDateMode === 'unselected' ? (
+                                            <div className="flex-1 relative min-w-[110px]">
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    className="w-full h-[52px] p-[15px] border border-gray-150 rounded-[5px] flex items-center justify-between"
+                                                >
+                                                    <span className="text-r-16-hn text-gray-350">종료 월</span>
+                                                    <Icon name="arrow_down" className="w-[24px] h-[24px] block shrink-0 opacity-40" />
+                                                </button>
+                                            </div>
+                                        ) : null}
 
                                         <span className="flex-1 text-r-14-hn text-gray-650 min-w-[25px] max-w-[65px]">까지</span>
                                     </div>
@@ -838,9 +987,8 @@ export default function PortfolioEditModal({
                                     <input
                                         type="text"
                                         value={skills}
-                                        maxLength={50}
                                         onChange={(e) => setSkills(e.target.value)}
-                                        placeholder="프로젝트에서 사용한 기술을 입력해 주세요"
+                                        placeholder="사용한 기술을 쉼표(,)로 구분해 입력해 주세요"
                                         className="w-full p-[15px] border border-gray-150 rounded-[5px] text-r-16-hn text-gray-750 placeholder:text-gray-650 focus:outline-none focus:border-primary"
                                     />
                                 </div>
@@ -1011,7 +1159,7 @@ export default function PortfolioEditModal({
                     onClose={() => setIsFileAddModalOpen(false)} 
                     height="auto"
                 >
-                    <div className="px-[25px] pt-[20px] pb-[40px]">
+                    <div className="px-[25px] pt-[20px] pb-[max(50px,env(safe-area-inset-bottom,0px))]">
                         <div className="flex flex-col">
                             {/* 사진 */}
                             <button

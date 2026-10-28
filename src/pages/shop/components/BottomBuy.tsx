@@ -2,9 +2,10 @@ import Button from '../../../components/Button';
 
 type BottomBuyProps = {
   onClick?: () => void;
+  disabled?: boolean;
 };
 
-export const BottomBuy = ({ onClick }: BottomBuyProps) => {
+export const BottomBuy = ({ onClick, disabled = false }: BottomBuyProps) => {
   return (
     // 화면 하단 고정 구매 버튼
     <div
@@ -14,8 +15,13 @@ export const BottomBuy = ({ onClick }: BottomBuyProps) => {
         type='button'
         label="구매하기"
         font="sb-18-flat"
-        className="h-[50px] max-w-none rounded-[10px] bg-[var(--ColorMain,#00C56C)]"
+        className={`h-[50px] max-w-none rounded-[10px] ${
+          disabled
+            ? 'bg-gray-150 text-gray-750'
+            : 'bg-[var(--ColorMain,#00C56C)]'
+        }`}
         onClick={onClick}
+        disabled={disabled}
       />
     </div>
   );

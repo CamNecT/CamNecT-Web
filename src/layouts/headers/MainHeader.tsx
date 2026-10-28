@@ -6,6 +6,7 @@ import Icon, { type IconName } from '../../components/Icon';
 import PressableMotion from '../../components/PressableMotion';
 import { logout } from '../../api/profileApi';
 import { useAuthStore } from '../../store/useAuthStore';
+import { clearClientSession } from '../../utils/clearClientSession';
 
 type HeaderAction = {
   icon: IconName;
@@ -46,7 +47,6 @@ export const MainHeader = ({
   className,
 }: MainHeaderProps) => {
   const navigate = useNavigate();
-  const setLogout = useAuthStore((s) => s.setLogout);
   const authUserId = useAuthStore((s) => s.user?.id);
   const handleLogout = async () => {
     try {
@@ -57,7 +57,7 @@ export const MainHeader = ({
     } catch (e) {
       console.warn('logout failed:', e);
     } finally {
-      setLogout();
+      clearClientSession();
       navigate('/login');
     }
   };

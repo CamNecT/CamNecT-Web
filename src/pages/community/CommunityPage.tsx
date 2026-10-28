@@ -13,7 +13,8 @@ import { mapToInfoPost, mapToQuestionPost } from '../../utils/communityMapper';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTagList } from '../../hooks/useTagList';
 import type { AxiosError } from 'axios';
-import type { CommunityErrorResponse } from '../../api-types/communityApiTypes';
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
+import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 
 type CommunityPageProps = {
   isAdmin?: boolean;
@@ -279,7 +280,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
       } catch (error) {
         if (controller.signal.aborted) return;
         if (requestId !== requestSeq.current[tab]) return;
-        const code = (error as AxiosError<CommunityErrorResponse>).response?.data?.code;
+        const code = getServerErrorCode(error as AxiosError);
         setTabState(tab, (previous) => ({
           ...previous,
           nextCursorId: isAppend ? null : previous.nextCursorId,
@@ -288,9 +289,9 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           isLoading: false,
           isLoadingMore: false,
           error:
-            code === 43040
+            code === COMMUNITY_ERROR_CODES.cursorExpired
               ? '목록 커서가 만료되어 새로고침이 필요해요.'
-              : code === 43041
+              : code === COMMUNITY_ERROR_CODES.invalidSearchKeyword
                 ? '검색어를 다시 확인해 주세요.'
                 : '커뮤니티 글을 불러오지 못했어요.',
         }));
@@ -514,7 +515,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
                   aria-label='검색 닫기'
                   className='flex h-[28px] w-[28px] shrink-0 items-center justify-center'
                 >
-                  <Icon name='search' className='h-[28px] w-[28px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
+                  <Icon name='search' className='h-[24px] w-[24px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
                 </button>
                 <input
                   type='text'
@@ -526,6 +527,21 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
                   placeholder='제목, 내용 검색'
                   className='flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchOpen(false);
+                  }}
+                  aria-label='검색 닫기'
+                  className='flex h-[24px] w-[24px] shrink-0 items-center justify-center'
+                >
+                  <Icon
+                    name='x'
+                    className='h-[24px] w-[24px]'
+                    style={{ color: 'var(--ColorGray4,#A1A1A1)' }}
+                  />
+                </button>
               </div>
             </div>
           ) : (
