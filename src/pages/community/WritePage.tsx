@@ -29,7 +29,8 @@ const MAX_TITLE_LENGTH = 200;
 const MAX_CONTENT_LENGTH = 20_000;
 const MAX_ATTACHMENTS = 3;
 const MAX_FILENAME_LENGTH = 255;
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set([
     'application/pdf',
     'image/jpeg',
@@ -377,29 +378,32 @@ export const WritePage = () => {
         if (!files || files.length === 0) return;
 
         const availableCount = MAX_ATTACHMENTS - existingAttachments.length - newAttachments.length;
+        const attachmentErrors = new Set<string>();
         if (availableCount <= 0 || files.length > availableCount) {
-            setFieldErrors((previous) => ({
-                ...previous,
-                attachments: `첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 등록할 수 있습니다.`,
-            }));
+            attachmentErrors.add(`첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 등록할 수 있습니다.`);
         }
 
         const nextAttachments = Array.from(files)
             .slice(0, Math.max(0, availableCount))
             .map((file) => {
-                if (
-                    file.size < 1 ||
-                    file.size > MAX_FILE_SIZE_BYTES ||
-                    !ALLOWED_MIME_TYPES.has(file.type) ||
-                    file.name.length > MAX_FILENAME_LENGTH ||
-                    hasInvalidFilename(file.name)
-                ) {
-                    setFieldErrors((previous) => ({
-                        ...previous,
-                        attachments: 'PDF, JPEG, PNG, WEBP 파일만 등록할 수 있으며 파일명과 용량을 확인해 주세요.',
-                    }));
-                    return null;
+                let isInvalid = false;
+                if (file.size > MAX_FILE_SIZE_BYTES) {
+                    attachmentErrors.add(`파일 용량이 제한을 초과합니다. (파일당 최대 ${MAX_FILE_SIZE_MB}MB)`);
+                    isInvalid = true;
                 }
+                if (!ALLOWED_MIME_TYPES.has(file.type)) {
+                    attachmentErrors.add('PDF, JPEG, PNG, WEBP 파일만 등록할 수 있습니다.');
+                    isInvalid = true;
+                }
+                if (file.size < 1) {
+                    attachmentErrors.add('빈 파일은 등록할 수 없습니다.');
+                    isInvalid = true;
+                }
+                if (file.name.length > MAX_FILENAME_LENGTH || hasInvalidFilename(file.name)) {
+                    attachmentErrors.add(`파일명은 ${MAX_FILENAME_LENGTH}자 이하이며 경로 구분자나 제어문자를 포함할 수 없습니다.`);
+                    isInvalid = true;
+                }
+                if (isInvalid) return null;
                 const isDuplicate = newAttachments.some(
                     (attachment) =>
                         attachment.file.name === file.name &&
@@ -417,6 +421,16 @@ export const WritePage = () => {
                 (attachment): attachment is AttachmentItem => attachment !== null,
             );
 
+        // 이번 선택의 오류를 모아 표시하므로 정상·오류 파일을 함께 선택해도 오류가 지워지지 않는다.
+        // 정상 파일만 추가했다면 이전 선택에서 발생한 첨부 오류만 해제한다.
+        if (attachmentErrors.size > 0 || nextAttachments.length > 0) {
+            setFieldErrors((previous) => ({
+                ...previous,
+                attachments: attachmentErrors.size > 0
+                    ? Array.from(attachmentErrors).join(' ')
+                    : '',
+            }));
+        }
         setNewAttachments((prev) => [...nextAttachments, ...prev]);
         event.target.value = '';
     };
@@ -701,7 +715,7 @@ export const WritePage = () => {
                 </header>
 
                 {/* 글쓰기 본문 영역 */}
-                <section className='flex w-full flex-1 flex-col px-[25px] overflow-y-auto'>
+                <section className='flex min-h-0 w-full flex-1 flex-col px-[25px] overflow-y-auto'>
                     {/* 제목 입력 */}
                     <div
                         className='flex w-full flex-col'
@@ -786,6 +800,19 @@ export const WritePage = () => {
 
                 {/* 하단 사진 추가/미리보기 영역 */}
                 <div className='w-full shrink-0 bg-white'>
+                    {/* 오류 안내도 하단 영역의 높이에 포함해 본문과 첨부 미리보기를 가리지 않는다.
+                        여러 오류가 함께 발생해도 한 줄을 유지하며 가로 스크롤로 전체 내용을 확인한다. */}
+                    {fieldErrors.attachments ? (
+                        <div className='px-[25px] pb-[8px]'>
+                            <div
+                                role='alert'
+                                tabIndex={0}
+                                className='overflow-x-auto whitespace-nowrap text-r-12 text-[var(--Color_Red,#FF3838)]'
+                            >
+                                {fieldErrors.attachments}
+                            </div>
+                        </div>
+                    ) : null}
                     <div className='flex w-full px-[25px]' style={{ paddingBottom: isKeyboardUp ? '10px' : '25px' }}>
                         <div className='flex w-full items-center overflow-x-auto' style={{ gap: '12px' }}>
                             {/* 사진 추가 버튼 */}
@@ -940,11 +967,6 @@ export const WritePage = () => {
                             onChange={handleAttachmentChange}
                         />
                     </div>
-                    {fieldErrors.attachments ? (
-                        <div className='px-[25px] pb-[8px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
-                            {fieldErrors.attachments}
-                        </div>
-                    ) : null}
                 </div>
             </div>
             </div>
