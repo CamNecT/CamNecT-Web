@@ -29,7 +29,7 @@ const sanitizeCommentContent = (value: string) =>
     .join('');
 
 type UseCommentActionsParams = {
-  currentUser: CommentAuthor;
+  currentUser: CommentAuthor | null;
   initialComments?: CommentItem[];
   resetKey?: string;
   isLockedQuestion: boolean;
@@ -39,7 +39,8 @@ type UseCommentActionsParams = {
   onSubmitCommentApi?: (payload: {
     content: string;
     parentCommentId: string | null;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
+  onSubmitCommentError?: () => void;
   onDeleteCommentApi?: (commentId: string) => Promise<void>;
   onUpdateCommentApi?: (payload: { commentId: string; content: string }) => Promise<void>;
 };
@@ -54,10 +55,13 @@ export const useCommentActions = ({
   isAdopted,
   adoptedCommentId,
   onSubmitCommentApi,
+  onSubmitCommentError,
   onDeleteCommentApi,
   onUpdateCommentApi,
 }: UseCommentActionsParams) => {
   const [commentContent, setCommentContent] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const submittingCommentRef = useRef(false);
   const [commentList, setCommentList] = useState<CommentItem[]>(initialComments);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState('');
@@ -118,21 +122,34 @@ export const useCommentActions = ({
   };
 
   // 댓글 등록 (답글 포함)
-  const handleSubmitComment = (event?: SyntheticEvent) => {
+  const handleSubmitComment = async (event?: SyntheticEvent) => {
     event?.preventDefault();
-    if (isLockedQuestion) return;
+    if (isLockedQuestion || submittingCommentRef.current) return;
     // 댓글과 대댓글 모두 동일한 서버 제한(공백-only 금지, 최대 5,000자)을 적용한다.
     if (!commentContent.trim() || commentContent.length > 5000) return;
     if (onSubmitCommentApi) {
-      onSubmitCommentApi({
-        content: commentContent,
-        parentCommentId: replyTarget?.id ?? null,
-      }).finally(() => {
+      // 상태가 화면에 반영되기 전의 연속 터치도 막고, 댓글 목록 갱신까지 잠금을 유지한다.
+      submittingCommentRef.current = true;
+      setIsSubmittingComment(true);
+      try {
+        const didSubmit = await onSubmitCommentApi({
+          content: commentContent,
+          parentCommentId: replyTarget?.id ?? null,
+        });
+        // 페이지에서 오류 팝업을 처리해도 등록 성공을 명시한 경우에만 초안을 비운다.
+        if (!didSubmit) return;
         setCommentContent('');
         setReplyTarget(null);
-      });
+      } catch {
+        // 실패한 초안은 보존하여 사용자가 같은 내용을 다시 입력하지 않게 한다.
+        onSubmitCommentError?.();
+      } finally {
+        submittingCommentRef.current = false;
+        setIsSubmittingComment(false);
+      }
       return;
     }
+    if (!currentUser) return;
     const now = new Date();
     const newComment: CommentItem = {
       id: `comment-${generateId()}`,
@@ -238,6 +255,7 @@ export const useCommentActions = ({
   }, [resetKey]);
 
   return {
+    isSubmittingComment,
     commentContent,
     setCommentContent: setSafeCommentContent,
     commentList,
