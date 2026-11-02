@@ -127,6 +127,7 @@ export const mapAlumniProfileDetailToProfile = (
       .map((item) => ({
         id: String(item.portfolioId),
         title: item.title,
+        subtitle: item.subtitle,
         image: item.thumbnailUrl || undefined,
       })),
     educationItems: detail.educations.map((item) => ({

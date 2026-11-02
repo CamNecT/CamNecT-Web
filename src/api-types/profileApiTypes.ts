@@ -4,6 +4,7 @@ import type { EducationStatus } from "../types/mypage/mypageTypes";
 export interface PortfolioProject {
   portfolioId: number;
   title: string;
+  subtitle: string | null;
   thumbnailUrl: string;
   isPublic: boolean;
   isFavorite: boolean;

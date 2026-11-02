@@ -18,6 +18,7 @@ export type AlumniProfile = {
   portfolioItems: {
     id: string;
     title: string;
+    subtitle?: string | null;
     image?: string;
   }[];
   educationItems: {
