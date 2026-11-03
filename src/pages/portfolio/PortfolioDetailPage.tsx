@@ -223,7 +223,12 @@ export const PortfolioDetailPage = ({
                             <div className="px-[25px] pb-[40px] flex flex-col gap-[20px]">
                                 {/* 제목 및 내용 */}
                                 <div className="flex flex-col gap-[15px]">
-                                    <span className="text-sb-16-hn text-gray-900 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.title}</span>
+                                    <div className="flex flex-col gap-[2px]">
+                                        <span className="text-sb-18 text-gray-900 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.title}</span>
+                                        {portfolio.subtitle && (
+                                            <span className="text-r-14-hn text-gray-750 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.subtitle}</span>
+                                        )}
+                                    </div>
                                     <div className="text-r-14 text-gray-750 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]">
                                         {portfolio.description}
                                     </div>
