@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PopUp from '../../components/Pop-up';
 import { Tabs } from '../../components/Tabs';
-import { useChatRooms } from '../../hooks/useChatQuery';
+import { useChatRooms, useClosedChatRoomsExit } from '../../hooks/useChatQuery';
 import { FullLayout } from '../../layouts/FullLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import type { ChatRoomListItemType } from '../../types/coffee-chat/coffeeChatTypes';
@@ -30,14 +30,28 @@ const tabs = [
   { id: 'TEAM_RECRUIT', label: '팀원모집' },
 ];
 
+const MAX_SELECTED_ROOM_COUNT = 100;
+
 export const ChatListPage = () => {
   const [activeId, setActiveId] = useState<ChatRoomListItemType>('COFFEE_CHAT');
   const [sortKey, setSortKey] = useState<SortKey>('all'); // 진행 중 상태가 기본
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set()); // 선택된 채팅방 id들 (삭제 용도)
   const [searchQuery, setSearchQuery] = useState('');
+  const [confirmPopUpConfig, setConfirmPopUpConfig] = useState<{
+    title: string;
+    content: string;
+    leftButtonText: string;
+    onConfirm: () => void;
+  } | null>(null);
+  const [errorPopUpConfig, setErrorPopUpConfig] = useState<{
+    title: string;
+    content: string;
+  } | null>(null);
 
   const { data, isLoading } = useChatRooms(activeId);
+  const { mutate: exitClosedRooms, isPending } = useClosedChatRoomsExit();
+
   const chatRooms = useMemo(() => data?.chatRooms ?? [], [data?.chatRooms]);
   const requestExists = data?.requestExists ?? false;
   const hasClosedRoom = chatRooms.some((chatRoom) => chatRoom.isClosed);
@@ -103,6 +117,14 @@ export const ChatListPage = () => {
         return newSet;
       })
     } else {
+      if (selectedRoomIds.size >= MAX_SELECTED_ROOM_COUNT) {
+        setErrorPopUpConfig({
+          title: '채팅방을 더 선택할 수 없습니다',
+          content: `채팅방은 한 번에 최대 ${MAX_SELECTED_ROOM_COUNT}개까지 삭제할 수 있습니다.`,
+        });
+        return;
+      }
+
       // 선택된 방이 아니라면 선택 추가
       setSelectedRoomIds((prev) => new Set(prev).add(roomId));
     }
@@ -123,14 +145,47 @@ export const ChatListPage = () => {
     handleChatRoomClick(roomId);
   };
 
+  // 선택된 채팅방 모두 나가기 (종료된 채팅방)
+  const handleDeleteSelectedClosedRooms = () => {
+    if (selectedRoomIds.size === 0 || isPending) return;
+
+    const roomIds = Array.from(selectedRoomIds);
+
+    setConfirmPopUpConfig({
+      title: '선택된 방들을 삭제하시겠습니까?',
+      content: '삭제 즉시 채팅목록에서 사라지며\n다시 복구할 수 없습니다.',
+      leftButtonText: '삭제하기',
+      onConfirm: () => {
+        exitClosedRooms(
+          { roomIds },
+          {
+            onSuccess: () => {
+              setSelectedRoomIds(new Set());
+              setIsEditMode(false);
+              setConfirmPopUpConfig(null);
+            },
+            onError: () => {
+              setConfirmPopUpConfig(null);
+              setErrorPopUpConfig({
+                title: '채팅방을 삭제하지 못했습니다',
+                content: '잠시 후 다시 시도해 주세요.',
+              });
+            },
+          }
+        );
+      },
+    });
+  }
+
   return (
     <FullLayout
       bottomSlot={
         isEditMode ? (
-          // TODO: 선택 채팅방 삭제 API 연결 후 onClick 전달
           <ChatDeleteButton
             count={selectedRoomIds.size}
             variant="selectedRooms"
+            onClick={handleDeleteSelectedClosedRooms}
+            disabled={isPending}
           />
         ) : undefined
       }
@@ -263,6 +318,31 @@ export const ChatListPage = () => {
       </ul>
       
       <PopUp isOpen={isLoading} type="loading" />
+
+      {confirmPopUpConfig && (
+        <PopUp
+          isOpen={true}
+          type="warning"
+          title={confirmPopUpConfig.title}
+          content={confirmPopUpConfig.content}
+          leftButtonText={confirmPopUpConfig.leftButtonText}
+          isActionPending={isPending}
+          onLeftClick={() => {
+            if (!isPending) confirmPopUpConfig.onConfirm();
+          }}
+          onRightClick={() => setConfirmPopUpConfig(null)}
+        />
+      )}
+
+      {errorPopUpConfig && (
+        <PopUp
+          isOpen={true}
+          type="error"
+          title={errorPopUpConfig.title}
+          content={errorPopUpConfig.content}
+          onClick={() => setErrorPopUpConfig(null)}
+        />
+      )}
     </FullLayout>
   );
 };

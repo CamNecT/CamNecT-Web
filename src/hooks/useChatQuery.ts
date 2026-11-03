@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteAllChatRequest, deleteAllTeamRecruit, requestChatRespond, requestChatRoomClose, requestChatRoomCompleteExit, requestChatRoomExit, requestClosedChatRoomsExit, viewChatRequestDetail, viewChatRequestList, viewChatRoomDetail, viewChatRoomList } from "../api/chat";
+import { deleteAllChatRequest, deleteAllTeamRecruit, deleteClosedChatRooms, requestChatRespond, requestChatRoomClose, requestChatRoomCompleteExit, requestChatRoomExit, viewChatRequestDetail, viewChatRequestList, viewChatRoomDetail, viewChatRoomList } from "../api/chat";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import type { ChatMessage, ChatRoomListItem, ChatRoomListItemType, ChatUser } from "../types/coffee-chat/coffeeChatTypes";
@@ -357,7 +357,7 @@ export const useClosedChatRoomsExit = () => {
 
     return useMutation({
         mutationFn: (variables: { roomIds: string[] }) =>
-            requestClosedChatRoomsExit({
+            deleteClosedChatRooms({
                 userId: Number(userId),
                 roomIds: variables.roomIds.map(Number)
             }),

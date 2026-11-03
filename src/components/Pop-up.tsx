@@ -187,7 +187,8 @@ const PopUp = ({
             intensity='strong'
             type='button'
             onClick={onLeftClick}
-            className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--Color_Red2,#FFEFEF)] text-b-14-hn text-[var(--ColorRed,#FF3838)]'
+            disabled={isActionPending}
+            className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--Color_Red2,#FFEFEF)] text-b-14-hn text-[var(--ColorRed,#FF3838)] disabled:cursor-not-allowed disabled:opacity-40'
           >
             <span className='whitespace-pre-wrap'>{leftButtonText ?? '삭제하기'}</span>
           </PressableMotion>
@@ -196,7 +197,8 @@ const PopUp = ({
             intensity='strong'
             type='button'
             onClick={onRightClick}
-            className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorGray1,#ECECEC)] text-sb-14 text-[var(--ColorGray2,#A1A1A1)]'
+            disabled={isActionPending}
+            className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorGray1,#ECECEC)] text-sb-14 text-[var(--ColorGray2,#A1A1A1)] disabled:cursor-not-allowed disabled:opacity-40'
           >
             <span className='whitespace-pre-wrap'>{rightButtonText ?? '아니오'}</span>
           </PressableMotion>

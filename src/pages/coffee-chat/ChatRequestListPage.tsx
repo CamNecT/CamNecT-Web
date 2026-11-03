@@ -37,8 +37,14 @@ export const ChatRequestListPage = () => {
   }, [hasInitialTypeQuery, navigate]);
 
   const { data: chatRequestRooms = [], isLoading } = useChatRequests(activeId);
-  const { mutate: deleteAllTeamRecruitRequest} = useDeleteAllTeamRecruitRequest();
-  const { mutate: deleteAllChatRequest} = useDeleteAllChatRequest();
+  const {
+    mutate: deleteAllTeamRecruitRequest,
+    isPending: isTeamRecruitDeletePending,
+  } = useDeleteAllTeamRecruitRequest();
+  const {
+    mutate: deleteAllChatRequest,
+    isPending: isChatRequestDeletePending,
+  } = useDeleteAllChatRequest();
 
     // mock데이터 타입별 filtering + 날짜 내림차순 정렬
   const filteredChatRoomList = chatRequestRooms
@@ -70,8 +76,13 @@ export const ChatRequestListPage = () => {
   const currentDeleteCount = activeId === 'TEAM_RECRUIT'
     ? (openPostTitle ? (filteredChatRoomListByPost[openPostTitle]?.length || 0) : 0)
     : filteredChatRoomList.length;
+  const isDeletePending = activeId === 'TEAM_RECRUIT'
+    ? isTeamRecruitDeletePending
+    : isChatRequestDeletePending;
 
   const handleDeleteAll = () => {
+    if (isDeletePending) return;
+
     if (activeId === 'TEAM_RECRUIT') {
       if (!openPostTitle) return;
 
@@ -158,6 +169,7 @@ export const ChatRequestListPage = () => {
           count={currentDeleteCount}
           variant="allRequests"
           onClick={handleDeleteAll}
+          disabled={isDeletePending}
         />
       </div>
       <PopUp isOpen={isLoading} type="loading" />

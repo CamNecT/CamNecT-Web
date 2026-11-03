@@ -1,14 +1,14 @@
 import type {
-    ChatRoomDetailRequest, ChatRoomDetailResponse,
-    ChatRoomListRequest, ChatRoomListResponse,
     ChatRequestDetailRequest, ChatRequestDetailResponse,
     ChatRequestListRequest, ChatRequestListResponse,
     ChatRespondRequest, ChatRespondResponse,
-    DeleteAllChatRequest, DeleteAllChatResponse,
-    DeleteAllTeamRecruitRequest, DeleteAllTeamRecruitResponse,
     ChatRoomCloseRequest, ChatRoomCloseResponse,
+    ChatRoomDetailRequest, ChatRoomDetailResponse,
     ChatRoomExitRequest, ChatRoomExitResponse,
-    ClosedChatRoomsExitRequest, ClosedChatRoomsExitResponse
+    ChatRoomListRequest, ChatRoomListResponse,
+    ClosedChatRoomsExitRequest, ClosedChatRoomsExitResponse,
+    DeleteAllChatRequest, DeleteAllChatResponse,
+    DeleteAllTeamRecruitRequest, DeleteAllTeamRecruitResponse
 } from "../api-types/chatApiTypes";
 import { axiosInstance } from "./axiosInstance";
 
@@ -116,7 +116,7 @@ export const deleteAllChatRequest = async (data: DeleteAllChatRequest) => {
 }
 
 // 11. 종료된 채팅방 일괄 나가기 API [PATCH] (/api/chat/rooms/exit)
-export const requestClosedChatRoomsExit = async (data: ClosedChatRoomsExitRequest) => {
+export const deleteClosedChatRooms = async (data: ClosedChatRoomsExitRequest) => {
     const { userId, roomIds } = data;
 
     const response = await axiosInstance.patch<ClosedChatRoomsExitResponse>(
