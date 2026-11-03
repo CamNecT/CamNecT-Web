@@ -9,6 +9,7 @@ import type { ChatRoomListItemType } from '../../types/coffee-chat/coffeeChatTyp
 import { ChatList } from './components/ChatList';
 import SortSelector from '../../components/SortSelector';
 import { AnimatePresence, motion } from 'framer-motion';
+import { ChatDeleteButton } from './components/ChatDeleteButton';
 
 type SortKey = 'all' | 'active' | 'closed';
 
@@ -37,7 +38,7 @@ export const ChatListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading } = useChatRooms(activeId);
-  const chatRooms = data?.chatRooms ?? [];
+  const chatRooms = useMemo(() => data?.chatRooms ?? [], [data?.chatRooms]);
   const requestExists = data?.requestExists ?? false;
   const hasClosedRoom = chatRooms.some((chatRoom) => chatRoom.isClosed);
 
@@ -124,6 +125,15 @@ export const ChatListPage = () => {
 
   return (
     <FullLayout
+      bottomSlot={
+        isEditMode ? (
+          // TODO: 선택 채팅방 삭제 API 연결 후 onClick 전달
+          <ChatDeleteButton
+            count={selectedRoomIds.size}
+            variant="selectedRooms"
+          />
+        ) : undefined
+      }
       headerSlot={
         <div className="sticky top-0 z-50 bg-white">
           <MainHeader
@@ -226,18 +236,9 @@ export const ChatListPage = () => {
           <>
             <span className="text-m-14 tracking-[-0.56px] text-gray-750">{selectedRoomIds.size}개 선택됨</span>
 
-              {
-                // todo 삭제 버튼 다중 삭제 API 연결
-              selectedRoomIds.size > 0 ? (
-                <button className="text-red text-center text-sb-16-hn leading-[140%] tracking-[-0.4px]" onClick={handleEditModeChange}>
-                  삭제
-                </button>
-                ) : (
-                <button className="text-gray-750 text-center text-m-16-hn leading-[140%] tracking-[-0.4px]" onClick={handleEditModeChange}>
-                  취소
-                </button>
-              )
-            }  
+            <button className="text-gray-750 text-center text-m-16-hn leading-[140%] tracking-[-0.4px]" onClick={handleEditModeChange}>
+              취소
+            </button>
           </>
         )}
       </motion.div>

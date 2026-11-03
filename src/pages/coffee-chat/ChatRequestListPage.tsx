@@ -6,7 +6,7 @@ import { useChatRequests, useDeleteAllChatRequest, useDeleteAllTeamRecruitReques
 import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
 import type { ChatRoomListItem, ChatRoomListItemType } from "../../types/coffee-chat/coffeeChatTypes";
-import { AllRequestDeleteButton } from "./components/AllRequestDeleteButton";
+import { ChatDeleteButton } from "./components/ChatDeleteButton";
 import { ChatList } from "./components/ChatList";
 import { ChatPostAccordian } from "./components/ChatPostAccordian";
 
@@ -154,8 +154,9 @@ export const ChatRequestListPage = () => {
           }
         </ul>
 
-        <AllRequestDeleteButton
-          requestCount={currentDeleteCount}
+        <ChatDeleteButton
+          count={currentDeleteCount}
+          variant="allRequests"
           onClick={handleDeleteAll}
         />
       </div>

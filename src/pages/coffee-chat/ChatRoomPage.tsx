@@ -294,7 +294,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         window.scrollTo(0, document.documentElement.scrollHeight);
     };
 
-    // todo 1. 레이아웃 안정화 및 초기 스크롤
     useLayoutEffect(() => {
         if (!isLoading && !isReady) {
             if (localMessages.length > 0) {
