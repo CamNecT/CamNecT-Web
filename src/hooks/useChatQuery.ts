@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteAllChatRequest, deleteAllTeamRecruit, requestChatRespond, requestChatRoomClose, requestChatRoomCompleteExit, requestChatRoomExit, viewChatRequestDetail, viewChatRequestList, viewChatRoomDetail, viewChatRoomList } from "../api/chat";
+import { deleteAllChatRequest, deleteAllTeamRecruit, requestChatRespond, requestChatRoomClose, requestChatRoomCompleteExit, requestChatRoomExit, requestClosedChatRoomsExit, viewChatRequestDetail, viewChatRequestList, viewChatRoomDetail, viewChatRoomList } from "../api/chat";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import type { ChatMessage, ChatRoomListItem, ChatRoomListItemType, ChatUser } from "../types/coffee-chat/coffeeChatTypes";
@@ -345,6 +345,24 @@ export const useChatRoomExit = () => {
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] }); // 채팅 목록 최신화
+        }
+    });
+};
+
+// 11. 종료된 채팅방 일괄 나가기 API [PATCH] (/api/chat/rooms/exit)
+export const useClosedChatRoomsExit = () => {
+    const { user } = useAuthStore();
+    const userId = user?.id;
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (variables: { roomIds: string[] }) =>
+            requestClosedChatRoomsExit({
+                userId: Number(userId),
+                roomIds: variables.roomIds.map(Number)
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] });
         }
     });
 };

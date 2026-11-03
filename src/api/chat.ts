@@ -7,7 +7,8 @@ import type {
     DeleteAllChatRequest, DeleteAllChatResponse,
     DeleteAllTeamRecruitRequest, DeleteAllTeamRecruitResponse,
     ChatRoomCloseRequest, ChatRoomCloseResponse,
-    ChatRoomExitRequest, ChatRoomExitResponse
+    ChatRoomExitRequest, ChatRoomExitResponse,
+    ClosedChatRoomsExitRequest, ClosedChatRoomsExitResponse
 } from "../api-types/chatApiTypes";
 import { axiosInstance } from "./axiosInstance";
 
@@ -111,5 +112,17 @@ export const deleteAllChatRequest = async (data: DeleteAllChatRequest) => {
     const response = await axiosInstance.delete<DeleteAllChatResponse>("/api/request/all/coffee-chat", {
         params: { userId }
     });
+    return response.data;
+}
+
+// 11. 종료된 채팅방 일괄 나가기 API [PATCH] (/api/chat/rooms/exit)
+export const requestClosedChatRoomsExit = async (data: ClosedChatRoomsExitRequest) => {
+    const { userId, roomIds } = data;
+
+    const response = await axiosInstance.patch<ClosedChatRoomsExitResponse>(
+        "/api/chat/rooms/exit",
+        { roomIds },
+        { params: { userId } }
+    );
     return response.data;
 }
