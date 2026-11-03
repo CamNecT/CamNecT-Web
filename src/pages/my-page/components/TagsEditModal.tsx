@@ -237,7 +237,9 @@ export default function TagEditModal({ userId, tagIds, onClose }: TagEditModalPr
                                 </div>
                             </section>
 
-                            <section className="w-full flex flex-col flex-1 min-h-0 pt-[20px] px-[25px]">
+                            <section className={`w-full flex flex-col flex-1 min-h-0 pt-[20px] px-[25px] ${
+                                isSelectionLimitReached ? "gap-[8px]" : "gap-[20px]"
+                            }`}>
                                 {/*검색창*/}
                                 <section className="w-full">
                                     <div className="relative">

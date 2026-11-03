@@ -220,7 +220,11 @@ const TagsFilterModalContent = ({
           </div>
         </section>
 
-        <section className='flex min-h-0 w-full flex-1 flex-col px-[25px] pt-[20px]'>
+        <section
+          className={`flex min-h-0 w-full flex-1 flex-col px-[25px] pt-[20px] ${
+            selectedTags.length >= maxSelected ? 'gap-[8px]' : 'gap-[20px]'
+          }`}
+        >
           <section className='w-full'>
             <div className='relative'>
               <Icon name='search' size={16} color='#A1A1A1' className='absolute left-[19px] top-[12px]' />
@@ -234,7 +238,7 @@ const TagsFilterModalContent = ({
               />
             </div>
             {selectedTags.length >= maxSelected && (
-              <p className='pl-[5px] pt-[8px] text-r-12-hn text-gray-650'>
+              <p className='pt-[8px] pl-[5px] text-r-12-hn text-gray-650'>
                 최대 {maxSelected}개까지만 선택 가능합니다.
               </p>
             )}
