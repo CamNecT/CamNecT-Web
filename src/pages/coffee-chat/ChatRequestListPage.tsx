@@ -7,6 +7,7 @@ import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
 import type { ChatRoomListItem, ChatRoomListItemType } from "../../types/coffee-chat/coffeeChatTypes";
 import { ChatDeleteButton } from "./components/ChatDeleteButton";
+import { ChatEmptyState } from "./components/ChatEmptyState";
 import { ChatList } from "./components/ChatList";
 import { ChatPostAccordian } from "./components/ChatPostAccordian";
 
@@ -36,7 +37,7 @@ export const ChatRequestListPage = () => {
     }
   }, [hasInitialTypeQuery, navigate]);
 
-  const { data: chatRequestRooms = [], isLoading } = useChatRequests(activeId);
+  const { data: chatRequestRooms = [], isLoading, isSuccess } = useChatRequests(activeId);
   const {
     mutate: deleteAllTeamRecruitRequest,
     isPending: isTeamRecruitDeletePending,
@@ -79,6 +80,10 @@ export const ChatRequestListPage = () => {
   const isDeletePending = activeId === 'TEAM_RECRUIT'
     ? isTeamRecruitDeletePending
     : isChatRequestDeletePending;
+  const isRequestListEmpty = isSuccess && filteredChatRoomList.length === 0;
+  const emptyRequestMessage = activeId === 'TEAM_RECRUIT'
+    ? '도착한 팀원모집 요청이 없습니다.'
+    : '도착한 커피챗 요청이 없습니다.';
 
   const handleDeleteAll = () => {
     if (isDeletePending) return;
@@ -121,7 +126,11 @@ export const ChatRequestListPage = () => {
       }
     >
       <div className="flex-1 overflow-y-auto min-h-0">
-        <ul>
+        {isRequestListEmpty && (
+          <ChatEmptyState message={emptyRequestMessage} />
+        )}
+
+        {!isRequestListEmpty && <ul>
           {
             activeId === 'TEAM_RECRUIT' ?
               // Object.entries : Object -> Array ([index0, index1])
@@ -163,14 +172,16 @@ export const ChatRequestListPage = () => {
                 />
               ))
           }
-        </ul>
+        </ul>}
 
-        <ChatDeleteButton
-          count={currentDeleteCount}
-          variant="allRequests"
-          onClick={handleDeleteAll}
-          disabled={isDeletePending}
-        />
+        {!isRequestListEmpty && (
+          <ChatDeleteButton
+            count={currentDeleteCount}
+            variant="allRequests"
+            onClick={handleDeleteAll}
+            disabled={isDeletePending}
+          />
+        )}
       </div>
       <PopUp isOpen={isLoading} type="loading" />
     </HeaderLayout>

@@ -10,6 +10,7 @@ import { ChatList } from './components/ChatList';
 import SortSelector from '../../components/SortSelector';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChatDeleteButton } from './components/ChatDeleteButton';
+import { ChatEmptyState } from './components/ChatEmptyState';
 
 type SortKey = 'all' | 'active' | 'closed';
 
@@ -49,12 +50,13 @@ export const ChatListPage = () => {
     content: string;
   } | null>(null);
 
-  const { data, isLoading } = useChatRooms(activeId);
+  const { data, isLoading, isSuccess } = useChatRooms(activeId);
   const { mutate: exitClosedRooms, isPending } = useClosedChatRoomsExit();
 
   const chatRooms = useMemo(() => data?.chatRooms ?? [], [data?.chatRooms]);
   const requestExists = data?.requestExists ?? false;
   const hasClosedRoom = chatRooms.some((chatRoom) => chatRoom.isClosed);
+  const isChatRoomListEmpty = isSuccess && chatRooms.length === 0;
 
   const navigate = useNavigate();
 
@@ -207,9 +209,13 @@ export const ChatListPage = () => {
         </div>
       }
     >
+      {isChatRoomListEmpty && (
+        <ChatEmptyState message="대화중인 커피챗이 없습니다." />
+      )}
+
       {/* 검색영역 */}
       <AnimatePresence initial={false}>
-        {!isEditMode && (
+        {!isChatRoomListEmpty && !isEditMode && (
           <motion.div
             key="chat-search"
             // 검색 영역이 다시 나타날때 시작상태
@@ -262,6 +268,7 @@ export const ChatListPage = () => {
       </AnimatePresence>
 
       {/* 정렬 영역 */}
+      {!isChatRoomListEmpty && (
       <motion.div
         animate={{
           paddingTop: isEditMode ? 15 : 0,
@@ -297,8 +304,9 @@ export const ChatListPage = () => {
           </>
         )}
       </motion.div>
+      )}
       
-      <ul>
+      {!isChatRoomListEmpty && <ul>
       {visibleChatRoomList.map((chatRoom) => (
         <ChatList
           key={chatRoom.roomId}
@@ -315,7 +323,7 @@ export const ChatListPage = () => {
           }
         />
       ))}
-      </ul>
+      </ul>}
       
       <PopUp isOpen={isLoading} type="loading" />
 
