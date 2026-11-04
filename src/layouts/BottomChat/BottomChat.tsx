@@ -88,7 +88,7 @@ export const BottomChat = ({
       style={{ bottom: bottomOffset }}
     >
       <div
-        className='mx-auto flex w-full max-w-[720px] items-center gap-[clamp(8px,2.2vw,10px)] px-[clamp(16px,6vw,25px)] py-[6px] box-border'
+        className='mx-auto flex w-full max-w-[var(--app-mobile-max-width)] items-center gap-[clamp(8px,2.2vw,10px)] px-[clamp(16px,6vw,25px)] py-[6px] box-border'
         style={{ paddingBottom: 'calc(15px + env(safe-area-inset-bottom))' }}
       >
         <div className='flex min-w-0 flex-1 flex-col gap-[6px]'>

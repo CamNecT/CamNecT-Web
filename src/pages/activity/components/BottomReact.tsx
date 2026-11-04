@@ -22,7 +22,7 @@ const BottomReact = ({
   return (
     <div className='fixed bottom-0 left-0 right-0 z-50 bg-white'>
       <div
-        className='mx-auto flex w-full max-w-[720px] items-center gap-[clamp(8px,2.2vw,10px)] px-[clamp(16px,6vw,25px)] py-[6px] box-border'
+        className='mx-auto flex w-full max-w-[var(--app-mobile-max-width)] items-center gap-[clamp(8px,2.2vw,10px)] px-[clamp(16px,6vw,25px)] py-[6px] box-border'
         style={{ paddingBottom: 'calc(15px + env(safe-area-inset-bottom))' }}
       >
         <div className='flex flex-1 items-center mt-[5px]'>

@@ -315,7 +315,7 @@ export const RecruitDetailPage = () => {
         {/* 하단 버튼 */}
         <div className='fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-150 shadow-[0_-4px_20px_0_rgba(0,0,0,0.05)]'>
             <div
-                className='mx-auto flex w-full max-w-[720px] items-center gap-[15px] px-[25px] pt-[15px] pb-[calc(15px+env(safe-area-inset-bottom,0px))]'
+                className='mx-auto flex w-full max-w-[var(--app-mobile-max-width)] items-center gap-[15px] px-[25px] pt-[15px] pb-[calc(15px+env(safe-area-inset-bottom,0px))]'
             >
                 {isRecruitNow ? (
                     isMine ? (

@@ -38,7 +38,7 @@ export function GlobalErrorFallback() {
 
   return (
     // App 자체가 렌더링되지 못한 상황에서도 동작해야 하므로 전역 store나 공통 UI에 의존하지 않는다.
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col items-center justify-center bg-white px-[25px] text-center shadow-lg">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[var(--app-mobile-max-width)] flex-col items-center justify-center bg-white px-[25px] text-center shadow-lg">
       <section role="alert" aria-live="assertive" className="w-full">
         <h1 className="text-[22px] font-bold leading-[140%] tracking-[-0.55px] text-[#202023]">
           {content.title}
