@@ -816,9 +816,21 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 <PopUp
                     isOpen={!!confirmPopUpConfig}
                     type="warning"
-                    title={confirmPopUpConfig.title}
-                    content={confirmPopUpConfig.content}
-                    leftButtonText={confirmPopUpConfig.leftButtonText}
+                    title={
+                        confirmPopUpConfig.showDeleteCheckbox && shouldDeleteChatRoom
+                            ? "채팅방을 삭제하시겠습니까?"
+                            : confirmPopUpConfig.title
+                    }
+                    content={
+                        confirmPopUpConfig.showDeleteCheckbox && shouldDeleteChatRoom
+                            ? "채팅방과 모든 대화 내역이 완전히 삭제되며,\n다시는 복구할 수 없습니다!" 
+                            : confirmPopUpConfig.content 
+                    }
+                    leftButtonText={
+                        confirmPopUpConfig.showDeleteCheckbox
+                            ? (shouldDeleteChatRoom ? "채팅삭제" : "채팅종료")
+                            : confirmPopUpConfig.leftButtonText
+                    }
                     rightButtonText={confirmPopUpConfig.rightButtonText}
                     checkbox={
                         confirmPopUpConfig.showDeleteCheckbox
