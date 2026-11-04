@@ -15,6 +15,7 @@ import { Logo } from '../../layouts/headers/HomeHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { usePointStore } from '../../store/usePointStore';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import CoffeeChatBox from './components/CoffeeChatBox';
 import CommunityBox from './components/CommunityBox';
 import ContestBox from './components/ContestBox';
@@ -182,6 +183,8 @@ export const HomePage = () => {
         const homePopup = isErrorDismissed ? null : getErrorPopUpConfig(getErrorStatus(homeError));
         if (homePopup) return homePopup;
         if (dismissedUnreadErrorAt === unreadErrorUpdatedAt) return null;
+        // 오프라인 안내는 전역 배너에 맡겨 알림 오류 팝업이 함께 뜨지 않도록 한다.
+        if (shouldSkipLocalErrorUI(unreadCountError, navigator.onLine)) return null;
         return getNotificationErrorPopupConfig(unreadCountError, 'unreadCount');
     }, [homeError, unreadCountError, isErrorDismissed, dismissedUnreadErrorAt, unreadErrorUpdatedAt]);
 
