@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+:root {
+    --app-mobile-max-width: 480px;
+}
+
 @font-face {
     font-family: "Pretendard";
     src: url(/fonts/PretendardVariable.woff2) format("woff2-variations");

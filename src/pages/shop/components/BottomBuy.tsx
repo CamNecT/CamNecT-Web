@@ -9,7 +9,7 @@ export const BottomBuy = ({ onClick, disabled = false }: BottomBuyProps) => {
   return (
     // 화면 하단 고정 구매 버튼
     <div
-      className='fixed bottom-0 left-0 right-0 z-50 bg-white px-[25px] py-[5px] pb-[45px]'
+      className='fixed bottom-0 left-1/2 z-50 w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 bg-white px-[25px] py-[5px] pb-[45px]'
     >
       <Button
         type='button'

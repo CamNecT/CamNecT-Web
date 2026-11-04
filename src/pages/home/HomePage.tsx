@@ -195,7 +195,7 @@ export const HomePage = () => {
     return (
         // 홈 1번 영역: 인사말, 커피챗 요청, 포인트/커뮤니티 카드 틀 구성
         <FullLayout>
-            <div className="mx-auto w-full max-w-[430px] bg-white">
+            <div className="mx-auto w-full max-w-[var(--app-mobile-max-width)] bg-white">
                 <section className="bg-primary px-[25px] pt-[22px] pb-[62px]">
                     <div className="flex items-center justify-between">
                         <span

@@ -43,7 +43,7 @@ export default function TagsChooseModal({ selectedTags, categories, allTags, onT
 
     return (
         <div className="flex items-center justify-center inset-0 h-full">
-            <div className="w-full max-w-[430px] h-full bg-white flex flex-col">    
+            <div className="w-full max-w-[var(--app-mobile-max-width)] h-full bg-white flex flex-col">
                     <div className="w-full h-full bg-white flex flex-col">
                         <section className="w-full pt-[30px] pb-[20px] border-b border-gray-150 flex flex-col gap-[13px]">
                             <div className="flex h-[30px] gap-[7px] overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
