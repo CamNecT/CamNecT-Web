@@ -52,9 +52,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     );
 
     const { data: chatRoomData, isLoading: isRoomLoading } = useChatRoom(roomId);
-    const { mutate: endChat } = useChatRoomClose();
+    const {
+        mutate: endChat,
+        isPending: isEndChatPending,
+    } = useChatRoomClose();
     const { mutate: exitChat } = useChatRoomExit();
-    const { mutate: endAndExitChat } = useChatRoomCloseAndExit();
+    const {
+        mutate: endAndExitChat,
+        isPending: isEndAndExitPending,
+    } = useChatRoomCloseAndExit();
 
     const { messages: socketMessages,
         sendMessage, retryMessage, leaveChatRoom,
@@ -78,6 +84,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         rightButtonText?: string;
         showDeleteCheckbox?: boolean;
         onConfirm: (shouldDeleteChatRoom?: boolean) => void;
+    } | null>(null);
+    const [errorPopUpConfig, setErrorPopUpConfig] = useState<{
+        title: string;
+        content: string;
     } | null>(null);
 
     // 종료 여부 
@@ -372,12 +382,26 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                         onSuccess: () => {
                             setConfirmPopUpConfig(null);
                             navigate('/chat', { replace: true });
+                        },
+                        onError: () => {
+                            setConfirmPopUpConfig(null);
+                            setErrorPopUpConfig({
+                                title: '채팅방을 삭제하지 못했습니다',
+                                content: '잠시 후 다시 시도해 주세요.',
+                            });
                         }
                     });
                 } else {
                     endChat({ roomId }, {
                         onSuccess: () => {
                             setConfirmPopUpConfig(null);
+                        },
+                        onError: () => {
+                            setConfirmPopUpConfig(null);
+                            setErrorPopUpConfig({
+                                title: '채팅방을 종료하지 못했습니다',
+                                content: '잠시 후 다시 시도해 주세요.',
+                            });
                         }
                     });
                 }
@@ -841,8 +865,19 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             }
                             : undefined
                     }
+                    isActionPending={isEndChatPending || isEndAndExitPending}
                     onLeftClick={() => confirmPopUpConfig.onConfirm(shouldDeleteChatRoom)}
                     onRightClick={() => setConfirmPopUpConfig(null)}
+                />
+            )}
+
+            {errorPopUpConfig && (
+                <PopUp
+                    isOpen={true}
+                    type="error"
+                    title={errorPopUpConfig.title}
+                    content={errorPopUpConfig.content}
+                    onClick={() => setErrorPopUpConfig(null)}
                 />
             )}
 
