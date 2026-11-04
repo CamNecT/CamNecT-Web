@@ -35,7 +35,7 @@ const MAX_SELECTED_ROOM_COUNT = 100;
 
 export const ChatListPage = () => {
   const [activeId, setActiveId] = useState<ChatRoomListItemType>('COFFEE_CHAT');
-  const [sortKey, setSortKey] = useState<SortKey>('all'); // 진행 중 상태가 기본
+  const [sortKey, setSortKey] = useState<SortKey>('all'); // 전체보기가 기본
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set()); // 선택된 채팅방 id들 (삭제 용도)
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,6 +110,12 @@ export const ChatListPage = () => {
 
   const handleChatRoomClick = (roomId: string) => {
     navigate(`/chat/${roomId}`);
+  };
+
+  const handleTabChange = (id: string) => {
+    setActiveId(id as ChatRoomListItemType);
+    setIsEditMode(false);
+    setSelectedRoomIds(new Set());
   };
 
   const handleSortKeyChange = (key: SortKey) => {
@@ -218,7 +224,7 @@ export const ChatListPage = () => {
           <Tabs
             tabs={tabs}
             activeId={activeId}
-            onChange={(id) => setActiveId(id as ChatRoomListItemType)}
+            onChange={handleTabChange}
           />
         </div>
       }
