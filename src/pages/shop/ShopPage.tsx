@@ -88,7 +88,8 @@ export const ShopPage = () => {
         isFading={isToastFading}
         message='구매성공! 내역을 확인해보세요'
       />
-      <PopUp isOpen={isLoading || (isFetching && !errorPopup)} type='loading' />
+      {/* 조회 결과가 있으면 재조회 중에도 기존 상품 목록을 볼 수 있게 한다. */}
+      <PopUp isOpen={isLoading} type='loading' />
       {errorPopup && (
         <PopUp
           isOpen={true}
