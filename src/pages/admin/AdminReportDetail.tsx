@@ -352,7 +352,7 @@ export const AdminReportDetail = () => {
 
             {/* 승인/반려 버튼 (처리 전 상태에서만) */}
             {canProcess && (
-                <div className="fixed bottom-0 left-0 right-0 flex gap-[15px] bg-white px-[25px] py-[15px] justify-center items-center border-t border-gray-150">
+                <div className="fixed bottom-0 left-1/2 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 gap-[15px] bg-white px-[25px] py-[15px] justify-center items-center border-t border-gray-150">
                     <button
                         type="button"
                         onClick={() => setIsRejectSheetOpen(true)}
