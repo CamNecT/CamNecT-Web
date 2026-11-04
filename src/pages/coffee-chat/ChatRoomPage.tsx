@@ -414,7 +414,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         <HeaderLayout
             headerSlot={
                 !isSearching ? (
-                    <div className="fixed left-0 right-0 top-0 z-50 bg-white">
+                    <div className="fixed left-1/2 top-0 z-50 w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 bg-white">
                         <MainHeader
                             title={roomInfo?.name}
                             rightActions={[
@@ -519,14 +519,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     </div>
                 ) : (
                     <header
-                        className="fixed left-0 right-0 top-0 z-50 flex items-center bg-white px-[25px] py-[10px]"
+                        className="fixed left-1/2 top-0 z-50 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 items-center bg-white px-[25px] py-[10px]"
                         style={{
                             paddingTop: 'calc(10px + env(safe-area-inset-top, 0px))',
                             top: 'env(safe-area-inset-top, 0px)',
                         }}
                     >
                         <div className="flex items-center justify-center gap-[15px] w-full">
-                            <div className="flex items-center w-[282px] h-[40px] px-[15px] py-[8px] bg-gray-150 rounded-[10px]">
+                            <div className="flex items-center w-full h-[40px] px-[15px] py-[8px] bg-gray-150 rounded-[10px]">
                                 <Icon name="search" style={{ width: '20px', height: '20px', color: 'var(--ColorBlack,#202023)' }} />
                                 <input 
                                     autoFocus
