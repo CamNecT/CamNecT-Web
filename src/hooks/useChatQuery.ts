@@ -325,8 +325,9 @@ export const useChatRoomCloseAndExit = () => {
                 userId: Number(userId),
                 roomId: Number(variables.roomId)
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] }); // 채팅 목록 최신화
+        onSuccess: (_data, { roomId }) => {
+            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] });
+            queryClient.removeQueries({ queryKey: ['chatRoom', userId, roomId], exact: true });
         }
     });
 }
@@ -343,8 +344,9 @@ export const useChatRoomExit = () => {
                 userId: Number(userId),
                 roomId: Number(variables.roomId)
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] }); // 채팅 목록 최신화
+        onSuccess: (_data, { roomId }) => {
+            queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] });
+            queryClient.removeQueries({ queryKey: ['chatRoom', userId, roomId], exact: true });
         }
     });
 };
@@ -361,8 +363,11 @@ export const useClosedChatRoomsExit = () => {
                 userId: Number(userId),
                 roomIds: variables.roomIds.map(Number)
             }),
-        onSuccess: () => {
+        onSuccess: (_data, { roomIds }) => {
             queryClient.invalidateQueries({ queryKey: ['chatRooms', userId] });
+            roomIds.forEach((roomId) => {
+                queryClient.removeQueries({ queryKey: ['chatRoom', userId, roomId], exact: true });
+            });
         }
     });
 };
