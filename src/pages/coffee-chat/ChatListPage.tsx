@@ -211,7 +211,7 @@ export const ChatListPage = () => {
       }
     >
       {isChatRoomListEmpty && (
-        <ChatEmptyState message="대화중인 커피챗이 없습니다." />
+        <ChatEmptyState message="대화중인 채팅이 없습니다." />
       )}
 
       {/* 검색영역 */}
