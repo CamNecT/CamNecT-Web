@@ -139,20 +139,17 @@ const PopUp = ({
             </div>
 
             {hasWarningCheckbox && checkbox && (
-            <div
-              className= 'flex items-center justify-center gap-[7px]'
-            >
               <BoardTypeToggle
                 selected={checkbox.checked}
                 label={checkbox.label}
                 onClick={() => checkbox.onChange(!checkbox.checked)}
                 variant='neutral'
-              />
-                
-              <span className='text-center text-r-14 tracking-[-0.56px] whitespace-pre-wrap text-[var(--ColorGray6,#646464)]'>
-                {checkbox.label}
-              </span>
-            </div>
+                className='w-fit self-center gap-[7px]'
+              >
+                <span className='text-center text-r-14 tracking-[-0.56px] whitespace-pre-wrap text-[var(--ColorGray6,#646464)]'>
+                  {checkbox.label}
+                </span>
+              </BoardTypeToggle>
             )}
           </div>
         )}

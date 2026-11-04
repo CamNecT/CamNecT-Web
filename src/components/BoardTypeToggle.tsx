@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import PressableMotion from './PressableMotion';
 
 type BoardTypeToggleProps = {
@@ -5,6 +6,8 @@ type BoardTypeToggleProps = {
   onClick: () => void;
   label: string;
   variant?: 'brand' | 'neutral';
+  children?: ReactNode;
+  className?: string;
 };
 
 // 정렬/선택 상태를 보여주는 라디오형 토글
@@ -13,6 +16,8 @@ const BoardTypeToggle = ({
   onClick,
   label,
   variant = 'brand',
+  children,
+  className = '',
 }: BoardTypeToggleProps) => {
   return (
     <PressableMotion
@@ -22,7 +27,7 @@ const BoardTypeToggle = ({
       aria-pressed={selected}
       aria-label={`${label} 선택`}
       onClick={onClick}
-      className='flex items-center justify-center'
+      className={`flex items-center justify-center ${className}`}
     >
       {selected && variant === 'neutral' ? (
         <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'>
@@ -38,6 +43,8 @@ const BoardTypeToggle = ({
           <circle cx='12' cy='12' r='11.5' stroke='#A1A1A1' />
         </svg>
       )}
+
+      {children}
     </PressableMotion>
   );
 };
