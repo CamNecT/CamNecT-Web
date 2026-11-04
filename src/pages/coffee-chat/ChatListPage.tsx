@@ -95,6 +95,19 @@ export const ChatListPage = () => {
 
   }, [chatRooms, activeId, sortKey, searchQuery]);
 
+  const emptyFilteredMessage = useMemo(() => {
+    if (searchQuery.trim()) {
+      return '검색 결과가 없습니다.';
+    }
+    if (sortKey === 'active') {
+      return '대화 중인 채팅방이 없습니다.';
+    }
+    if (sortKey === 'closed') {
+      return '종료된 채팅방이 없습니다.';
+    }
+    return '해당하는 채팅방이 없습니다.';
+  }, [searchQuery, sortKey]);
+
   const handleChatRoomClick = (roomId: string) => {
     navigate(`/chat/${roomId}`);
   };
@@ -309,24 +322,30 @@ export const ChatListPage = () => {
       </motion.div>
       )}
       
-      {hasChatRooms && <ul>
-      {visibleChatRoomList.map((chatRoom) => (
-        <ChatList
-          key={chatRoom.roomId}
-          chatRoom={chatRoom}
-          isClosed={chatRoom.isClosed}
-          searchQuery={searchQuery}
-          isEditMode={isEditMode}
-          isSelected={selectedRoomIds.has(chatRoom.roomId)}
-          onClick={() =>
-            handleChatListItemClick(
-              chatRoom.roomId,
-              chatRoom.isClosed === true,
-            )
-          }
-        />
-      ))}
-      </ul>}
+      {hasChatRooms && (
+        visibleChatRoomList.length > 0 ? (
+          <ul>
+            {visibleChatRoomList.map((chatRoom) => (
+              <ChatList
+                key={chatRoom.roomId}
+                chatRoom={chatRoom}
+                isClosed={chatRoom.isClosed}
+                searchQuery={searchQuery}
+                isEditMode={isEditMode}
+                isSelected={selectedRoomIds.has(chatRoom.roomId)}
+                onClick={() =>
+                  handleChatListItemClick(
+                    chatRoom.roomId,
+                    chatRoom.isClosed === true,
+                  )
+                }
+              />
+            ))}
+          </ul>
+        ) : (
+          <ChatEmptyState message={emptyFilteredMessage} />
+        )
+      )}
       
       <PopUp isOpen={isLoading} type="loading" />
 
