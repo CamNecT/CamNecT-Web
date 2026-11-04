@@ -86,7 +86,7 @@ export const ChatRequestListPage = () => {
     : '도착한 커피챗 요청이 없습니다.';
 
   const handleDeleteAll = () => {
-    if (isDeletePending) return;
+    if (isDeletePending || !isSuccess) return;
 
     if (activeId === 'TEAM_RECRUIT') {
       if (!openPostTitle) return;
@@ -179,7 +179,7 @@ export const ChatRequestListPage = () => {
             count={currentDeleteCount}
             variant="allRequests"
             onClick={handleDeleteAll}
-            disabled={isDeletePending}
+            disabled={isDeletePending || !isSuccess}
           />
         )}
       </div>
