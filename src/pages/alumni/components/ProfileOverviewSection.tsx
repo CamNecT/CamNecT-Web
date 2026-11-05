@@ -10,6 +10,9 @@ type ProfileOverviewSectionProps = {
   followerCount: number;
   isFollowPending: boolean;
   canRequestCoffeeChat: boolean;
+  hasChat: boolean;
+  isChatPending: boolean;
+  onChatClick: () => void;
   onFollowToggle: () => void;
   onCoffeeChatClick: () => void;
 };
@@ -20,6 +23,9 @@ const ProfileOverviewSection = ({
   followerCount,
   isFollowPending,
   canRequestCoffeeChat,
+  hasChat,
+  isChatPending,
+  onChatClick,
   onFollowToggle,
   onCoffeeChatClick,
 }: ProfileOverviewSectionProps) => (
@@ -88,14 +94,15 @@ const ProfileOverviewSection = ({
       </div>
     </section>
 
-    {canRequestCoffeeChat && (
+    {(hasChat || canRequestCoffeeChat) && (
       <section className='flex [padding:0_clamp(18px,7cqw,25px)_clamp(24px,8cqw,30px)]'>
         <Button
-          label='커피챗 요청하기'
+          label={hasChat ? (isChatPending ? '채팅방 확인 중' : '채팅방으로 이동') : '커피챗 요청하기'}
           font='sb-14'
           type='button'
-          className='h-auto w-full max-w-none rounded-[clamp(8px,2.8cqw,10px)] bg-[var(--ColorMain,#00C56C)] py-[10px]'
-          onClick={onCoffeeChatClick}
+          className={`h-auto w-full max-w-none rounded-[clamp(8px,2.8cqw,10px)] py-[10px] ${hasChat ? 'border border-[var(--ColorMain,#00C56C)] bg-white text-[var(--ColorMain,#00C56C)]' : 'bg-[var(--ColorMain,#00C56C)]'}`}
+          disabled={hasChat && isChatPending}
+          onClick={hasChat ? onChatClick : onCoffeeChatClick}
         />
       </section>
     )}
