@@ -102,12 +102,12 @@ export const OnboardingPage = () => {
         {/* 버튼 영역 */}
         <div className="w-full flex flex-col gap-[12px] items-center">
           <Button
-            className="!h-[50px] w-full max-w-[430px]"
+            className="!h-[50px] w-full max-w-[var(--app-mobile-max-width)]"
             onClick={() => navigate("/login")}
             label="로그인" 
           />
           <ButtonWhite
-            className="!h-[50px] w-full max-w-[430px]"
+            className="!h-[50px] w-full max-w-[var(--app-mobile-max-width)]"
             onClick={() => navigate("/signup")}
             label="회원가입" 
           />

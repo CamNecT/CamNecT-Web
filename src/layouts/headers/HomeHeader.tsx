@@ -46,7 +46,7 @@ export const HomeHeader = ({
 
   return (
     <header
-      className={`${sticky ? 'sticky left-0 right-0 top-0 z-50' : 'relative'} mx-auto flex w-full max-w-[430px] items-center justify-between px-[25px] py-[15px] ${
+      className={`${sticky ? 'sticky left-0 right-0 top-0 z-50' : 'relative'} mx-auto flex w-full max-w-[var(--app-mobile-max-width)] items-center justify-between px-[25px] py-[15px] ${
         isOnPrimary
           ? 'bg-primary text-white'
           : 'bg-white'

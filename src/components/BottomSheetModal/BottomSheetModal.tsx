@@ -110,7 +110,7 @@ const BottomSheetModal = ({
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
                         transition={{ duration: 0.2 }} // 애니메이션 속도 빠르게 (0.2초)
-                        className="relative flex w-full max-w-[430px] flex-col bg-white overflow-hidden pointer-events-auto"
+                        className="relative flex w-full max-w-[var(--app-mobile-max-width)] flex-col bg-white overflow-hidden pointer-events-auto"
                         style={{
                             height: height,
                             borderRadius: "20px 20px 0 0",

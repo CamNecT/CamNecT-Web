@@ -63,7 +63,7 @@ export const BottomNav = () => {
 
     return (
         <nav 
-            className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-150 z-[100]"
+            className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[var(--app-mobile-max-width)] bg-white border-t border-gray-150 z-[100]"
             style={{
                 // env(safe-area) : 브라우저 화면 하단 여백 (브라우저의 하단 바가 가리는 영역)
                 height: 'calc(56px + env(safe-area-inset-bottom, 0px))',

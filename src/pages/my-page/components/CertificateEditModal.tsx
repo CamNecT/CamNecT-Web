@@ -251,7 +251,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
     if (currentView === 'list') {
         return (
             <div className="flex items-center justify-center fixed inset-0 z-50 bg-white">
-                <div className="w-full max-w-[430px] h-full bg-white flex flex-col"> 
+                <div className="w-full max-w-[var(--app-mobile-max-width)] h-full bg-white flex flex-col">
                     <HeaderLayout
                         headerSlot = {
                             <EditHeader
@@ -363,7 +363,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
     // 추가/수정 화면
     return (
         <div className="flex items-center justify-center fixed inset-0 z-50 bg-white">
-            <div className="w-full max-w-[430px] h-full bg-white flex flex-col">    
+            <div className="w-full max-w-[var(--app-mobile-max-width)] h-full bg-white flex flex-col">
                 <HeaderLayout
                     headerSlot = {
                         <EditHeader
