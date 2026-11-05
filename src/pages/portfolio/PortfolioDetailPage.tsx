@@ -228,6 +228,7 @@ export const PortfolioDetailPage = ({
                                         {portfolio.subtitle && (
                                             <span className="text-r-14-hn text-gray-750 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.subtitle}</span>
                                         )}
+                                        <div className='mt-[5px] bg-gray-150 h-[1px] w-full'/>
                                     </div>
                                     <div className="text-r-14 text-gray-750 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]">
                                         {portfolio.description}
