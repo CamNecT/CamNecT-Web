@@ -127,7 +127,7 @@ export const AlumniSearchPage = () => {
         }
       >
         {/* 검색 입력 영역 */}
-        <div className='flex w-full items-center rounded-[30px] bg-[var(--ColorGray1,#ECECEC)] [padding:clamp(6px,2.2cqw,8px)_clamp(14px,5cqw,19px)] [gap:clamp(10px,3.2cqw,15px)]'>
+        <div className='flex w-full min-w-0 items-center rounded-[30px] bg-[var(--ColorGray1,#ECECEC)] [padding:clamp(6px,2.2cqw,8px)_clamp(14px,5cqw,19px)] [gap:clamp(10px,3.2cqw,15px)]'>
           <svg
             xmlns='http://www.w3.org/2000/svg'
             width='20'
@@ -135,6 +135,7 @@ export const AlumniSearchPage = () => {
             viewBox='0 0 20 20'
             fill='none'
             aria-hidden
+            className='shrink-0'
           >
             <path
               d='M18.7508 18.7508L13.5538 13.5538M13.5538 13.5538C14.9604 12.1472 15.7506 10.2395 15.7506 8.25028C15.7506 6.26108 14.9604 4.35336 13.5538 2.94678C12.1472 1.54021 10.2395 0.75 8.25028 0.75C6.26108 0.75 4.35336 1.54021 2.94678 2.94678C1.54021 4.35336 0.75 6.26108 0.75 8.25028C0.75 10.2395 1.54021 12.1472 2.94678 13.5538C4.35336 14.9604 6.26108 15.7506 8.25028 15.7506C10.2395 15.7506 12.1472 14.9604 13.5538 13.5538Z'
@@ -149,7 +150,7 @@ export const AlumniSearchPage = () => {
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder='동문 이름, 태그로 검색'
-            className='flex-1 bg-transparent outline-none placeholder:text-[#A1A1A1] text-r-16 text-[color: var(--ColorGray3, #646464)]'
+            className='w-0 min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#A1A1A1] text-r-16 text-[color:var(--ColorGray3,#646464)]'
           />
         </div>
 

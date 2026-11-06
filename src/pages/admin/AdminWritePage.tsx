@@ -34,7 +34,7 @@ export const AdminWritePage = () => {
         <div className='sticky top-0 z-50 bg-white'>
           {isSearchOpen ? (
             <div className='px-[25px]'>
-              <div className='mx-auto flex w-full max-w-[720px] items-center gap-[15px] py-[10px]'>
+              <div className='mx-auto flex w-full min-w-0 max-w-[720px] items-center gap-[15px] py-[10px]'>
                 <button
                   type='button'
                   onClick={() => {
@@ -42,8 +42,9 @@ export const AdminWritePage = () => {
                     setIsSearchOpen(false);
                   }}
                   aria-label='검색 닫기'
+                  className='flex h-[28px] w-[28px] shrink-0 items-center justify-center'
                 >
-                  <Icon name='search' className='h-[28px] w-[28px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
+                  <Icon name='search' className='h-[24px] w-[24px]' style={{ color: 'var(--ColorBlack,#202023)' }} />
                 </button>
                 <input
                   type='text'
@@ -51,8 +52,23 @@ export const AdminWritePage = () => {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder='제목, 내용, 태그, 검색'
-                  className='flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
+                  className='w-0 min-w-0 flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchOpen(false);
+                  }}
+                  aria-label='검색 닫기'
+                  className='flex h-[24px] w-[24px] shrink-0 items-center justify-center'
+                >
+                  <Icon
+                    name='x'
+                    className='h-[24px] w-[24px]'
+                    style={{ color: 'var(--ColorGray4,#A1A1A1)' }}
+                  />
+                </button>
               </div>
             </div>
           ) : (
