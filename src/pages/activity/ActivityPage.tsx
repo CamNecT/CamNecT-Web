@@ -52,7 +52,7 @@ export const ActivityPage = () => {
         <div className='sticky top-0 z-50 bg-white'>
           {isSearchOpen ? (
             <div className='px-[25px]'>
-              <div className='mx-auto flex w-full max-w-[720px] items-center gap-[15px] py-[10px]'>
+              <div className='mx-auto flex w-full min-w-0 max-w-[720px] items-center gap-[15px] py-[10px]'>
                 <button
                   type='button'
                   onClick={() => {
@@ -70,7 +70,7 @@ export const ActivityPage = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder='제목 검색'
-                  className='flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
+                  className='w-0 min-w-0 flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
                 <button
                   type='button'
