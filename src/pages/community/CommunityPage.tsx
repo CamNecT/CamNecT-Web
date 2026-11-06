@@ -505,7 +505,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           {isSearchOpen && activeTab !== 'all' ? (
             <div className='px-[25px]'>
               {/* 검색 전후 헤더 높이를 같게 유지해 탭과 목록이 위아래로 흔들리지 않게 한다. */}
-              <div className='mx-auto flex h-[50px] w-full max-w-[720px] items-center gap-[15px]'>
+              <div className='mx-auto flex h-[50px] w-full min-w-0 max-w-[720px] items-center gap-[15px]'>
                 <button
                   type='button'
                   onClick={() => {
@@ -525,7 +525,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
                     setSearchQuery(sanitizeSearchKeyword(event.target.value))
                   }
                   placeholder='제목, 내용 검색'
-                  className='flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
+                  className='w-0 min-w-0 flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
                 <button
                   type='button'
