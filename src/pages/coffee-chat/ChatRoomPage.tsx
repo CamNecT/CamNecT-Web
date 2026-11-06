@@ -559,15 +559,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     </div>
                 ) : (
                     <header
-                        className="fixed left-1/2 top-0 z-50 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 items-center bg-white px-[25px] py-[10px]"
+                        className="fixed left-1/2 top-0 z-50 flex w-full min-w-0 max-w-[var(--app-mobile-max-width)] -translate-x-1/2 items-center bg-white px-[25px] py-[10px]"
                         style={{
                             paddingTop: 'calc(10px + env(safe-area-inset-top, 0px))',
                             top: 'env(safe-area-inset-top, 0px)',
                         }}
                     >
-                        <div className="flex items-center justify-center gap-[15px] w-full">
-                            <div className="flex items-center w-full h-[40px] px-[15px] py-[8px] bg-gray-150 rounded-[10px]">
-                                <Icon name="search" style={{ width: '20px', height: '20px', color: 'var(--ColorBlack,#202023)' }} />
+                        <div className="flex w-full min-w-0 items-center justify-center gap-[15px]">
+                            <div className="flex h-[40px] min-w-0 flex-1 items-center rounded-[10px] bg-gray-150 px-[15px] py-[8px]">
+                                <Icon name="search" className="shrink-0" style={{ width: '20px', height: '20px', color: 'var(--ColorBlack,#202023)' }} />
                                 <input 
                                     autoFocus
                                     type="text"
@@ -575,15 +575,16 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                     onChange={(e) => setRoomSearchQuery(e.target.value)}
                                     placeholder="채팅 내용 검색"
                                     aria-label="채팅 내용 검색"
-                                    className="flex-1 ml-[15px] bg-transparent border-none outline-none text-gray-750 text-r-16 tracking-[-0.64px] placeholder:text-gray-400"
+                                    className="ml-[15px] w-0 min-w-0 flex-1 border-none bg-transparent text-r-16 tracking-[-0.64px] text-gray-750 outline-none placeholder:text-gray-400"
                                 />
                             </div>
                             <button
+                                type="button"
                                 onClick={() => {
                                     setIsSearching(false);
                                     setRoomSearchQuery("");
                                 }}
-                                className="text-gray-650 text-B-16-hn tracking-[-0.4px] shrink-0"
+                                className="shrink-0 whitespace-nowrap text-B-16-hn tracking-[-0.4px] text-gray-650"
                             >
                                 취소
                             </button>
