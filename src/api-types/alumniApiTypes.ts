@@ -82,6 +82,7 @@ export type AlumniProfileBasics = {
 export type AlumniProfilePortfolio = {
   portfolioId: number;
   title: string;
+  subtitle: string | null;
   thumbnailUrl: string;
   isPublic: boolean;
   isFavorite: boolean;
@@ -121,6 +122,7 @@ export type AlumniProfileTag = {
 };
 
 export type AlumniProfileDetail = {
+  hasChat: boolean;
   userId: number;
   name: string;
   basics: AlumniProfileBasics;
@@ -144,6 +146,7 @@ export type AlumniProfileDetailResponse = {
 export type AlumniPortfolioListItem = {
   portfolioId: number;
   title: string;
+  subtitle: string | null;
   thumbnailUrl: string;
   isPublic: boolean;
   isFavorite: boolean;

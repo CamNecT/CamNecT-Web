@@ -13,21 +13,24 @@ import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
 import TagsFilterModal from '../../components/TagsFilterModal';
+import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { useTagList } from '../../hooks/useTagList';
 import { EmptyLayout } from '../../layouts/EmptyLayout';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { CommunityPostDetail } from '../../types/community';
 import { mapToCommunityPostDetail } from '../../utils/communityMapper';
-import { mapToCommunityPost } from './utils/post';
 import { getFileName } from '../../utils/getFileName';
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
+import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
 
 // 프론트에서도 Community Bean Validation과 동일한 경계를 적용해 불필요한 업로드/요청을 막는다.
 const MAX_TITLE_LENGTH = 200;
 const MAX_CONTENT_LENGTH = 20_000;
 const MAX_ATTACHMENTS = 3;
 const MAX_FILENAME_LENGTH = 255;
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set([
     'application/pdf',
     'image/jpeg',
@@ -77,6 +80,7 @@ export const WritePage = () => {
     const { filterCategories, filterTags, mapTagNamesToIds, mapTagIdToName, mapTagIdsToNames } = useTagList();
 
     const [editPost, setEditPost] = useState<CommunityPostDetail | null>(null);
+    const [hasEditLoadError, setHasEditLoadError] = useState(false);
     const didInitEditRef = useRef(false);
     // 수정 전 첨부파일 목록과 비교해서 변경 여부를 판단하기 위해 보관한다.
     const originalAttachmentKeysRef = useRef<string[]>([]);
@@ -107,6 +111,11 @@ export const WritePage = () => {
     const [isCancelWarningOpen, setIsCancelWarningOpen] = useState(false);
     const [errorPopUp, setErrorPopUp] = useState<{ title: string; content: string } | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const {
+        errorPopup: communityErrorPopup,
+        showCommunityError,
+        closeCommunityError,
+    } = useCommunityErrorPopup();
     type AttachmentItem = {
         id: string;
         file: File;
@@ -152,6 +161,7 @@ export const WritePage = () => {
         ? '수정된 내용으로 저장됩니다.'
         : '입력한 내용으로 게시글이 등록됩니다.';
     const isSubmitEnabled =
+        (!isEditMode || Boolean(editPost)) &&
         Boolean(boardType) &&
         title.trim().length > 0 &&
         content.trim().length > 0 &&
@@ -314,6 +324,7 @@ export const WritePage = () => {
         didInitEditRef.current = false;
         originalAttachmentKeysRef.current = [];
         setEditPost(null);
+        setHasEditLoadError(false);
     }, [postId]);
 
     useEffect(() => {
@@ -328,15 +339,19 @@ export const WritePage = () => {
                 if (!isActive) return;
                 setEditPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
             })
-            .catch(() => {
+            .catch((error) => {
                 if (!isActive) return;
-                setEditPost(mapToCommunityPost(postId));
+                // 수정 원본 조회 실패 시 mock/빈 값으로 PATCH가 진행되면 실제 게시글을 덮어쓸 수 있으므로
+                // 원본은 null로 유지하고 오류 안내를 닫은 뒤 커뮤니티 목록으로 이동시킨다.
+                setEditPost(null);
+                setHasEditLoadError(true);
+                showCommunityError(error, 'postEditLoad');
             });
 
         return () => {
             isActive = false;
         };
-    }, [isEditMode, postId, userId, mapTagIdToName]);
+    }, [isEditMode, postId, userId, mapTagIdToName, showCommunityError]);
 
     useEffect(() => {
         if (!isEditMode || !editPost || didInitEditRef.current) return;
@@ -363,29 +378,32 @@ export const WritePage = () => {
         if (!files || files.length === 0) return;
 
         const availableCount = MAX_ATTACHMENTS - existingAttachments.length - newAttachments.length;
+        const attachmentErrors = new Set<string>();
         if (availableCount <= 0 || files.length > availableCount) {
-            setFieldErrors((previous) => ({
-                ...previous,
-                attachments: `첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 등록할 수 있습니다.`,
-            }));
+            attachmentErrors.add(`첨부파일은 최대 ${MAX_ATTACHMENTS}개까지 등록할 수 있습니다.`);
         }
 
         const nextAttachments = Array.from(files)
             .slice(0, Math.max(0, availableCount))
             .map((file) => {
-                if (
-                    file.size < 1 ||
-                    file.size > MAX_FILE_SIZE_BYTES ||
-                    !ALLOWED_MIME_TYPES.has(file.type) ||
-                    file.name.length > MAX_FILENAME_LENGTH ||
-                    hasInvalidFilename(file.name)
-                ) {
-                    setFieldErrors((previous) => ({
-                        ...previous,
-                        attachments: 'PDF, JPEG, PNG, WEBP 파일만 등록할 수 있으며 파일명과 용량을 확인해 주세요.',
-                    }));
-                    return null;
+                let isInvalid = false;
+                if (file.size > MAX_FILE_SIZE_BYTES) {
+                    attachmentErrors.add(`파일 용량이 제한을 초과합니다. (파일당 최대 ${MAX_FILE_SIZE_MB}MB)`);
+                    isInvalid = true;
                 }
+                if (!ALLOWED_MIME_TYPES.has(file.type)) {
+                    attachmentErrors.add('PDF, JPEG, PNG, WEBP 파일만 등록할 수 있습니다.');
+                    isInvalid = true;
+                }
+                if (file.size < 1) {
+                    attachmentErrors.add('빈 파일은 등록할 수 없습니다.');
+                    isInvalid = true;
+                }
+                if (file.name.length > MAX_FILENAME_LENGTH || hasInvalidFilename(file.name)) {
+                    attachmentErrors.add(`파일명은 ${MAX_FILENAME_LENGTH}자 이하이며 경로 구분자나 제어문자를 포함할 수 없습니다.`);
+                    isInvalid = true;
+                }
+                if (isInvalid) return null;
                 const isDuplicate = newAttachments.some(
                     (attachment) =>
                         attachment.file.name === file.name &&
@@ -403,6 +421,16 @@ export const WritePage = () => {
                 (attachment): attachment is AttachmentItem => attachment !== null,
             );
 
+        // 이번 선택의 오류를 모아 표시하므로 정상·오류 파일을 함께 선택해도 오류가 지워지지 않는다.
+        // 정상 파일만 추가했다면 이전 선택에서 발생한 첨부 오류만 해제한다.
+        if (attachmentErrors.size > 0 || nextAttachments.length > 0) {
+            setFieldErrors((previous) => ({
+                ...previous,
+                attachments: attachmentErrors.size > 0
+                    ? Array.from(attachmentErrors).join(' ')
+                    : '',
+            }));
+        }
         setNewAttachments((prev) => [...nextAttachments, ...prev]);
         event.target.value = '';
     };
@@ -422,6 +450,7 @@ export const WritePage = () => {
 
     // 완료 버튼 -> 확인 모달 오픈
     const handleSubmit = () => {
+        if (isEditMode && !editPost) return;
         if (!validateForm()) return;
         setIsConfirmOpen(true);
     };
@@ -429,6 +458,7 @@ export const WritePage = () => {
     // 확인 모달에서 "네" 클릭 시 메인으로 이동
     // 작성/수정 확정 처리
     const handleConfirm = async () => {
+        if (isEditMode && !editPost) return;
         if (!userId) {
             console.warn('로그인 정보가 없습니다. 다시 로그인해 주세요.');
             return;
@@ -582,19 +612,19 @@ export const WritePage = () => {
                 }
                 return;
             }
-            const errorCode = axiosError.response?.data?.code;
-            if (errorCode === 43060) {
+            const errorCode = getServerErrorCode(axiosError);
+            if (errorCode === COMMUNITY_ERROR_CODES.invalidTag) {
                 setFieldErrors({ tagIds: '유효하지 않은 태그가 포함되어 있습니다.' });
                 return;
             }
-            if (errorCode === 49021 || errorCode === 49022) {
+            if (
+                errorCode === COMMUNITY_ERROR_CODES.invalidAttachmentMetadata ||
+                errorCode === COMMUNITY_ERROR_CODES.duplicateAttachmentKey
+            ) {
                 setFieldErrors({ attachments: '첨부파일 정보를 다시 확인해 주세요.' });
                 return;
             }
-            setErrorPopUp({
-                title: '게시글 저장 오류',
-                content: axiosError.response?.data?.message ?? '잠시 후 다시 시도해 주세요.',
-            });
+            showCommunityError(error, isEditMode ? 'postUpdate' : 'postCreate');
         } finally {
             setIsSubmitting(false);
             setIsConfirmOpen(false);
@@ -685,7 +715,7 @@ export const WritePage = () => {
                 </header>
 
                 {/* 글쓰기 본문 영역 */}
-                <section className='flex w-full flex-1 flex-col px-[25px] overflow-y-auto'>
+                <section className='flex min-h-0 w-full flex-1 flex-col px-[25px] overflow-y-auto'>
                     {/* 제목 입력 */}
                     <div
                         className='flex w-full flex-col'
@@ -770,6 +800,19 @@ export const WritePage = () => {
 
                 {/* 하단 사진 추가/미리보기 영역 */}
                 <div className='w-full shrink-0 bg-white'>
+                    {/* 오류 안내도 하단 영역의 높이에 포함해 본문과 첨부 미리보기를 가리지 않는다.
+                        여러 오류가 함께 발생해도 한 줄을 유지하며 가로 스크롤로 전체 내용을 확인한다. */}
+                    {fieldErrors.attachments ? (
+                        <div className='px-[25px] pb-[8px]'>
+                            <div
+                                role='alert'
+                                tabIndex={0}
+                                className='overflow-x-auto whitespace-nowrap text-r-12 text-[var(--Color_Red,#FF3838)]'
+                            >
+                                {fieldErrors.attachments}
+                            </div>
+                        </div>
+                    ) : null}
                     <div className='flex w-full px-[25px]' style={{ paddingBottom: isKeyboardUp ? '10px' : '25px' }}>
                         <div className='flex w-full items-center overflow-x-auto' style={{ gap: '12px' }}>
                             {/* 사진 추가 버튼 */}
@@ -924,11 +967,6 @@ export const WritePage = () => {
                             onChange={handleAttachmentChange}
                         />
                     </div>
-                    {fieldErrors.attachments ? (
-                        <div className='px-[25px] pb-[8px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
-                            {fieldErrors.attachments}
-                        </div>
-                    ) : null}
                 </div>
             </div>
             </div>
@@ -991,13 +1029,19 @@ export const WritePage = () => {
                 onLeftClick={handleCancelConfirm}
                 onRightClick={handleCancelDismiss}
             />
-            {errorPopUp && (
+            {(communityErrorPopup ?? errorPopUp) && (
                 <PopUp
                     isOpen={true}
-                    type='confirm'
-                    title={errorPopUp.title}
-                    content={errorPopUp.content}
-                    onClick={() => setErrorPopUp(null)}
+                    type='error'
+                    title={(communityErrorPopup ?? errorPopUp)?.title}
+                    content={(communityErrorPopup ?? errorPopUp)?.content}
+                    onClick={() => {
+                        closeCommunityError();
+                        setErrorPopUp(null);
+                        if (hasEditLoadError) {
+                            navigate('/community', { replace: true });
+                        }
+                    }}
                 />
             )}
 

@@ -5,10 +5,11 @@ import { BottomNav } from "../layouts/BottomNav/BottomNav";
 // Header (O) BottomNav (O) 레이아웃
 type FullLayoutProps = {
   headerSlot?: ReactNode;
+  bottomSlot?: ReactNode;
   children?: ReactNode;
 };
 
-export const FullLayout = ({ headerSlot, children }: FullLayoutProps) => {
+export const FullLayout = ({ headerSlot, bottomSlot, children }: FullLayoutProps) => {
   return (
     <div className="w-full min-h-[100dvh] relative bg-white">
       {headerSlot ?? null}
@@ -18,7 +19,7 @@ export const FullLayout = ({ headerSlot, children }: FullLayoutProps) => {
         {children ?? <Outlet />}
       </main>
       
-      <BottomNav />
+      {bottomSlot ?? <BottomNav />}
     </div>
   );
 };

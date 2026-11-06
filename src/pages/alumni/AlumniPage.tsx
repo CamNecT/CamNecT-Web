@@ -13,6 +13,7 @@ import { mapAlumniApiListToProfiles } from '../../utils/alumniMapper';
 import Button from '../../components/Button';
 import defaultImg from "../../assets/image/defaultProfileImg.png"
 import { useAuthStore } from '../../store/useAuthStore';
+import { getAlumniSearchError } from './utils/alumniSearchError';
 
 const profilePlaceholder = defaultImg;
 
@@ -26,6 +27,9 @@ export const AlumniSearchPage = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [alumniItems, setAlumniItems] = useState<ReturnType<typeof mapAlumniApiListToProfiles> | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [searchError, setSearchError] = useState<ReturnType<typeof getAlumniSearchError>>(null);
+  const [isSearching, setIsSearching] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const { filterCategories, filterTags, mapTagNamesToIds } = useTagList();
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
@@ -42,6 +46,8 @@ export const AlumniSearchPage = () => {
     const controller = new AbortController();
     abortRef.current = controller;
     const timer = window.setTimeout(async () => {
+      setIsSearching(true);
+      setSearchError(null);
       try {
         // 서버 필터 결과를 받아 클라이언트 모델로 변환합니다.
         const response = await getAlumniList({
@@ -55,13 +61,15 @@ export const AlumniSearchPage = () => {
           setAlumniItems(mapAlumniApiListToProfiles(response.data.content));
         }
       } catch (error) {
-        if (!controller.signal.aborted) {
-          console.error('Failed to fetch alumni list:', error);
+        // 이전 검색의 취소·늦은 실패는 현재 검색 결과를 덮어쓰거나 오류로 표시하지 않습니다.
+        if (isActive && !controller.signal.aborted) {
+          setSearchError(getAlumniSearchError(error));
         }
       } finally {
         if (isActive) {
           // 전체 화면 로딩 팝업은 첫 진입에만 닫고, 이후 검색·필터 요청에는 다시 표시하지 않습니다.
           setIsInitialLoading(false);
+          setIsSearching(false);
         }
       }
     }, 300);
@@ -71,7 +79,7 @@ export const AlumniSearchPage = () => {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [meUserId, searchTerm, selectedTagIds]);
+  }, [meUserId, searchTerm, selectedTagIds, retryCount]);
 
   // 선택된 태그만 만족하는 동문만 추립니다.
   const filteredList = useMemo(() => {
@@ -158,7 +166,26 @@ export const AlumniSearchPage = () => {
 
         {/* 동문 카드 리스트 */}
         <div className='flex flex-col gap-[5px]'>
-          {visibleList.map((alumni) => (
+          {searchError && (
+            <div role='alert' className='flex flex-col gap-[10px] py-[20px] text-center'>
+              <p className='text-sb-16-hn'>{searchError.title}</p>
+              <p className='text-r-14 text-[var(--ColorGray3,#646464)]'>{searchError.content}</p>
+              <Button
+                type='button'
+                label={isSearching ? '검색 중' : '다시 시도'}
+                font='sb-14'
+                disabled={isSearching}
+                onClick={() => {
+                  setIsSearching(true);
+                  setRetryCount((count) => count + 1);
+                }}
+              />
+            </div>
+          )}
+          {!searchError && !isSearching && visibleList.length === 0 && (
+            <p className='py-[20px] text-center text-r-14'>검색 조건에 맞는 동문이 없습니다.</p>
+          )}
+          {!searchError && visibleList.map((alumni) => (
             <div
               key={alumni.id}
               className='flex min-h-[161px] flex-col gap-[20px] bg-white border border-gray-150 rounded-[12px] opacity-100 [padding:clamp(12px,4cqw,15px)]'

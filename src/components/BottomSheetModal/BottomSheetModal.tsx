@@ -84,13 +84,14 @@ const BottomSheetModal = ({
                     }
                     style={needsIOSChromeWorkaround ? { top: viewportTop } : undefined}
                 >
-                    {/* 배경 어둡게 처리 (단순 투명도 조절) */}
+                    {/* Android Chrome의 opacity 애니메이션 종료 시 깜빡임 문제로 backgroundColor 애니메이션으로 변경 */}
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        initial={{ backgroundColor: 'rgba(0, 0, 0, 0)' }}
+                        animate={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+                        exit={{ backgroundColor: 'rgba(0, 0, 0, 0)' }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
                         onClick={onClose}
-                        className="absolute left-0 right-0 top-0 bg-black/30 pointer-events-auto"
+                        className="absolute left-0 right-0 top-0 pointer-events-auto"
                         style={{ bottom: bottomOffset }}
                     />
 
@@ -109,7 +110,7 @@ const BottomSheetModal = ({
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
                         transition={{ duration: 0.2 }} // 애니메이션 속도 빠르게 (0.2초)
-                        className="relative flex w-full max-w-[430px] flex-col bg-white overflow-hidden pointer-events-auto"
+                        className="relative flex w-full max-w-[var(--app-mobile-max-width)] flex-col bg-white overflow-hidden pointer-events-auto"
                         style={{
                             height: height,
                             borderRadius: "20px 20px 0 0",

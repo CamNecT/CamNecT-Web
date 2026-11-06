@@ -8,6 +8,7 @@ export const mapToPortfolios = (data: MyProfileData): Portfolio[] => {
     uid: data.userId.toString(),
     portfolioId: p.portfolioId.toString(),
     title: p.title,
+    subtitle: p.subtitle,
     portfolioThumbnail: p.thumbnailUrl,
     updatedAt: new Date().toISOString(), // API 응답에 없으므로 현재 시간 사용
     portfolioVisibility: p.isPublic,

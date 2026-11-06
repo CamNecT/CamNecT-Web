@@ -97,6 +97,18 @@ export interface ChatRoomExitResponse {
     data: string;
 }
 
+// 종료된 채팅방 일괄 나가기 DTO (/api/chat/rooms/exit)
+export interface ClosedChatRoomsExitRequest {
+    userId: number;
+    roomIds: number[];
+}
+
+export interface ClosedChatRoomsExitResponse {
+    status: number;
+    message: string;
+    data: string;
+}
+
 // 커피챗 요청 수락/거절 DTO (/api/request/respond)
 export interface ChatRespondRequest {
     userId: number;

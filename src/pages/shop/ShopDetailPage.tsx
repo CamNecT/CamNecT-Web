@@ -63,16 +63,25 @@ export const ShopDetailPage = () => {
     showGifticonError,
   ]);
 
-  if (isProductLoading || isGifticonListLoading) {
+  const isRetrying = gifticonProductQuery.isFetching || gifticonListQuery.isFetching;
+  const retryFailedQueries = () => {
+    if (isRetrying) return;
+    closeGifticonError();
+    // 정상 조회된 상품은 유지하고 실패한 조회만 재시도합니다. 구매 요청은 자동 재전송하지 않습니다.
+    if (gifticonProductQuery.isError) void gifticonProductQuery.refetch();
+    if (gifticonListQuery.isError) void gifticonListQuery.refetch();
+  };
+
+  if (isProductLoading || isGifticonListLoading || (isRetrying && !product && !errorPopup)) {
     return <PopUp isOpen={true} type='loading' />;
   }
 
-  // 조회가 끝난 뒤에도 상품이 없으면 잘못된 상품 경로로 처리합니다.
+  // 네트워크·서버 실패를 상품 부재로 단정하지 않고, 오류 원인은 팝업에서 안내합니다.
   if (!product) {
     return (
       <HeaderLayout headerSlot={<MainHeader title='기프티콘 샵' />}>
         <section className='flex flex-col px-[25px] py-[20px]'>
-          <p className='text-m-14 text-[var(--ColorGray3,#646464)]'>상품을 찾을 수 없습니다.</p>
+          <p className='text-m-14 text-[var(--ColorGray3,#646464)]'>{gifticonProductQuery.isError ? '상품 정보를 불러오지 못했습니다.' : '상품을 찾을 수 없습니다.'}</p>
         </section>
         {errorPopup && (
           <PopUp
@@ -81,10 +90,7 @@ export const ShopDetailPage = () => {
             title={errorPopup.title}
             content={errorPopup.content}
             buttonText='다시 시도'
-            onClick={() => {
-              closeGifticonError();
-              void Promise.all([gifticonProductQuery.refetch(), gifticonListQuery.refetch()]);
-            }}
+            onClick={retryFailedQueries}
           />
         )}
       </HeaderLayout>
@@ -197,6 +203,14 @@ export const ShopDetailPage = () => {
 
   return (
     <HeaderLayout headerSlot={<MainHeader title='기프티콘 샵' />}>
+      {(gifticonProductQuery.isError || gifticonListQuery.isError) && (
+        <div role='alert' className='px-[25px] py-[15px] text-m-14'>
+          <p>상품 또는 구매 정보를 불러오지 못했습니다.</p>
+          <button type='button' disabled={isRetrying} onClick={retryFailedQueries} className='mt-[10px] disabled:opacity-50'>
+            {isRetrying ? '불러오는 중' : '다시 시도'}
+          </button>
+        </div>
+      )}
       <section className='flex flex-col flex-1 min-h-0 pb-[80px] bg-[var(--Color_Gray_B,#FCFCFC)]'>
         {product.imageUrl ? (
           <img

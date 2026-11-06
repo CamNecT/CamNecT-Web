@@ -15,6 +15,7 @@ import { Logo } from '../../layouts/headers/HomeHeader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { usePointStore } from '../../store/usePointStore';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import CoffeeChatBox from './components/CoffeeChatBox';
 import CommunityBox from './components/CommunityBox';
 import ContestBox from './components/ContestBox';
@@ -22,6 +23,7 @@ import PointBox from './components/PointBox';
 import RecommendBox from './components/RecommendBox';
 import { homeGreetingUser } from './homeData';
 import { mapHomeResponseToViewModel } from './homeMapper';
+import { getNotificationErrorPopupConfig } from './utils/notificationError';
 
 type PopUpConfig = {
     title: string;
@@ -73,6 +75,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
 export const HomePage = () => {
     const navigate = useNavigate();
     const [isErrorDismissed, setIsErrorDismissed] = useState(false);
+    const [dismissedUnreadErrorAt, setDismissedUnreadErrorAt] = useState<number | null>(null);
     const [isRecommendExpanded, setIsRecommendExpanded] = useState(false);
     const hasUnreadNotificationsFromStore = useNotificationStore((state) =>
         state.items.some((notice) => !notice.isRead),
@@ -143,7 +146,7 @@ export const HomePage = () => {
         staleTime: 60 * 1000,
     });
 
-    const { data: unreadCountResponse, error: unreadCountError } = useQuery({
+    const { data: unreadCountResponse, error: unreadCountError, errorUpdatedAt: unreadErrorUpdatedAt } = useQuery({
         queryKey: ['notificationsUnreadCount', userIdParam],
         queryFn: () =>
             requestNotificationUnreadCount({ userId: userIdParam as string | number }),
@@ -177,10 +180,13 @@ export const HomePage = () => {
         typeof unreadCount === 'number' ? unreadCount > 0 : hasUnreadNotificationsFromStore;
 
     const popUpConfig = useMemo(() => {
-        if (isErrorDismissed) return null;
-        const status = getErrorStatus(homeError) ?? getErrorStatus(unreadCountError);
-        return getErrorPopUpConfig(status);
-    }, [homeError, unreadCountError, isErrorDismissed]);
+        const homePopup = isErrorDismissed ? null : getErrorPopUpConfig(getErrorStatus(homeError));
+        if (homePopup) return homePopup;
+        if (dismissedUnreadErrorAt === unreadErrorUpdatedAt) return null;
+        // 오프라인 안내는 전역 배너에 맡겨 알림 오류 팝업이 함께 뜨지 않도록 한다.
+        if (shouldSkipLocalErrorUI(unreadCountError, navigator.onLine)) return null;
+        return getNotificationErrorPopupConfig(unreadCountError, 'unreadCount');
+    }, [homeError, unreadCountError, isErrorDismissed, dismissedUnreadErrorAt, unreadErrorUpdatedAt]);
 
     // 숨겨진 추천 동문이 있으면 먼저 펼치고, 모두 보이는 상태에서는 동문찾기 페이지로 이동합니다.
     const handleRecommendMoreClick = () => {
@@ -195,7 +201,7 @@ export const HomePage = () => {
     return (
         // 홈 1번 영역: 인사말, 커피챗 요청, 포인트/커뮤니티 카드 틀 구성
         <FullLayout>
-            <div className="mx-auto w-full max-w-[430px] bg-white">
+            <div className="mx-auto w-full max-w-[var(--app-mobile-max-width)] bg-white">
                 <section className="bg-primary px-[25px] pt-[22px] pb-[62px]">
                     <div className="flex items-center justify-between">
                         <span
@@ -348,6 +354,7 @@ export const HomePage = () => {
                     content={popUpConfig.content}
                     onClick={() => {
                         setIsErrorDismissed(true);
+                        setDismissedUnreadErrorAt(unreadErrorUpdatedAt);
                     }}
                 />
             )}

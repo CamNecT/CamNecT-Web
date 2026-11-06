@@ -283,6 +283,11 @@ const ActivityListTab = ({
         }}
         categories={tagCategories}
         allTags={allTags}
+        selectionGroups={
+          showRecruitStatus
+            ? [{ tagNames: statusTagNames, maxSelected: 1 }]
+            : []
+        }
       />
 
       {isAdmin

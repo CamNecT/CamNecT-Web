@@ -29,7 +29,7 @@ const WriteButton = ({ onClick, hasBottomNav = false, boardType }: WriteButtonPr
       className='fixed inline-flex flex-col items-start'
       style={{
         bottom: `calc(20px + ${hasBottomNav ? '56px' : '0px'} + env(safe-area-inset-bottom, 0px))`,
-        right: 'calc(50% - clamp(160px, 50vw, 270px) + 25px)',
+        right: 'max(25px, calc((100vw - var(--app-mobile-max-width)) / 2 + 25px))',
         padding: '13px 20px',
         gap: '10px',
         borderRadius: '30px',

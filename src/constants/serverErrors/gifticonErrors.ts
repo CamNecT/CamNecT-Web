@@ -18,6 +18,18 @@ export const GIFTICON_ERROR_CODES = {
 } as const;
 
 export const GIFTICON_ERROR_POPUP_MESSAGES = {
+  invalidListRequest: {
+    title: '상품 목록을 불러오지 못했습니다',
+    content: '상품 조회 조건이 올바르지 않습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.',
+  },
+  invalidProductRequest: {
+    title: '상품 정보를 확인해 주세요',
+    content: '상품 주소가 올바르지 않습니다. 상품 목록에서 다시 선택해 주세요.',
+  },
+  invalidPurchaseRequest: {
+    title: '구매 정보를 확인해 주세요',
+    content: '구매 요청 정보가 올바르지 않습니다. 상품과 수량을 확인한 뒤 다시 시도해 주세요.',
+  },
   authenticationRequired: {
     title: '로그인이 필요합니다',
     content: '로그인 정보가 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요.',
