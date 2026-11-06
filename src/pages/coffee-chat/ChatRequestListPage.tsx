@@ -6,7 +6,8 @@ import { useChatRequests, useDeleteAllChatRequest, useDeleteAllTeamRecruitReques
 import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
 import type { ChatRoomListItem, ChatRoomListItemType } from "../../types/coffee-chat/coffeeChatTypes";
-import { AllRequestDeleteButton } from "./components/AllRequestDeleteButton";
+import { ChatDeleteButton } from "./components/ChatDeleteButton";
+import { ChatEmptyState } from "./components/ChatEmptyState";
 import { ChatList } from "./components/ChatList";
 import { ChatPostAccordian } from "./components/ChatPostAccordian";
 
@@ -36,9 +37,15 @@ export const ChatRequestListPage = () => {
     }
   }, [hasInitialTypeQuery, navigate]);
 
-  const { data: chatRequestRooms = [], isLoading } = useChatRequests(activeId);
-  const { mutate: deleteAllTeamRecruitRequest} = useDeleteAllTeamRecruitRequest();
-  const { mutate: deleteAllChatRequest} = useDeleteAllChatRequest();
+  const { data: chatRequestRooms = [], isLoading, isSuccess } = useChatRequests(activeId);
+  const {
+    mutate: deleteAllTeamRecruitRequest,
+    isPending: isTeamRecruitDeletePending,
+  } = useDeleteAllTeamRecruitRequest();
+  const {
+    mutate: deleteAllChatRequest,
+    isPending: isChatRequestDeletePending,
+  } = useDeleteAllChatRequest();
 
     // mock데이터 타입별 filtering + 날짜 내림차순 정렬
   const filteredChatRoomList = chatRequestRooms
@@ -70,8 +77,17 @@ export const ChatRequestListPage = () => {
   const currentDeleteCount = activeId === 'TEAM_RECRUIT'
     ? (openPostTitle ? (filteredChatRoomListByPost[openPostTitle]?.length || 0) : 0)
     : filteredChatRoomList.length;
+  const isDeletePending = activeId === 'TEAM_RECRUIT'
+    ? isTeamRecruitDeletePending
+    : isChatRequestDeletePending;
+  const isRequestListEmpty = isSuccess && filteredChatRoomList.length === 0;
+  const emptyRequestMessage = activeId === 'TEAM_RECRUIT'
+    ? '도착한 팀원모집 요청이 없습니다.'
+    : '도착한 커피챗 요청이 없습니다.';
 
   const handleDeleteAll = () => {
+    if (isDeletePending || !isSuccess) return;
+
     if (activeId === 'TEAM_RECRUIT') {
       if (!openPostTitle) return;
 
@@ -110,7 +126,11 @@ export const ChatRequestListPage = () => {
       }
     >
       <div className="flex-1 overflow-y-auto min-h-0">
-        <ul>
+        {isRequestListEmpty && (
+          <ChatEmptyState message={emptyRequestMessage} />
+        )}
+
+        {!isRequestListEmpty && <ul>
           {
             activeId === 'TEAM_RECRUIT' ?
               // Object.entries : Object -> Array ([index0, index1])
@@ -152,12 +172,16 @@ export const ChatRequestListPage = () => {
                 />
               ))
           }
-        </ul>
+        </ul>}
 
-        <AllRequestDeleteButton
-          requestCount={currentDeleteCount}
-          onClick={handleDeleteAll}
-        />
+        {!isRequestListEmpty && (
+          <ChatDeleteButton
+            count={currentDeleteCount}
+            variant="allRequests"
+            onClick={handleDeleteAll}
+            disabled={isDeletePending || !isSuccess}
+          />
+        )}
       </div>
       <PopUp isOpen={isLoading} type="loading" />
     </HeaderLayout>

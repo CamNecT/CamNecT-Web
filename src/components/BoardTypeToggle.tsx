@@ -1,13 +1,24 @@
+import type { ReactNode } from 'react';
 import PressableMotion from './PressableMotion';
 
 type BoardTypeToggleProps = {
   selected: boolean;
   onClick: () => void;
   label: string;
+  variant?: 'brand' | 'neutral';
+  children?: ReactNode;
+  className?: string;
 };
 
 // 정렬/선택 상태를 보여주는 라디오형 토글
-const BoardTypeToggle = ({ selected, onClick, label }: BoardTypeToggleProps) => {
+const BoardTypeToggle = ({
+  selected,
+  onClick,
+  label,
+  variant = 'brand',
+  children,
+  className = '',
+}: BoardTypeToggleProps) => {
   return (
     <PressableMotion
       as='button'
@@ -16,9 +27,14 @@ const BoardTypeToggle = ({ selected, onClick, label }: BoardTypeToggleProps) => 
       aria-pressed={selected}
       aria-label={`${label} 선택`}
       onClick={onClick}
-      className='flex items-center justify-center'
+      className={`flex items-center justify-center ${className}`}
     >
-      {selected ? (
+      {selected && variant === 'neutral' ? (
+        <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'>
+          <circle cx='12' cy='12' r='11.5' stroke='#A1A1A1' />
+          <circle cx='12' cy='12' r='5' fill='#A1A1A1' />
+        </svg>
+      ) : selected ? (
         <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'>
           <circle cx='12' cy='12' r='9.5' stroke='#00C56C' strokeWidth='5' />
         </svg>
@@ -27,6 +43,8 @@ const BoardTypeToggle = ({ selected, onClick, label }: BoardTypeToggleProps) => 
           <circle cx='12' cy='12' r='11.5' stroke='#A1A1A1' />
         </svg>
       )}
+
+      {children}
     </PressableMotion>
   );
 };

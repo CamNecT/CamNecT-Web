@@ -8,7 +8,7 @@ import { useShallow } from "zustand/react/shallow";
 import Icon from "../../components/Icon";
 import PopUp from "../../components/Pop-up";
 import Toggle from "../../components/Toggle/Toggle";
-import { useChatRoom, useChatRoomClose, useChatRoomExit} from "../../hooks/useChatQuery";
+import { useChatRoom, useChatRoomClose, useChatRoomCloseAndExit, useChatRoomExit} from "../../hooks/useChatQuery";
 import { useStompChat } from "../../hooks/useStompChat";
 import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
@@ -52,8 +52,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     );
 
     const { data: chatRoomData, isLoading: isRoomLoading } = useChatRoom(roomId);
-    const { mutate: endChat } = useChatRoomClose();
+    const {
+        mutate: endChat,
+        isPending: isEndChatPending,
+    } = useChatRoomClose();
     const { mutate: exitChat } = useChatRoomExit();
+    const {
+        mutate: endAndExitChat,
+        isPending: isEndAndExitPending,
+    } = useChatRoomCloseAndExit();
 
     const { messages: socketMessages,
         sendMessage, retryMessage, leaveChatRoom,
@@ -67,12 +74,20 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isRecruitExpanded, setIsRecruitExpanded] = useState(false);
+    // 종료 팝업의 채팅방 삭제 선택 여부
+    const [shouldDeleteChatRoom, setShouldDeleteChatRoom] = useState(false);
+
     const [confirmPopUpConfig, setConfirmPopUpConfig] = useState<{
         title: string;
         content: string;
         leftButtonText: string;
         rightButtonText?: string;
-        onConfirm: () => void;
+        showDeleteCheckbox?: boolean;
+        onConfirm: (shouldDeleteChatRoom?: boolean) => void;
+    } | null>(null);
+    const [errorPopUpConfig, setErrorPopUpConfig] = useState<{
+        title: string;
+        content: string;
     } | null>(null);
 
     // 종료 여부 
@@ -289,7 +304,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         window.scrollTo(0, document.documentElement.scrollHeight);
     };
 
-    // todo 1. 레이아웃 안정화 및 초기 스크롤
     useLayoutEffect(() => {
         if (!isLoading && !isReady) {
             if (localMessages.length > 0) {
@@ -354,17 +368,43 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 채팅 종료 함수
     const handleEndChat = () => {
         setIsMenuOpen(false);
+        setShouldDeleteChatRoom(false); // 이전 채팅방 삭제 체크 초기화
 
         setConfirmPopUpConfig({
             title: "채팅을 종료하시겠습니까?",
-            content: "더이상 대화가 불가능하며,\n이후 채팅방 나가기를 통해 목록에서 제거됩니다.",
-            leftButtonText: "종료하기",
-            onConfirm: () => {
-                endChat({ roomId }, {
-                    onSuccess: () => {
-                        setConfirmPopUpConfig(null);
-                    }
-                });
+            content: '채팅은 목록에 보관되며 더 이상 대화할 수 없습니다.\n이후 언제든 삭제할 수 있습니다.',
+            leftButtonText: "채팅 종료",
+            showDeleteCheckbox: true,
+            onConfirm: (shouldDeleteChatRoom?: boolean) => {
+                // 종료 팝업에서 '채팅방 삭제' 선택 시
+                if (shouldDeleteChatRoom) {
+                    endAndExitChat({ roomId }, {
+                        onSuccess: () => {
+                            setConfirmPopUpConfig(null);
+                            navigate('/chat', { replace: true });
+                        },
+                        onError: () => {
+                            setConfirmPopUpConfig(null);
+                            setErrorPopUpConfig({
+                                title: '채팅방을 삭제하지 못했습니다',
+                                content: '잠시 후 다시 시도해 주세요.',
+                            });
+                        }
+                    });
+                } else {
+                    endChat({ roomId }, {
+                        onSuccess: () => {
+                            setConfirmPopUpConfig(null);
+                        },
+                        onError: () => {
+                            setConfirmPopUpConfig(null);
+                            setErrorPopUpConfig({
+                                title: '채팅방을 종료하지 못했습니다',
+                                content: '잠시 후 다시 시도해 주세요.',
+                            });
+                        }
+                    });
+                }
             }
         });
     }
@@ -800,12 +840,44 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 <PopUp
                     isOpen={!!confirmPopUpConfig}
                     type="warning"
-                    title={confirmPopUpConfig.title}
-                    content={confirmPopUpConfig.content}
-                    leftButtonText={confirmPopUpConfig.leftButtonText}
+                    title={
+                        confirmPopUpConfig.showDeleteCheckbox && shouldDeleteChatRoom
+                            ? "채팅방을 삭제하시겠습니까?"
+                            : confirmPopUpConfig.title
+                    }
+                    content={
+                        confirmPopUpConfig.showDeleteCheckbox && shouldDeleteChatRoom
+                            ? "채팅방과 모든 대화 내역이 완전히 삭제되며,\n다시는 복구할 수 없습니다!" 
+                            : confirmPopUpConfig.content 
+                    }
+                    leftButtonText={
+                        confirmPopUpConfig.showDeleteCheckbox
+                            ? (shouldDeleteChatRoom ? "채팅삭제" : "채팅종료")
+                            : confirmPopUpConfig.leftButtonText
+                    }
                     rightButtonText={confirmPopUpConfig.rightButtonText}
-                    onLeftClick={confirmPopUpConfig.onConfirm}
+                    checkbox={
+                        confirmPopUpConfig.showDeleteCheckbox
+                            ? {
+                                label: '채팅방 삭제',
+                                checked: shouldDeleteChatRoom,
+                                onChange: setShouldDeleteChatRoom,
+                            }
+                            : undefined
+                    }
+                    isActionPending={isEndChatPending || isEndAndExitPending}
+                    onLeftClick={() => confirmPopUpConfig.onConfirm(shouldDeleteChatRoom)}
                     onRightClick={() => setConfirmPopUpConfig(null)}
+                />
+            )}
+
+            {errorPopUpConfig && (
+                <PopUp
+                    isOpen={true}
+                    type="error"
+                    title={errorPopUpConfig.title}
+                    content={errorPopUpConfig.content}
+                    onClick={() => setErrorPopUpConfig(null)}
                 />
             )}
 

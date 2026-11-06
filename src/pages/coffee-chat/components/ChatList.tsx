@@ -2,17 +2,21 @@ import type { ChatRoomListItem } from "../../../types/coffee-chat/coffeeChatType
 import PressableMotion from "../../../components/PressableMotion";
 import { formatDate } from "../../../utils/formatDate";
 import { formatStudentLabel } from "../../../utils/formatStudent";
+import { motion } from "framer-motion";
+import { ChatSelectionIndicator } from "./ChatSelectionIndicator";
 
 interface ChatListProps {
     chatRoom: ChatRoomListItem;
     searchQuery?: string; // todo 추후 검색어 부분만 하이라이트
     isFirstPaddingDisabled?: boolean;
     isClosed?: boolean;
+    isEditMode?: boolean;
+    isSelected?: boolean;
     onClick?: () => void;
 }
 
 // 
-export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = false, onClick }: ChatListProps) => {
+export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = false, isEditMode = false, isSelected = false, onClick }: ChatListProps) => {
     const partnerName = chatRoom.partner.name?.trim() || "알 수 없음";
     const partnerMajor = chatRoom.partner.major?.trim() || "";
     const studentLabel = formatStudentLabel(chatRoom.partner.studentId);
@@ -24,12 +28,44 @@ export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = 
         >
             <PressableMotion
                 as="button"
+                type="button"
                 intensity="soft"
                 onClick={onClick}
-                className="flex gap-[12px] px-[25px] w-full text-left cursor-pointer transition-colors"
+                disabled={isEditMode && !isClosed}
+                aria-pressed={
+                    isEditMode && isClosed
+                    ? isSelected
+                    : undefined
+                }
+                aria-label={
+                    isEditMode && isClosed
+                    ? `${partnerName} 채팅방 ${isSelected ? '선택 해제' : '선택'}`
+                    : `${partnerName} 채팅방 열기`
+                }
+                className={`
+                    flex items-center px-[25px] w-full text-left transition-colors
+                    ${isEditMode && !isClosed ? 'cursor-default' : 'cursor-pointer'}
+                `}
             >
+                <motion.span
+                    animate={{
+                        width: isEditMode ? 24 : 0,
+                        marginRight: isEditMode ? 22 : 0,
+                        opacity: isEditMode ? 1 : 0,
+                    }}
+                    transition={{
+                        duration: 0.2,
+                        ease: [0.4, 0, 0.2, 1],
+                    }}
+                    className="shrink-0 overflow-hidden"
+                >
+                    {isEditMode && isClosed && (
+                        <ChatSelectionIndicator selected = {isSelected}/>
+                    )}
+                </motion.span>
+
                 {/* 프로필 이미지 영역 */}
-                <div className={`shrink-0 ${isClosed ? 'grayscale opacity-50' : ''}`}>
+                <div className={`mr-[12px] shrink-0 ${isClosed ? 'grayscale opacity-50' : ''}`}>
                     {chatRoom.partner.profileImg ? (
                         <img src={chatRoom.partner.profileImg} alt="프로필 이미지" className="w-[60px] h-[60px] rounded-full object-cover" />
                     ) : (
@@ -62,8 +98,8 @@ export const ChatList = ({ chatRoom, isFirstPaddingDisabled = false, isClosed = 
                             {chatRoom.lastMessage}
                         </span>
                         
-                        {/* 안읽은 메시지 뱃지 (종료된 방은 보통 뱃지를 숨기거나 흐리게 처리함) */}
-                        {chatRoom.unreadCount > 0 && !isClosed && (
+                        {/* 안읽은 메시지 뱃지 (종료된 방은 보통 뱃지를 숨기거나 흐리게 처리함)*/}
+                        {chatRoom.unreadCount > 0 && !isClosed && !isEditMode && (
                             <div className="flex-none w-[20px] h-[20px] px-[6px] rounded-full bg-primary flex items-center justify-center">
                                 <span className="text-[12px] font-bold text-white leading-none">
                                     {chatRoom.unreadCount}
