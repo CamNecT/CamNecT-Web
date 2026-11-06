@@ -37,26 +37,26 @@ export const VerificationItem = ({ item }: VerificationItemProps) => {
     return (
         <div 
             onClick={handleItemClick}
-            className={`flex items-center justify-between w-full py-4 transition-opacity ${
+            className={`flex w-full items-center gap-3 py-4 transition-opacity ${
                 item.status === 'PENDING' ? 'cursor-pointer active:opacity-70' : ''
             }`}
         >
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
                 {/* 아바타 아이콘 */}
-                <div className="w-10 h-10 rounded-full bg-gray-150 flex items-center justify-center overflow-hidden">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-150">
                     <Icon name="Navigation_mypage_stroke" className="w-6 h-6 text-gray-400" />
                 </div>
                 
                 {/* 유저 정보 */}
-                <div className="flex flex-col gap-[1px]">
-                    <span className="text-gray-900 text-sb-16-hn tracking-[-0.64px]">
+                <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
+                    <span className="block truncate text-sb-16-hn tracking-[-0.64px] text-gray-900" title={item.userId}>
                         {item.userId}
                     </span>
                     {/* 전화번호 주석 처리 및 이메일 표시 */}
                     {/* <span className="text-gray-650 text-r-14-hn tracking-[-0.56px]">
                         {item.phoneNum}
                     </span> */}
-                    <span className="text-gray-650 text-r-14-hn tracking-[-0.56px]">
+                    <span className="block truncate text-r-14-hn tracking-[-0.56px] text-gray-650" title={item.email}>
                         {item.email}
                     </span>
                 </div>
@@ -65,7 +65,7 @@ export const VerificationItem = ({ item }: VerificationItemProps) => {
             {/* 상태 배지 버튼 */}
             <button 
                 type="button"
-                className={`px-4 py-1.5 rounded-full text-m-12-hn tracking-[-0.48px] min-w-[70px] text-center transition-opacity ${statusInfo.color}`}
+                className={`min-w-[70px] shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-center text-m-12-hn tracking-[-0.48px] transition-opacity ${statusInfo.color}`}
             >
                 {statusInfo.label}
             </button>

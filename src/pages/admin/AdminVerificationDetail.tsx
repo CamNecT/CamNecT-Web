@@ -120,35 +120,35 @@ export const AdminVerificationDetail = () => {
             <MainHeader title="재학증명서 상세페이지" />
 
             <section className="flex flex-col gap-[20px] px-5">
-                <div className="flex pt-[20px] py-4 ">
-                    <div className="flex items-center gap-[15px]">
+                <div className="flex py-4 pt-[20px]">
+                    <div className="flex w-full min-w-0 items-center gap-[15px]">
                         {/* 아바타 아이콘 */}
-                        <div className="w-[70px] h-[70px] rounded-full bg-gray-150 flex items-center justify-center overflow-hidden">
-                        <Icon name="Navigation_mypage_stroke" className="w-[42px] h-[42px] text-gray-400" />
-                    </div>
+                        <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-150">
+                            <Icon name="Navigation_mypage_stroke" className="h-[42px] w-[42px] text-gray-400" />
+                        </div>
                     
-                    {/* 유저 정보 */}
-                    <div className="flex flex-col gap-[2px]">
-                        <span 
-                            className="text-gray-900 text-b-20"
-                            style={{ letterSpacing: '-0.8px' }}
-                        >
-                            {item?.userId || "Unknown"}
-                        </span>
-                        {/* 전화번호 주석 처리 및 이메일 표시 */}
-                        {/* <span 
-                            className="text-gray-750 text-m-16 font-medium"
-                            style={{ letterSpacing: '-0.4px' }}
-                        >
-                            {item?.phoneNum || "010-0000-0000"}
-                        </span> */}
-                        <span 
-                            className="text-gray-750 text-m-16 font-medium"
-                            style={{ letterSpacing: '-0.4px' }}
-                        >
-                            {item?.email}
-                        </span>
-                    </div>
+                        {/* 유저 정보 */}
+                        <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                            <span
+                                className="break-words text-b-20 text-gray-900 [overflow-wrap:anywhere]"
+                                style={{ letterSpacing: '-0.8px' }}
+                            >
+                                {item?.userId || "Unknown"}
+                            </span>
+                            {/* 전화번호 주석 처리 및 이메일 표시 */}
+                            {/* <span
+                                className="text-gray-750 text-m-16 font-medium"
+                                style={{ letterSpacing: '-0.4px' }}
+                            >
+                                {item?.phoneNum || "010-0000-0000"}
+                            </span> */}
+                            <span
+                                className="break-words text-m-16 font-medium text-gray-750 [overflow-wrap:anywhere]"
+                                style={{ letterSpacing: '-0.4px' }}
+                            >
+                                {item?.email}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
