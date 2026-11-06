@@ -5,6 +5,7 @@ export interface Portfolio {
     portfolioId: string;
 
     title: string;
+    subtitle?: string | null;
     portfolioThumbnail: Media;
 
     updatedAt: string;

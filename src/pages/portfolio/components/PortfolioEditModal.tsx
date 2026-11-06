@@ -23,6 +23,8 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/jpg
 const ALLOWED_FILE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf', 'image/jpg'];
 const MAX_TECH_STACK_COUNT = 10;
 const MAX_TECH_STACK_ITEM_LENGTH = 20;
+const MAX_TITLE_LENGTH = 20;
+const MAX_SUBTITLE_LENGTH = 50;
 
 const parseTechStack = (value: string) =>
     value
@@ -85,6 +87,7 @@ export default function PortfolioEditModal({
     );
 
     const [title, setTitle] = useState('');
+    const [subtitle, setSubtitle] = useState('');
     const [content, setContent] = useState('');
     const [startYear, setStartYear] = useState(new Date().getFullYear());
     const [startMonth, setStartMonth] = useState(1);
@@ -116,6 +119,7 @@ export default function PortfolioEditModal({
     //초기 데이터 저장
     const initialDataRef = useRef<{
         title: string;
+        subtitle: string;
         content: string;
         startYear: number;
         startMonth: number;
@@ -139,6 +143,7 @@ export default function PortfolioEditModal({
         
         return (
             title !== initial.title ||
+            subtitle !== initial.subtitle ||
             content !== initial.content ||
             startYear !== initial.startYear ||
             startMonth !== initial.startMonth ||
@@ -152,7 +157,7 @@ export default function PortfolioEditModal({
             attachmentFiles.length !== initial.attachmentFiles.length ||
             attachmentFiles.some((f, i) => f.url !== initial.attachmentFiles[i]?.url)
         );
-    }, [title, content, startYear, startMonth, endDateMode, endYear, endMonth, role, skills, problemSolution, thumbnailImage, attachmentFiles]);
+    }, [title, subtitle, content, startYear, startMonth, endDateMode, endYear, endMonth, role, skills, problemSolution, thumbnailImage, attachmentFiles]);
 
     // useModalHistory 훅 사용
     useModalHistory(onClose, hasUnsavedChanges, () => setShowCloseWarning(true));
@@ -166,6 +171,7 @@ export default function PortfolioEditModal({
             if (initializedForRef.current === 'create') return;
             
             setTitle('');
+            setSubtitle('');
             setContent('');
             setStartYear(new Date().getFullYear());
             setStartMonth(1);
@@ -180,6 +186,7 @@ export default function PortfolioEditModal({
 
             initialDataRef.current = {
                 title: '',
+                subtitle: '',
                 content: '',
                 startYear: new Date().getFullYear(),
                 startMonth: 1,
@@ -200,6 +207,7 @@ export default function PortfolioEditModal({
         if (initializedForRef.current === portfolioData.portfolioId) return;
 
         setTitle(portfolioData.title);
+        setSubtitle(portfolioData.subtitle ?? '');
         setContent(portfolioData.description);
 
         const [startY, startM] = portfolioData.startDate.split('-').map(Number);
@@ -243,6 +251,7 @@ export default function PortfolioEditModal({
 
         initialDataRef.current = {
             title: portfolioData.title,
+            subtitle: portfolioData.subtitle ?? '',
             content: portfolioData.description,
             startYear: startY,
             startMonth: startM,
@@ -441,6 +450,18 @@ export default function PortfolioEditModal({
             return;
         }
 
+        const isUnchangedLegacyTitle =
+            isEditMode &&
+            title === initialDataRef.current?.title &&
+            title.trim().length > MAX_TITLE_LENGTH;
+        if (title.trim().length > MAX_TITLE_LENGTH && !isUnchangedLegacyTitle) {
+            setError({
+                title: '프로젝트 제목을 확인해주세요',
+                content: `프로젝트 제목은 ${MAX_TITLE_LENGTH}자 이하로 입력해주세요.`,
+            });
+            return;
+        }
+
         const techStack = parseTechStack(skills);
         if (techStack.length === 0) {
             setError({
@@ -571,6 +592,7 @@ export default function PortfolioEditModal({
             // 3. API 호출
             const payload = {
                 projectTitle: title.trim(),
+                subtitle: subtitle.trim() || null,
                 description: content.trim(),
                 startedAt: `${startYear}-${String(startMonth).padStart(2, '0')}-01`,
                 endedAt: endDateMode === 'date' && endYear && endMonth
@@ -733,9 +755,24 @@ export default function PortfolioEditModal({
                                     <input
                                         type="text"
                                         value={title}
-                                        maxLength={50}
+                                        maxLength={MAX_TITLE_LENGTH}
                                         onChange={(e) => setTitle(e.target.value)}
-                                        placeholder="프로젝트 이름을 입력해 주세요"
+                                        placeholder="프로젝트 이름을 입력해 주세요 (20자 이내)"
+                                        className="w-full p-[15px] border border-gray-150 rounded-[5px] text-r-16-hn text-gray-750 placeholder:text-gray-650 focus:outline-none focus:border-primary"
+                                    />
+                                </div>
+
+                                {/* 포트폴리오 부제목 */}
+                                <div className="flex flex-col gap-[10px]">
+                                    <span className="text-sb-16-hn text-gray-900">
+                                        프로젝트 부제목 (선택)
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={subtitle}
+                                        maxLength={MAX_SUBTITLE_LENGTH}
+                                        onChange={(e) => setSubtitle(e.target.value)}
+                                        placeholder="프로젝트 부제목을 입력해 주세요 (50자 이내)"
                                         className="w-full p-[15px] border border-gray-150 rounded-[5px] text-r-16-hn text-gray-750 placeholder:text-gray-650 focus:outline-none focus:border-primary"
                                     />
                                 </div>

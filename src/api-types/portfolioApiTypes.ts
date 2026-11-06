@@ -18,6 +18,7 @@ export interface PresignResult {
 export interface PortfolioPreview {
   portfolioId: number;
   title: string;
+  subtitle: string | null;
   thumbnailUrl: string | null;
   isPublic: boolean;
   isFavorite: boolean;
@@ -57,6 +58,7 @@ export interface PortfolioDetailData {
   portfolioId: number;
   userId: number;
   title: string;
+  subtitle: string | null;
   thumbnailUrl: string | null;
   startDate: string;    // "YYYY-MM-DD"
   endDate: string | null; // "YYYY-MM-DD" 또는 진행 중이면 null
@@ -86,6 +88,7 @@ export interface PortfolioDetailResponse {
 //생성/수정
 export interface PortfolioCreateRequest {
   projectTitle: string;
+  subtitle: string | null;
   description: string;
   startedAt: string;
   endedAt: string | null;
@@ -98,6 +101,7 @@ export interface PortfolioCreateRequest {
 
 export interface PortfolioUpdateRequest {
   projectTitle: string;
+  subtitle: string | null;
   description: string;
   startedAt: string;
   endedAt: string | null;
