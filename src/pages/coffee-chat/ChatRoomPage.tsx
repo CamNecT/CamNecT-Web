@@ -175,8 +175,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // const isComposerVisible = isRealtimeReady || hasConnectedOnce || !isStompEnabled;
 
     const isTypingAreaVisible = !isChatUnavailable && isComposerVisible;
-    // 최초 연결 이후 실시간 연결이 끊긴 경우에만 헤더 아래 상태 안내를 표시
-    const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
+
+    // 채팅방 전용 상단 안내는 임시 비활성화 -> 브라우저 offline 안내는 App의 GlobalOfflineBanner가 담당
+    // const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -463,20 +464,16 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             ]}
                         />
 
+                        {/* 전역 네트워크 배너와 같은 디자인의 채팅방 상단 안내안 (비활성)
                         {shouldShowRealtimeNotice && (
-                            <div
-                                role="status"
-                                aria-live="polite"
-                                className="flex h-[36px] w-full items-center justify-center border-y border-gray-150 bg-gray-100 px-[25px]"
-                            >
-                                <div className="flex w-full max-w-[380px] items-center justify-center gap-[7px] text-gray-750">
-                                    <Icon name="report" size={18} className="text-red" />
-                                    <span className="text-m-12 tracking-[-0.24px]">
-                                        연결이 불안정해요. 전송 실패 시 다시 시도해 주세요.
-                                    </span>
+                            <div className="flex min-h-10 w-80 items-center gap-1.5 rounded-[5px] bg-neutral-50 px-[15px] py-2 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)]">
+                                <Icon name="error_circle" size={24} className="text-red" />
+                                <div className="font-sans text-base font-normal leading-6 text-gray-750">
+                                    연결이 불안정해요. 다시 시도해 주세요.
                                 </div>
                             </div>
                         )}
+                        */}
 
                         {/* 모집 공고 정보 바 (TEAM_RECRUIT 유형일 때만) */}
                         {isTeamRecruit && requestInfo.recruitmentTitle && (
@@ -731,9 +728,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             </div>
                                         </div>
 
-                                        {/* 
-                                            todo 시간 및 읽음 상태 표시 영역 (deliveryState = sent)
-                                        */}
                                         {msg.deliveryState === 'sent' && (
                                             <div className={`flex flex-col justify-end gap-[2px] mb-[2px] ${isMe ? 'items-end' : 'items-start'}`}>
                                                 {/* 1. 내 메시지이고 안 읽었을 때 & "내가 보낸 전체 메시지 중 마지막"일 때만 '1' 표시 */}
