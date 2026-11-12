@@ -33,6 +33,7 @@ type MainHeaderProps = {
   showBadge?: boolean;
   isAdmin?: boolean;
   className?: string;
+  largeTouchTarget?: boolean;
 };
 
 export const MainHeader = ({
@@ -45,6 +46,7 @@ export const MainHeader = ({
   showBadge,
   isAdmin,
   className,
+  largeTouchTarget = false,
 }: MainHeaderProps) => {
   const navigate = useNavigate();
   const authUserId = useAuthStore((s) => s.user?.id);
@@ -68,6 +70,11 @@ export const MainHeader = ({
   const leftIconName = isAdmin ? 'logOut' : (leftAction?.icon ?? 'arrow_left');
   const leftClickHandler = isAdmin ? handleLogout : (leftAction?.onClick ?? (() => navigate(-1)));
   const leftLabel = isAdmin ? '로그아웃' : (leftAction?.ariaLabel ?? leftAriaLabel ?? '뒤로 가기');
+  // 높이 50px인 헤더 안에서 아이콘 크기를 유지하고 버튼 영역만 넓힌다.
+  const actionClassName = twMerge(
+    'flex items-center justify-center',
+    largeTouchTarget && 'size-12 shrink-0 rounded-[5px] active:bg-gray-150',
+  );
 
   return (
     <header
@@ -83,7 +90,7 @@ export const MainHeader = ({
       <div className='flex w-[28px] items-center justify-start z-10'>
         {/* leftIcon="empty"를 받으면 좌측 아이콘 영역 자체를 숨김 */}
         {leftIcon !== 'empty' ? (
-          <PressableMotion as='button' intensity='soft' type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
+          <PressableMotion as='button' intensity='soft' type='button' className={twMerge(actionClassName, largeTouchTarget && '-ml-2.5')} onClick={leftClickHandler} aria-label={leftLabel}>
             <Icon
               name={leftIconName}
               style={{
@@ -116,7 +123,7 @@ export const MainHeader = ({
                 intensity='soft'
                 key={action.icon}
                 type='button'
-                className='flex items-center justify-center'
+                className={twMerge(actionClassName, largeTouchTarget && 'last:-mr-2.5')}
                 onClick={action.onClick}
                 aria-label={action.ariaLabel ?? action.icon}
               >

@@ -211,16 +211,19 @@ export const HomePage = () => {
                         >
                             <Logo />
                         </span>
+                        {/* 아이콘·알림 뱃지 위치는 유지하고 패딩으로 터치 영역만 48px로 넓힌다. */}
                         <PressableMotion
                             as="button"
                             intensity="soft"
                             type="button"
                             aria-label="알림"
-                            className="relative inline-flex h-6 w-6 items-center justify-center"
+                            className="-my-3 -mr-3 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3 active:bg-white/15"
                             onClick={() => navigate('/home/notices')}
                         >
-                            <Icon name="bell_notification" style={{ color: 'var(--ColorWhite,#FFF)' }} />
-                            {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
+                            <span className="relative inline-flex h-6 w-6">
+                                <Icon name="bell_notification" size={24} style={{ color: 'var(--ColorWhite,#FFF)' }} />
+                                {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
+                            </span>
                         </PressableMotion>
                     </div>
 

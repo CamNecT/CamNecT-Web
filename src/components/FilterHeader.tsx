@@ -5,12 +5,17 @@ type FilterHeaderProps = {
   activeFilters: string[];
   onOpenFilter: () => void;
   onRemoveFilter: (filter: string) => void;
+  largeTouchTarget?: boolean;
 };
 
-const FilterHeader = ({ activeFilters, onOpenFilter, onRemoveFilter }: FilterHeaderProps) => {
+const FilterHeader = ({ activeFilters, onOpenFilter, onRemoveFilter, largeTouchTarget }: FilterHeaderProps) => {
   return (
     <div className='flex flex-wrap items-center gap-[15px]'>
-      <FilterIcon onClick={onOpenFilter} />
+      <FilterIcon
+        onClick={onOpenFilter}
+        largeTouchTarget={largeTouchTarget}
+        className={largeTouchTarget ? '-mx-[11.5px]' : undefined}
+      />
 
       <div className='flex flex-wrap items-center gap-[10px]'>
         {activeFilters.map((filter) => (

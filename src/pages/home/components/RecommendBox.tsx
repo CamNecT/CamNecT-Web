@@ -77,11 +77,12 @@ function RecommendBox({
                     </div>
                 </div>
                 <div className="pt-[9px]">
+                    {/* 카드 배치는 유지하면서 24px 아이콘 바깥에 12px씩 터치 여백을 확보한다. */}
                     <PressableMotion
                         as="button"
                         intensity="soft"
                         type="button"
-                        className="flex items-center justify-center"
+                        className="-m-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3 active:bg-gray-150"
                         onClick={(event) => {
                             event.stopPropagation();
                             navigate(`/alumni/profile/${userId}`);

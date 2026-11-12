@@ -547,6 +547,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           ) : (
             <MainHeader
               title='커뮤니티'
+              largeTouchTarget
               leftIcon={isAdmin ? 'empty' : undefined}
               leftAction={{
                 onClick: () => {
