@@ -12,12 +12,57 @@ import { confirmPhoneVerification, getPhoneStatus, sendPhoneVerification, update
 import type { PhoneStatusData } from '../../../api-types/profileApiTypes';
 import { getServerErrorCode } from '../../../utils/getServerErrorCode';
 import { shouldSkipLocalErrorUI } from '../../../utils/getGlobalNetworkErrorType';
+import { useAuthStore } from '../../../store/useAuthStore';
 import { formatPhoneNumber, isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone';
 
 type PopupConfig = {
     title: string;
     content: string;
     onClose?: () => void;
+};
+
+type PhoneVerificationSession = {
+    challengeId: string;
+    phoneNumber: string;
+    expiresAt: number;
+    resendAvailableAt: number;
+};
+
+const getVerificationSessionKey = (userId: string) => `phone-verification:${userId}`;
+
+const readVerificationSession = (
+    userId: string,
+    phoneNumber: string | null,
+): PhoneVerificationSession | null => {
+    const key = getVerificationSessionKey(userId);
+
+    try {
+        const stored = sessionStorage.getItem(key);
+        if (!stored) return null;
+
+        const session = JSON.parse(stored) as PhoneVerificationSession;
+        if (
+            !session.challengeId
+            || session.phoneNumber !== normalizePhoneNumber(phoneNumber ?? '')
+            || session.expiresAt <= Date.now()
+        ) {
+            sessionStorage.removeItem(key);
+            return null;
+        }
+
+        return session;
+    } catch {
+        sessionStorage.removeItem(key);
+        return null;
+    }
+};
+
+const saveVerificationSession = (userId: string, session: PhoneVerificationSession) => {
+    sessionStorage.setItem(getVerificationSessionKey(userId), JSON.stringify(session));
+};
+
+const clearVerificationSession = (userId: string) => {
+    sessionStorage.removeItem(getVerificationSessionKey(userId));
 };
 
 const PHONE_ERROR_MESSAGES: Record<string, PopupConfig> = {
@@ -71,9 +116,16 @@ const formatTimer = (seconds: number) => {
     return `${minutes}:${String(remainder).padStart(2, '0')}`;
 };
 
-const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }) => {
+const PhoneSettingsForm = ({
+    initialStatus,
+    userId,
+}: {
+    initialStatus: PhoneStatusData;
+    userId: string;
+}) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [restoredSession] = useState(() => readVerificationSession(userId, initialStatus.phoneNum));
     //번호가 저장되어 있어도 인증 전이면 등록 절차가 아직 완료되지 않은 상태로 본다
     const isRegistration = !initialStatus.phoneVerified;
     const [phoneNumber, setPhoneNumber] = useState(
@@ -82,27 +134,28 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
         : '',
     );
     const [verificationCode, setVerificationCode] = useState('');
-    const [challengeId, setChallengeId] = useState<string | null>(null);
-    const [expiresIn, setExpiresIn] = useState(0);
-    const [resendAfter, setResendAfter] = useState(0);
+    const [challengeId, setChallengeId] = useState<string | null>(restoredSession?.challengeId ?? null);
+    const [expiresAt, setExpiresAt] = useState(restoredSession?.expiresAt ?? 0);
+    const [resendAvailableAt, setResendAvailableAt] = useState(restoredSession?.resendAvailableAt ?? 0);
+    const [now, setNow] = useState(() => Date.now());
     const [phoneError, setPhoneError] = useState('');
     const [codeError, setCodeError] = useState('');
     const [popup, setPopup] = useState<PopupConfig | null>(null);
+    const expiresIn = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+    const resendAfter = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
     const isTimerActive = expiresIn > 0 || resendAfter > 0;
 
     useEffect(() => {
         if (!isTimerActive) return;
         const timer = window.setInterval(() => {
-            setExpiresIn((value) => Math.max(0, value - 1));
-            setResendAfter((value) => Math.max(0, value - 1));
+            setNow(Date.now());
         }, 1000);
         return () => window.clearInterval(timer);
     }, [isTimerActive]);
 
     const requestMutation = useMutation({
-        mutationFn: async () => {
-            const normalizedPhone = normalizePhoneNumber(phoneNumber);
-            const updated = await updatePhone({ phoneNum: normalizedPhone });
+        mutationFn: async (requestedPhone: string) => {
+            const updated = await updatePhone({ phoneNum: requestedPhone });
             if (updated.data.phoneVerified) return { alreadyVerified: true as const };
             const sent = await sendPhoneVerification();
             return { alreadyVerified: false as const, sent };
@@ -111,15 +164,25 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
         onMutate: () => {
             setPhoneError('');
         },
-        onSuccess: (result) => {
+        onSuccess: (result, requestedPhone) => {
             void queryClient.invalidateQueries({ queryKey: ['setting'] });
             if (result.alreadyVerified) {
+                clearVerificationSession(userId);
                 setPopup(PHONE_ERROR_MESSAGES['42940']);
                 return;
             }
+            const requestedAt = Date.now();
+            const session = {
+                challengeId: result.sent.data.challengeId,
+                phoneNumber: requestedPhone,
+                expiresAt: requestedAt + result.sent.data.expiresInSeconds * 1000,
+                resendAvailableAt: requestedAt + result.sent.data.resendAfterSeconds * 1000,
+            };
+            saveVerificationSession(userId, session);
             setChallengeId(result.sent.data.challengeId);
-            setExpiresIn(result.sent.data.expiresInSeconds);
-            setResendAfter(result.sent.data.resendAfterSeconds);
+            setExpiresAt(session.expiresAt);
+            setResendAvailableAt(session.resendAvailableAt);
+            setNow(requestedAt);
             setVerificationCode('');
             setCodeError('');
             setPopup({
@@ -162,6 +225,7 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
             setCodeError('');
         },
         onSuccess: () => {
+            clearVerificationSession(userId);
             void queryClient.invalidateQueries({ queryKey: ['setting'] });
             setPopup({
                 title: isRegistration ? '전화번호 등록이 완료되었습니다' : '전화번호가 변경되었습니다',
@@ -180,14 +244,18 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
                 return;
             }
             if (errorCode === '42042') {
+                clearVerificationSession(userId);
                 setChallengeId(null);
-                setExpiresIn(0);
+                setExpiresAt(0);
+                setResendAvailableAt(0);
                 setCodeError('인증 시간이 만료되었습니다. 인증번호를 다시 요청해 주세요.');
                 return;
             }
             if (errorCode === '42942') {
+                clearVerificationSession(userId);
                 setChallengeId(null);
-                setExpiresIn(0);
+                setExpiresAt(0);
+                setResendAvailableAt(0);
                 setCodeError('인증번호 입력 횟수를 초과했습니다. 인증번호를 다시 요청해 주세요.');
                 return;
             }
@@ -204,9 +272,10 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
         setPhoneNumber(formatPhoneNumber(value));
         setPhoneError('');
         if (challengeId) {
+            clearVerificationSession(userId);
             setChallengeId(null);
-            setExpiresIn(0);
-            setResendAfter(0);
+            setExpiresAt(0);
+            setResendAvailableAt(0);
             setVerificationCode('');
         }
     };
@@ -235,6 +304,7 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
                             inputMode='numeric'
                             autoComplete='tel'
                             value={phoneNumber}
+                            disabled={requestMutation.isPending || confirmMutation.isPending}
                             placeholder='전화번호를 입력해 주세요'
                             error={phoneError}
                             onChange={(event) => handlePhoneChange(event.target.value)}
@@ -246,7 +316,7 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
                                     className='h-[48px] w-[74px] rounded-[5px] px-[6px] text-white'
                                     disabled={!canRequest}
                                     loading={requestMutation.isPending}
-                                    onClick={() => requestMutation.mutate()}
+                                    onClick={() => requestMutation.mutate(normalizePhoneNumber(phoneNumber))}
                                 />
                             }
                         />
@@ -257,7 +327,7 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
                             value={verificationCode}
                             placeholder='인증 번호 6자리를 입력해 주세요'
                             maxLength={6}
-                            disabled={!challengeId || expiresIn <= 0}
+                            disabled={!challengeId || expiresIn <= 0 || requestMutation.isPending || confirmMutation.isPending}
                             error={codeError}
                             onChange={(event) => {
                                 setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6));
@@ -327,13 +397,25 @@ const PhoneSettingsForm = ({ initialStatus }: { initialStatus: PhoneStatusData }
 
 export const PhoneSettingsPage = () => {
     const navigate = useNavigate();
-    const { data, isLoading, isError } = useQuery({
-        queryKey: ['phoneStatus'],
+    const userId = useAuthStore((state) => state.user?.id);
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ['phoneStatus', userId],
         queryFn: getPhoneStatus,
+        enabled: Boolean(userId),
         retry: false,
     });
 
+    if (!userId) return null;
     if (isLoading) return <PopUp type='loading' isOpen />;
+    if (isError && shouldSkipLocalErrorUI(error, navigator.onLine)) {
+        return (
+            <HeaderLayout
+                headerSlot={<MainHeader title='전화번호 설정' leftAction={{ onClick: () => navigate(-1) }} />}
+            >
+                <div className='h-full w-full bg-white' />
+            </HeaderLayout>
+        );
+    }
     if (isError || !data?.data) {
         return (
         <PopUp
@@ -346,5 +428,5 @@ export const PhoneSettingsPage = () => {
         );
     }
 
-    return <PhoneSettingsForm initialStatus={data.data} />;
+    return <PhoneSettingsForm initialStatus={data.data} userId={userId} />;
 };

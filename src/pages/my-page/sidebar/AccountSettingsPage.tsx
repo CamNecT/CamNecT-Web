@@ -6,6 +6,7 @@ import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { MainHeader } from "../../../layouts/headers/MainHeader";
 import { getSettingInfo } from "../../../api/profileApi";
 import { useAuthStore } from "../../../store/useAuthStore";
+import { shouldSkipLocalErrorUI } from "../../../utils/getGlobalNetworkErrorType";
 import { formatPhoneNumber } from "../utils/phone";
 
 type AccountMenuItem = {
@@ -21,7 +22,7 @@ export const AccountSettingsPage = () => {
     const authUser = useAuthStore((state) => state.user);
     const userId = authUser?.id ? Number(authUser.id) : null;
 
-    const { data, isLoading, isError } = useQuery({
+    const { data, isLoading, isError, error } = useQuery({
         queryKey: ['setting', userId],
         queryFn: () => getSettingInfo(userId!),
         enabled: Boolean(userId),
@@ -42,6 +43,21 @@ export const AccountSettingsPage = () => {
     ];
 
     if (isLoading) return <PopUp type="loading" isOpen={true} />;
+
+    if (isError && shouldSkipLocalErrorUI(error, navigator.onLine)) {
+        return (
+            <HeaderLayout
+                headerSlot={
+                    <MainHeader
+                        title="계정관리"
+                        leftAction={{ onClick: () => navigate(-1) }}
+                    />
+                }
+            >
+                <div className="h-full w-full bg-white" />
+            </HeaderLayout>
+        );
+    }
 
     if (isError || !setting) {
         return (
