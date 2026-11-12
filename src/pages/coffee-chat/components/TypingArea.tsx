@@ -40,17 +40,31 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                     
                     {/* 입력창 영역 */}
                     <div className="relative flex-1">
-                        <input 
+                        <textarea
                             placeholder="메시지 입력" 
-                            type="text" 
+                            rows={1}
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                                    handleSend();
+                                // Enter가 아니거나 입력기에서 한글 등을 조합 중이면 전송 판단을 하지 않는다.
+                                if (e.key !== "Enter" || e.nativeEvent.isComposing) {
+                                    return;
                                 }
+
+                                // userAgent에 Android/iPhone/iPad/iPod 키워드 유무, 터치 지원 여부 확인                            
+                                const isMobileOrTouchDevice =
+                                    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                                    navigator.maxTouchPoints > 0;
+
+                                // 모바일 기기 or Shift + Enter는 줄바꿈 허용
+                                if (isMobileOrTouchDevice || e.shiftKey) {
+                                    return;
+                                }
+
+                                e.preventDefault();
+                                handleSend();
                             }}
-                            className="w-full h-[44px] bg-gray-100 border border-gray-150 rounded-[30px] pl-[18px] pr-[48px] text-r-16 outline-none placeholder:text-gray-400" 
+                            className="block w-full min-h-[44px] max-h-[90px] resize-none bg-gray-100 border border-gray-150 rounded-[30px] py-[10px] pl-[14px] pr-[48px] text-r-16 tracking-[-0.64px] outline-none placeholder:text-gray-150" 
                         />
                         {/* 전송 버튼 */}
                         <PressableMotion
