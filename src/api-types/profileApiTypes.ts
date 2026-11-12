@@ -162,8 +162,9 @@ export interface SettingInfoData {
   userId: number;
   name: string;
   profileImageUrl: string | null;
-  // phoneNum: string;
   email: string;
+  phoneNum: string | null;
+  phoneVerified: boolean;
 }
 
 export interface SettingInfoResponse {
@@ -175,4 +176,37 @@ export interface SettingInfoResponse {
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
+}
+
+export interface PhoneStatusData {
+  phoneNum: string | null;
+  phoneVerified: boolean;
+  phoneVerifiedAt: string | null;
+  phoneVerificationRequired: boolean;
+  smsAvailable: boolean;
+}
+
+export interface PhoneStatusResponse {
+  status: number;
+  message: string;
+  data: PhoneStatusData;
+}
+
+export interface UpdatePhoneRequest {
+  phoneNum: string;
+}
+
+export interface SendPhoneVerificationResponse {
+  status: number;
+  message: string;
+  data: {
+    challengeId: string;
+    expiresInSeconds: number;
+    resendAfterSeconds: number;
+  };
+}
+
+export interface ConfirmPhoneVerificationRequest {
+  challengeId: string;
+  code: string;
 }
