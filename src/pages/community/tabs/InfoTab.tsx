@@ -44,12 +44,13 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange, isAdm
       <div className='flex flex-wrap items-center gap-[12px]'>
         <div className='flex-1'>
           <FilterHeader
+            largeTouchTarget
             activeFilters={selectedTags}
             onOpenFilter={() => setIsFilterOpen(true)}
             onRemoveFilter={() => onTagChange(null)}
           />
         </div>
-        <SortSelector sortKey={sortKey} sortLabels={sortLabels} onChange={onSortChange} />
+        <SortSelector sortKey={sortKey} sortLabels={sortLabels} onChange={onSortChange} largeTouchTarget />
       </div>
 
       {/* 정보글 리스트 */}
