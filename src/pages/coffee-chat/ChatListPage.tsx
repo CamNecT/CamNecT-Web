@@ -116,6 +116,7 @@ export const ChatListPage = () => {
     setActiveId(id as ChatRoomListItemType);
     setIsEditMode(false);
     setSelectedRoomIds(new Set());
+    handleSortKeyChange('all');
   };
 
   const handleSortKeyChange = (key: SortKey) => {
