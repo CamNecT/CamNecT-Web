@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 // import BottomSheetModal from "../../../components/BottomSheetModal/BottomSheetModal";
 import Icon from "../../../components/Icon";
 import PressableMotion from "../../../components/PressableMotion";
@@ -11,6 +11,27 @@ interface TypingAreaProps {
 export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
     const [inputValue, setInputValue] = useState("");
     // const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const MAX_TEXTAREA_HEIGHT = 112;
+
+    useLayoutEffect(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        // 이전 높이를 풀고, 현재 내용에 필요한 높이를 다시 측정
+        textarea.style.height = "auto";
+
+        // scrollHeight에는 테두리가 빠지므로, 실제 테두리 높이를 덧셈
+        const borderHeight = textarea.offsetHeight - textarea.clientHeight;
+        const contentHeight = textarea.scrollHeight + borderHeight;
+
+        textarea.style.height =
+            `${Math.min(contentHeight, MAX_TEXTAREA_HEIGHT)}px`;
+        textarea.style.overflowY =
+            contentHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
+    }, [inputValue]);
 
     const handleSend = () => {
         const content = inputValue.trim();
@@ -41,6 +62,7 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                     {/* 입력창 영역 */}
                     <div className="relative flex-1">
                         <textarea
+                            ref = {textareaRef}
                             placeholder="메시지 입력" 
                             rows={1}
                             value={inputValue}
@@ -64,7 +86,7 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                                 e.preventDefault();
                                 handleSend();
                             }}
-                            className="block w-full min-h-[44px] max-h-[90px] resize-none bg-gray-100 border border-gray-150 rounded-[30px] py-[10px] pl-[14px] pr-[48px] text-r-16 tracking-[-0.64px] outline-none placeholder:text-gray-150" 
+                            className="block w-full min-h-[44px] max-h-[112px] resize-none bg-gray-100 border border-gray-150 rounded-[30px] py-[10px] pl-[14px] pr-[48px] text-r-16 tracking-[-0.64px] outline-none placeholder:text-gray-150" 
                         />
                         {/* 전송 버튼 */}
                         <PressableMotion
@@ -76,7 +98,7 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                             onClick={handleSend}
                             disabled={disabled}
                             // Framer Motion의 scale transform과 translate transform이 충돌하지 않도록 고정 offset 사용
-                            className={`absolute right-[4px] top-[4px] w-[36px] h-[36px] rounded-full flex items-center justify-center transition ${
+                            className={`absolute right-[4px] bottom-[4px] w-[36px] h-[36px] rounded-full flex items-center justify-center transition ${
                                 disabled 
                                     ? 'bg-gray-300 cursor-not-allowed' 
                                     : 'bg-primary'
