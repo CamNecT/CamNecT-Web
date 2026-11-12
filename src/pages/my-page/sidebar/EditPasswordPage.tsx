@@ -307,7 +307,7 @@ export const EditPasswordPage = () => {
                     <Button
                         label={isSubmitting ? "변경 중..." : "비밀번호 변경하기"}
                         font="sb-16-hn"
-                        className="w-full h-auto max-w-none py-[12px] rounded-full transition-colors"
+                        className="w-full h-[50px] max-w-none py-[12px] rounded-full transition-colors"
                         onClick={handleSubmit}
                         disabled={!isValid || isSubmitting}
                     />
