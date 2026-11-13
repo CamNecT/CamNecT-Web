@@ -439,7 +439,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const handleSendMessage = (text: string): boolean => {
         if (isChatUnavailable) return false;
 
-        return sendMessage(text);
+        const sendStarted = sendMessage(text);
+
+        if (sendStarted) {
+            // 보낸 메시지가 화면에 추가된 뒤 맨 아래로 이동한다.
+            requestAnimationFrame(() => {
+                if (!messagesEndRef.current) return;
+                window.scrollTo(0, document.documentElement.scrollHeight);
+            });
+        }
+
+        return sendStarted;
     }
 
     // 메시지 재전송 함수
