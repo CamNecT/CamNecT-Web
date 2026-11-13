@@ -73,13 +73,12 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                                     return;
                                 }
 
-                                // userAgent에 Android/iPhone/iPad/iPod 키워드 유무, 터치 지원 여부 확인                            
-                                const isMobileOrTouchDevice =
-                                    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-                                    navigator.maxTouchPoints > 0;
+                                // 모바일 userAgent에서 Enter는 줄바꿈으로 처리한다.
+                                const isMobileDevice =
+                                    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
                                 // 모바일 기기 or Shift + Enter는 줄바꿈 허용
-                                if (isMobileOrTouchDevice || e.shiftKey) {
+                                if (isMobileDevice || e.shiftKey) {
                                     return;
                                 }
 
