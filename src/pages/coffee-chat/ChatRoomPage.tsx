@@ -78,6 +78,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [firstUnreadMessageId, setFirstUnreadMessageId]
         = useState<string | null | undefined>(undefined);
 
+    const typingAreaRef = useRef<HTMLDivElement>(null);
+    const [typingAreaHeight, setTypingAreaHeight] = useState(65);
+    const previousTypingAreaHeightRef = useRef(65);
+
     // 메뉴 관련 상태
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -183,6 +187,34 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // const isComposerVisible = isRealtimeReady || hasConnectedOnce || !isStompEnabled;
 
     const isTypingAreaVisible = !isChatUnavailable && isComposerVisible;
+
+    useEffect(() => {
+        if (!isTypingAreaVisible) return;
+
+        const element = typingAreaRef.current;
+        if (!element) return;
+
+        const observer = new ResizeObserver(() => { // todo 이해할 것
+            const height = Math.ceil(element.getBoundingClientRect().height);
+
+            setTypingAreaHeight((previous) =>
+                previous === height ? previous : height
+            );
+        });
+
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [isTypingAreaVisible]);
+
+    // 입력창 높이가 변한 만큼 메시지 위치를 이동해 가려짐을 방지
+    useLayoutEffect(() => {
+        const heightDifference = typingAreaHeight - previousTypingAreaHeightRef.current;
+        previousTypingAreaHeightRef.current = typingAreaHeight;
+
+        if (heightDifference > 0) {
+            window.scrollBy(0, heightDifference);
+        }
+    }, [typingAreaHeight]);
 
     // 채팅방 전용 상단 안내는 임시 비활성화 -> 브라우저 offline 안내는 App의 GlobalOfflineBanner가 담당
     // const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
@@ -595,9 +627,22 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         >
             {/* 고정 TypingArea가 메시지를 가리지 않도록 환경별 하단 공간을 확보한다. */}
             <div
-                className={`flex flex-col ${isTypingAreaVisible ? 'chat-content-bottom-space' : 'pb-[80px]'} ${!isReady ? 'invisible' : 'visible'} ${allMessages.length === 0 ? 'min-h-[calc(100dvh-100px)] justify-end' : ''}`}
+                className={`flex flex-col ${
+                    !isTypingAreaVisible ? "pb-[80px]" : ""
+                } ${!isReady ? "invisible" : "visible"} ${
+                    allMessages.length === 0
+                        ? "min-h-[calc(100dvh-100px)] justify-end"
+                        : ""
+                }`}
                 style={{
-                    paddingTop: `calc(${isTeamRecruit ? (isRecruitExpanded ? '200px' : '134px') : '74px'} + env(safe-area-inset-top, 0px))`
+                    paddingTop: `calc(${
+                        isTeamRecruit
+                            ? isRecruitExpanded ? "200px" : "134px"
+                            : "74px"
+                    } + env(safe-area-inset-top, 0px))`,
+                    paddingBottom: isTypingAreaVisible
+                        ? `${typingAreaHeight}px`
+                        : undefined,
                 }}
             >
                 {/* 상단 정보 영역 */}
@@ -809,10 +854,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             {/* 고정된 입력창 */}
             {!isChatUnavailable && (
                 isComposerVisible ? (
-                    <TypingArea
-                        onSend={handleSendMessage}
-                        disabled={isChatUnavailable}
-                    />
+                    <div className="fixed bottom-0 left-1/2 z-50 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 flex-col gap-[18px]">
+                        <div ref={typingAreaRef}>
+                            <TypingArea
+                                onSend={handleSendMessage}
+                                disabled={isChatUnavailable}
+                            />
+                        </div>
+                    </div>
                 ) : (
                     <div
                         role="status"
