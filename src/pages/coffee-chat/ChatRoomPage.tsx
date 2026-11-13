@@ -79,30 +79,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [firstUnreadMessageId, setFirstUnreadMessageId]
         = useState<string | null | undefined>(undefined);
 
-    const typingAreaRef = useRef<HTMLDivElement>(null);
     const [typingAreaHeight, setTypingAreaHeight] = useState(65);
-    const previousTypingAreaHeightRef = useRef(65);
-
-    let latestOpponentMessage: (typeof socketMessages)[number] | undefined;
-
-    // 실시간 채팅 중에 상대방의 마지막 메시지 추출
-    if (userId != null) {
-        for (let i = socketMessages.length - 1; i >= 0; i--) {
-            if (String(socketMessages[i].senderId) !== String(userId)) {
-                latestOpponentMessage = socketMessages[i];
-                break;
-            }
-        }
-    }
-
-    const previewMessageCandidate = latestOpponentMessage ? {
-        id: String(latestOpponentMessage.messageId), // 동일 메시지 내용 구별 용도
-        message: latestOpponentMessage.message,
-    } : null;
-
-    const candidateId = previewMessageCandidate?.id;
-    const candidateRef = useRef<HTMLDivElement>(null);
-
     // 화면 밑에 있는 후보 메시지 id
     const [belowCandidateMessageId, setBelowCandidateMessageId] = useState<string | null>(null);
     // 이미 본 후보 메시지 id
@@ -128,112 +105,30 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         content: string;
     } | null>(null);
 
-    // 종료 여부 
-    const isTerminated = Boolean(chatRoomData?.closed);
-    const opponentExited = chatRoomData?.opponentExited;
-
     // 전송 실패 메시지의 드롭다운: 열려 있는 메시지의 id (없으면 null)
     const [openFailedMenuId, setOpenFailedMenuId] = useState<string | null>(null);
-
-    // 메뉴 바깥 클릭/터치 감지 로직은 ChatDropdown 컴포넌트로 이동함 (menuRef, useEffect 제거)
-
-    // STOMP 채팅방 나가기 처리 (브라우저 종료/새로고침 대응)
-    // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행
-    useEffect(() => {
-        const handleBeforeUnload = () => {
-            leaveChatRoom();
-        };
-
-        // beforeunload : 브라우저 수준의 종료/새로고침시의 대응
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        }
-    }, [leaveChatRoom]);
-
-    // REST 채팅 내역에서 서버 저장이 확인된 메시지를 zustand / sessionStorage에서 제거
-    useEffect(() => {
-        const serverMessages = chatRoomData?.messages;
-
-        // 아직 REST 조회 결과가 없으면 대조하지 않음
-        if (!serverMessages) return;
-
-        // REST 정상 메시지들의 clientMessageId 목록
-        const serverClientMessageIds = new Set(
-            serverMessages
-                .map((message) => message.clientMessageId)
-                .filter(
-                    (clientMessageId): clientMessageId is string =>
-                        clientMessageId !== null
-                )
-        );
-
-        pendingMessages
-            .filter((pending) => pending.roomId === roomId) // 현재 채팅방 pending만 확인
-            .filter((pending) =>                            // REST에 같은 clientMessageId가 있는 pending만 선택
-                serverClientMessageIds.has(
-                    pending.clientMessageId
-                )
-            )
-            .forEach((pending) => {                         // 서버 저장이 확인됐으므로 로컬에서 실제 삭제
-                removePendingMessage(
-                    pending.clientMessageId
-                );
-            });
-    }, [
-        chatRoomData?.messages,
-        pendingMessages,
-        roomId,
-        removePendingMessage,
-    ]);
 
     // 초기 진입 시 깜빡임 방지를 위한 상태
     const [isReady, setIsReady] = useState(false);
 
-    useEffect(() => {
-        if (!isReady || isSearching ||
-            !candidateId || seenCandidateMessageId === candidateId) {
-            return;
-        }
+    // 이 방에서 실시간 연결과 구독이 한 번이라도 준비됐는지 기억
+    // false → true로만 전환하며, roomId 변경 시 key 재마운트로 초기화
+    const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
 
-        const messageElement = candidateRef.current; // 관찰할 말풍선 (상대의 최근 메시지)
-        if (!messageElement) return; // todo 이해안됨
+    const typingAreaRef = useRef<HTMLDivElement>(null);
+    const previousTypingAreaHeightRef = useRef(65);
 
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                // 1. 말풍선이 화면에 보일때
-                if (entry.isIntersecting) {
-                    setSeenCandidateMessageId(candidateId);
-                    setBelowCandidateMessageId(null);
-                }
-                // 2. 말풍선이 화면 아래
-                else if (
-                    entry.boundingClientRect.top >=
-                    (entry.rootBounds?.bottom ?? window.innerHeight)
-                ) {
-                    setBelowCandidateMessageId(candidateId);
-                }
-                // 3.말풍선이 화면 위 -> 미리보기 표시 X
-                else {
-                    setBelowCandidateMessageId(null);
-                }
-            },
-            { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
-        );
+    const candidateRef = useRef<HTMLDivElement>(null);
 
-        observer.observe(messageElement);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-        return () => observer.disconnect();
-    }, [candidateId, isReady, isSearching, seenCandidateMessageId, typingAreaHeight]);
+    // 종료 여부 
+    const isTerminated = Boolean(chatRoomData?.closed);
+    const opponentExited = chatRoomData?.opponentExited;
 
     const isLoading = isRoomLoading;
     // 실시간 채팅 기능 이용가능 여부
     const isRealtimeReady = isStompConnected && isRoomSubscriptionReady;
-
-    // 이 방에서 실시간 연결과 구독이 한 번이라도 준비됐는지 기억
-    // false → true로만 전환하며, roomId 변경 시 key 재마운트로 초기화
-    const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
 
     // 렌더링 중에 조건부로 직접 갱신 (useEffect 사용 시 연쇄 렌더링 가능성)
     if (isRealtimeReady && !hasConnectedOnce) {
@@ -250,39 +145,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const isTypingAreaVisible = !isChatUnavailable && isComposerVisible;
 
-    useEffect(() => {
-        if (!isTypingAreaVisible) return;
-
-        const element = typingAreaRef.current;
-        if (!element) return;
-
-        const observer = new ResizeObserver(() => { // todo 이해할 것
-            const height = Math.ceil(element.getBoundingClientRect().height);
-
-            setTypingAreaHeight((previous) =>
-                previous === height ? previous : height
-            );
-        });
-
-        observer.observe(element);
-        return () => observer.disconnect();
-    }, [isTypingAreaVisible]);
-
-    // 입력창 높이가 변한 만큼 메시지 위치를 이동해 가려짐을 방지
-    useLayoutEffect(() => {
-        const heightDifference = typingAreaHeight - previousTypingAreaHeightRef.current;
-        previousTypingAreaHeightRef.current = typingAreaHeight;
-
-        if (heightDifference > 0) {
-            window.scrollBy(0, heightDifference);
-        }
-    }, [typingAreaHeight]);
-
-    // 채팅방 전용 상단 안내는 임시 비활성화 -> 브라우저 offline 안내는 App의 GlobalOfflineBanner가 담당
-    // const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
-
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
     const roomInfo = chatRoomData?.partner;
     const requestInfo = chatRoomData?.requestInfo;
     const isAdminPartner = isAdminUserId(roomInfo?.id);
@@ -290,9 +152,30 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const myId = String(userId);
 
+    let latestOpponentMessage: (typeof socketMessages)[number] | undefined;
+
+    // 실시간 채팅 중에 상대방의 마지막 메시지 추출
+    if (userId != null) {
+        for (let i = socketMessages.length - 1; i >= 0; i--) {
+            if (String(socketMessages[i].senderId) !== String(userId)) {
+                latestOpponentMessage = socketMessages[i];
+                break;
+            }
+        }
+    }
+
+    const previewMessageCandidate = latestOpponentMessage ? {
+        id: String(latestOpponentMessage.messageId), // 동일 메시지 내용 구별 용도
+        message: latestOpponentMessage.message,
+    } : null;
+
+    const candidateId = previewMessageCandidate?.id;
     // NewMessagePreview 가능한지
     const isPreviewVisible= !isSearching && candidateId != null &&
         belowCandidateMessageId === candidateId && seenCandidateMessageId !== candidateId;
+
+    // 채팅방 전용 상단 안내는 임시 비활성화 -> 브라우저 offline 안내는 App의 GlobalOfflineBanner가 담당
+    // const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
 
     // 이번 입장에서 받은 첫 상세 응답의 경계를 고정한다.
     // 백엔드가 아직 필드를 보내지 않으면 구분선을 생략하고 다음 응답을 기다린다.
@@ -411,6 +294,124 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }
         return -1;
     }, [localMessages, myId]);
+
+    // 메뉴 바깥 클릭/터치 감지 로직은 ChatDropdown 컴포넌트로 이동함 (menuRef, useEffect 제거)
+
+    // STOMP 채팅방 나가기 처리 (브라우저 종료/새로고침 대응)
+    // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            leaveChatRoom();
+        };
+
+        // beforeunload : 브라우저 수준의 종료/새로고침시의 대응
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        }
+    }, [leaveChatRoom]);
+
+    // REST 채팅 내역에서 서버 저장이 확인된 메시지를 zustand / sessionStorage에서 제거
+    useEffect(() => {
+        const serverMessages = chatRoomData?.messages;
+
+        // 아직 REST 조회 결과가 없으면 대조하지 않음
+        if (!serverMessages) return;
+
+        // REST 정상 메시지들의 clientMessageId 목록
+        const serverClientMessageIds = new Set(
+            serverMessages
+                .map((message) => message.clientMessageId)
+                .filter(
+                    (clientMessageId): clientMessageId is string =>
+                        clientMessageId !== null
+                )
+        );
+
+        pendingMessages
+            .filter((pending) => pending.roomId === roomId) // 현재 채팅방 pending만 확인
+            .filter((pending) =>                            // REST에 같은 clientMessageId가 있는 pending만 선택
+                serverClientMessageIds.has(
+                    pending.clientMessageId
+                )
+            )
+            .forEach((pending) => {                         // 서버 저장이 확인됐으므로 로컬에서 실제 삭제
+                removePendingMessage(
+                    pending.clientMessageId
+                );
+            });
+    }, [
+        chatRoomData?.messages,
+        pendingMessages,
+        roomId,
+        removePendingMessage,
+    ]);
+
+    useEffect(() => {
+        if (!isReady || isSearching ||
+            !candidateId || seenCandidateMessageId === candidateId) {
+            return;
+        }
+
+        const messageElement = candidateRef.current; // 관찰할 말풍선 (상대의 최근 메시지)
+        if (!messageElement) return; // todo 이해안됨
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                // 1. 말풍선이 화면에 보일때
+                if (entry.isIntersecting) {
+                    setSeenCandidateMessageId(candidateId);
+                    setBelowCandidateMessageId(null);
+                }
+                // 2. 말풍선이 화면 아래
+                else if (
+                    entry.boundingClientRect.top >=
+                    (entry.rootBounds?.bottom ?? window.innerHeight)
+                ) {
+                    setBelowCandidateMessageId(candidateId);
+                }
+                // 3.말풍선이 화면 위 -> 미리보기 표시 X
+                else {
+                    setBelowCandidateMessageId(null);
+                }
+            },
+            { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
+        );
+
+        observer.observe(messageElement);
+
+        return () => observer.disconnect();
+    }, [candidateId, isReady, isSearching, seenCandidateMessageId, typingAreaHeight]);
+
+    useEffect(() => {
+        if (!isTypingAreaVisible) return;
+
+        const element = typingAreaRef.current;
+        if (!element) return;
+
+        const observer = new ResizeObserver(() => { // todo 이해할 것
+            const height = Math.ceil(element.getBoundingClientRect().height);
+
+            setTypingAreaHeight((previous) =>
+                previous === height ? previous : height
+            );
+        });
+
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [isTypingAreaVisible]);
+
+    // 입력창 높이가 변한 만큼 메시지 위치를 이동해 가려짐을 방지
+    useLayoutEffect(() => {
+        const heightDifference = typingAreaHeight - previousTypingAreaHeightRef.current;
+
+        previousTypingAreaHeightRef.current = typingAreaHeight;
+
+        if (heightDifference > 0) {
+            window.scrollBy(0, heightDifference);
+        }
+    }, [typingAreaHeight]);
 
     useLayoutEffect(() => {
         if (!isLoading && !isReady) {
