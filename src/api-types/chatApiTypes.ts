@@ -67,6 +67,7 @@ export interface ChatRoomDetailResponse {
         recruitmentTitle: string;
         activityId: number;
         recruitmentId: number;
+        firstUnreadMessageId?: number | null;
         chatList: ChatMessageInfo[];
         closed: boolean;
         opponentExited: boolean;

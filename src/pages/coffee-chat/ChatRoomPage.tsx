@@ -51,7 +51,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }))
     );
 
-    const { data: chatRoomData, isLoading: isRoomLoading } = useChatRoom(roomId);
+    const {
+        data: chatRoomData,
+        isLoading: isRoomLoading,
+        isFetchedAfterMount: isRoomFetchedAfterMount,
+    } = useChatRoom(roomId);
     const {
         mutate: endChat,
         isPending: isEndChatPending,
@@ -69,6 +73,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 검색 관련 상태
     const [isSearching, setIsSearching] = useState(false);
     const [roomSearchQuery, setRoomSearchQuery] = useState("");
+
+    // 안읽은 메시지 Id 상태
+    const [firstUnreadMessageId, setFirstUnreadMessageId]
+        = useState<string | null | undefined>(undefined);
 
     // 메뉴 관련 상태
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -187,6 +195,12 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const isTeamRecruit = requestInfo?.type === 'TEAM_RECRUIT';
 
     const myId = String(userId);
+
+    // 이번 입장에서 받은 첫 상세 응답의 경계를 고정한다.
+    // 백엔드가 아직 필드를 보내지 않으면 구분선을 생략하고 다음 응답을 기다린다.
+    if (isRoomFetchedAfterMount && firstUnreadMessageId === undefined && chatRoomData?.firstUnreadMessageId !== undefined) {
+        setFirstUnreadMessageId(chatRoomData.firstUnreadMessageId);
+    }
 
     // 기존 채팅 내역 + 실시간 채팅 내역 병합 (pending 메시지)
     const allMessages = useMemo(() => {
@@ -644,6 +658,18 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                     </div>
                                 )}
 
+                                {
+                                    // 이번 입장 전까지 읽은 위치를 방을 나갈 때까지 표시
+                                    (msg.id === firstUnreadMessageId) && (
+                                    <div className="flex items-center gap-[15px] my-[10px]">
+                                        <div className="flex-1 h-[1px] bg-gray-150"></div>
+                                        <div className="text-r-12 text-gray-650 tracking-[-0.24px] shrink-0">
+                                            이곳까지 읽으셨습니다
+                                        </div>
+                                        <div className="flex-1 h-[1px] bg-gray-150"></div>
+                                    </div>
+                                )}
+
                                 <div className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} ${isSameAsPrev ? 'mt-[3px]' : 'mt-[7px]'}`}>
                                     <div className={`flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-[6px] max-w-[80%]`}>
 
@@ -769,7 +795,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     })}
                     {/* 채팅 종료 구분선 */}
                     {isTerminated && (
-                        <div className="flex items-center gap-[15px] my-[20px]">
+                        <div className="flex items-center gap-[15px] my-[10px]">
                             <div className="flex-1 h-[1px] bg-gray-150"></div>
                             <div className="text-r-12 text-gray-650 tracking-[-0.24px] shrink-0">
                                 채팅이 종료되었습니다
@@ -779,7 +805,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     )}
                     {/* 상대방이 나갔을 때 표시 */}
                     {opponentExited && (
-                        <div className="flex items-center gap-[15px] my-[20px]">
+                        <div className="flex items-center gap-[15px] my-[10px]">
                             <div className="flex-1 h-[1px] bg-gray-150"></div>
                             <div className="text-r-12 text-gray-650 tracking-[-0.24px] shrink-0">
                                 상대방이 채팅방을 나갔습니다
