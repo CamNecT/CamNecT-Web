@@ -314,11 +314,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         return -1;
     }, [localMessages, myId]);
 
-    // 가장 아래로 스크롤하는 함수 (전체 문서 기준)
-    const scrollToBottom = () => {
-        window.scrollTo(0, document.documentElement.scrollHeight);
-    };
-
+    // todo 첫 렌더는 밑으로 가고 일단 읽으면 밑으로 가지 않는다
     useLayoutEffect(() => {
         if (!isLoading && !isReady) {
             if (localMessages.length > 0) {
@@ -335,14 +331,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }
     }, [isLoading, localMessages.length, isReady]);
 
-    // 2. 메시지가 추가될 때 부드럽게 스크롤
-    useEffect(() => {
-        if (isReady && localMessages.length > 0) {
-            scrollToBottom();
-        }
-    }, [localMessages.length, isReady]);
-
-    // 3. 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
+    // 2. 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
     useEffect(() => {
         return () => {
             queryClient.invalidateQueries({ queryKey: ['chatUnreadCount', userId] });
