@@ -28,6 +28,11 @@ import type {
   RecruitmentBookmarkResponse,
   RecruitmentApplyRequest,
   RecruitmentApplyResponse,
+  ActivityCommentListResponse,
+  ActivityCommentCreateRequest,
+  ActivityCommentCreateResponse,
+  ActivityCommentUpdateRequest,
+  ActivityCommentMutationResponse,
 } from '../api-types/activityApiTypes';
 import { axiosInstance } from './axiosInstance';
 
@@ -167,6 +172,52 @@ export const toggleActivityBookmark = async (
     `/api/activity/${activityId}/bookmark`,
     null,
     { params: { userId } },
+  );
+  return response.data;
+};
+
+// 동아리/스터디 댓글 목록 조회 [GET] (/api/activity/{activityId}/comments)
+export const getActivityComments = async (
+  activityId: number,
+  params?: { cursorId?: number; size?: number },
+): Promise<ActivityCommentListResponse> => {
+  const response = await axiosInstance.get<ActivityCommentListResponse>(
+    `/api/activity/${activityId}/comments`,
+    { params },
+  );
+  return response.data;
+};
+
+// 동아리/스터디 댓글 및 대댓글 작성 [POST] (/api/activity/{activityId}/comments)
+export const createActivityComment = async (
+  activityId: number,
+  data: ActivityCommentCreateRequest,
+): Promise<ActivityCommentCreateResponse> => {
+  const response = await axiosInstance.post<ActivityCommentCreateResponse>(
+    `/api/activity/${activityId}/comments`,
+    data,
+  );
+  return response.data;
+};
+
+// 동아리/스터디 댓글 수정 [PATCH] (/api/activity/comments/{commentId})
+export const updateActivityComment = async (
+  commentId: number,
+  data: ActivityCommentUpdateRequest,
+): Promise<ActivityCommentMutationResponse> => {
+  const response = await axiosInstance.patch<ActivityCommentMutationResponse>(
+    `/api/activity/comments/${commentId}`,
+    data,
+  );
+  return response.data;
+};
+
+// 동아리/스터디 댓글 삭제 [DELETE] (/api/activity/comments/{commentId})
+export const deleteActivityComment = async (
+  commentId: number,
+): Promise<ActivityCommentMutationResponse> => {
+  const response = await axiosInstance.delete<ActivityCommentMutationResponse>(
+    `/api/activity/comments/${commentId}`,
   );
   return response.data;
 };

@@ -235,6 +235,59 @@ export interface ActivityBookmarkResponse {
   data: string;
 }
 
+// 동아리/스터디 댓글
+export interface ActivityCommentAuthor {
+  userId: number;
+  name: string;
+  profileImageUrl?: string | null;
+  studentNo?: string;
+  majorName?: string;
+  yearLevel?: number;
+}
+
+export interface ActivityCommentItem {
+  commentId: number;
+  userId: number;
+  parentCommentId: number | null;
+  content: string;
+  likeCount: number;
+  createdAt: string;
+  author: ActivityCommentAuthor | null;
+}
+
+export interface ActivityCommentListResponse {
+  status: number;
+  message: string;
+  data: {
+    items: ActivityCommentItem[];
+    nextCursorId: number | null;
+    hasNext: boolean;
+  };
+}
+
+export interface ActivityCommentCreateRequest {
+  content: string;
+  parentCommentId: number | null;
+}
+
+export interface ActivityCommentCreateResponse {
+  status: number;
+  message: string;
+  data: {
+    commentId: number;
+  };
+}
+
+export interface ActivityCommentUpdateRequest {
+  content: string;
+}
+
+export interface ActivityCommentMutationResponse {
+  status: number;
+  message: string;
+  data: null;
+}
+
 //Presigned URL
 export interface PresignedUrlItem {
   fileKey: string;
