@@ -22,6 +22,7 @@ import { TypingArea } from "./components/TypingArea";
 import ReportModal from "../../components/report/ReportModal";
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import { isAdminUserId } from '../../utils/admin';
+import { NewMessagePreview } from "./components/NewMessagePreview";
 
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -74,13 +75,38 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [roomSearchQuery, setRoomSearchQuery] = useState("");
 
-    // 안읽은 메시지 Id 상태
+    // [채팅방 입장 시] 안읽은 메시지 Id 상태
     const [firstUnreadMessageId, setFirstUnreadMessageId]
         = useState<string | null | undefined>(undefined);
 
     const typingAreaRef = useRef<HTMLDivElement>(null);
     const [typingAreaHeight, setTypingAreaHeight] = useState(65);
     const previousTypingAreaHeightRef = useRef(65);
+
+    let latestOpponentMessage: (typeof socketMessages)[number] | undefined;
+
+    // 실시간 채팅 중에 상대방의 마지막 메시지 추출
+    if (userId != null) {
+        for (let i = socketMessages.length - 1; i >= 0; i--) {
+            if (String(socketMessages[i].senderId) !== String(userId)) {
+                latestOpponentMessage = socketMessages[i];
+                break;
+            }
+        }
+    }
+
+    const previewMessageCandidate = latestOpponentMessage ? {
+        id: String(latestOpponentMessage.messageId), // 동일 메시지 내용 구별 용도
+        message: latestOpponentMessage.message,
+    } : null;
+
+    const candidateId = previewMessageCandidate?.id;
+    const candidateRef = useRef<HTMLDivElement>(null);
+
+    // 화면 밑에 있는 후보 메시지 id
+    const [belowCandidateMessageId, setBelowCandidateMessageId] = useState<string | null>(null);
+    // 이미 본 후보 메시지 id
+    const [seenCandidateMessageId, setSeenCandidateMessageId] = useState<string | null>(null);
 
     // 메뉴 관련 상태
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -165,6 +191,42 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 초기 진입 시 깜빡임 방지를 위한 상태
     const [isReady, setIsReady] = useState(false);
 
+    useEffect(() => {
+        if (!isReady || isSearching ||
+            !candidateId || seenCandidateMessageId === candidateId) {
+            return;
+        }
+
+        const messageElement = candidateRef.current; // 관찰할 말풍선 (상대의 최근 메시지)
+        if (!messageElement) return; // todo 이해안됨
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                // 1. 말풍선이 화면에 보일때
+                if (entry.isIntersecting) {
+                    setSeenCandidateMessageId(candidateId);
+                    setBelowCandidateMessageId(null);
+                }
+                // 2. 말풍선이 화면 아래
+                else if (
+                    entry.boundingClientRect.top >=
+                    (entry.rootBounds?.bottom ?? window.innerHeight)
+                ) {
+                    setBelowCandidateMessageId(candidateId);
+                }
+                // 3.말풍선이 화면 위 -> 미리보기 표시 X
+                else {
+                    setBelowCandidateMessageId(null);
+                }
+            },
+            { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
+        );
+
+        observer.observe(messageElement);
+
+        return () => observer.disconnect();
+    }, [candidateId, isReady, isSearching, seenCandidateMessageId, typingAreaHeight]);
+
     const isLoading = isRoomLoading;
     // 실시간 채팅 기능 이용가능 여부
     const isRealtimeReady = isStompConnected && isRoomSubscriptionReady;
@@ -227,6 +289,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const isTeamRecruit = requestInfo?.type === 'TEAM_RECRUIT';
 
     const myId = String(userId);
+
+    // NewMessagePreview 가능한지
+    const isPreviewVisible= !isSearching && candidateId != null &&
+        belowCandidateMessageId === candidateId && seenCandidateMessageId !== candidateId;
 
     // 이번 입장에서 받은 첫 상세 응답의 경계를 고정한다.
     // 백엔드가 아직 필드를 보내지 않으면 구분선을 생략하고 다음 응답을 기다린다.
@@ -346,7 +412,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         return -1;
     }, [localMessages, myId]);
 
-    // todo 첫 렌더는 밑으로 가고 일단 읽으면 밑으로 가지 않는다
     useLayoutEffect(() => {
         if (!isLoading && !isReady) {
             if (localMessages.length > 0) {
@@ -363,7 +428,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }
     }, [isLoading, localMessages.length, isReady]);
 
-    // 2. 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
+    // 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
     useEffect(() => {
         return () => {
             queryClient.invalidateQueries({ queryKey: ['chatUnreadCount', userId] });
@@ -484,6 +549,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 });
             }
         });
+    }
+
+    // 메시지 미리보기 버튼 클릭 시
+    const handlePreviewClick = () => {
+        if (!candidateId) return;
+
+        setSeenCandidateMessageId(candidateId);
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" })
     }
 
     return (
@@ -673,7 +746,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                         const bubbleRounding = isMe
                             ? (isSameAsNext ? 'rounded-[20px]' : 'rounded-l-[20px] rounded-br-[20px] rounded-tr-none')
                             : (isSameAsNext ? 'rounded-[20px]' : 'rounded-t-[20px] rounded-br-[20px] rounded-bl-none');
-                        
+
                         const isPending = msg.deliveryState === 'pending';
                         const isUnconfirmed = msg.deliveryState === 'unconfirmed';
                         const isFailed = msg.deliveryState === 'failed'; 
@@ -745,7 +818,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             <div className="flex items-center gap-[7px] relative">
                                                 <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
                                                     ${isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'}
-                                                    ${isPending || isUnconfirmed ? 'opacity-40' : ''}`}>
+                                                    ${isPending || isUnconfirmed ? 'opacity-40' : ''}`}
+                                                    ref = {msg.id === candidateId ? candidateRef : undefined}
+                                                >
                                                     <span className="select-text whitespace-pre-wrap">{msg.content}</span>
                                                 </div>
 
@@ -855,13 +930,23 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             {!isChatUnavailable && (
                 isComposerVisible ? (
                     <div className="fixed bottom-0 left-1/2 z-50 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 flex-col gap-[18px]">
+                        {isPreviewVisible && (
+                            <div className="flex justify-center px-[40px]">
+                                <NewMessagePreview
+                                    message={previewMessageCandidate?.message ?? ""}
+                                    onClick={handlePreviewClick}
+                                />
+                            </div>
+                        )}
                         <div ref={typingAreaRef}>
                             <TypingArea
                                 onSend={handleSendMessage}
                                 disabled={isChatUnavailable}
                             />
                         </div>
+
                     </div>
+
                 ) : (
                     <div
                         role="status"
