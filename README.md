@@ -14,6 +14,10 @@ CamNecT는 동문 탐색과 포트폴리오 공유, 커뮤니티, 대외활동 �
 | :---: | :---: | :---: |
 | <a href="./docs/screenshots/home.png"><img src="./docs/screenshots/home.png" alt="홈 화면" width="240" /></a> | <a href="./docs/screenshots/alumni.png"><img src="./docs/screenshots/alumni.png" alt="동문 찾기 화면" width="240" /></a> | <a href="./docs/screenshots/chat.png"><img src="./docs/screenshots/chat.png" alt="읽음 표시가 있는 커피챗 화면" width="240" /></a> |
 
+| 대외활동 | 포트폴리오 | 기프티콘 |
+| :---: | :---: | :---: |
+| <a href="./docs/screenshots/activity.png"><img src="./docs/screenshots/activity.png" alt="대외활동 화면" width="240" /></a> | <a href="./docs/screenshots/portfolio.png"><img src="./docs/screenshots/portfolio.png" alt="포트폴리오 화면" width="240" /></a> | <a href="./docs/screenshots/gifticon.png"><img src="./docs/screenshots/gifticon.png" alt="기프티콘 화면" width="240" /></a> |
+
 ## 🔗 프로젝트 개요
 
 - 개발 기간: 2026.01 ~ 현재
@@ -53,24 +57,40 @@ CamNecT는 동문 탐색과 포트폴리오 공유, 커뮤니티, 대외활동 �
 
 ### 끊겨도 이어지는 채팅
 
-- ACK가 늦거나 연결이 끊겨도 메시지를 곧바로 실패로 단정하지 않습니다. `pending`·`sent`·`unconfirmed`·`failed` 상태를 나누고, 미확정 메시지는 새로고침 후에도 복원합니다.
-- STOMP 재연결 시 채팅방을 다시 구독하고 REST 내역을 재조회합니다. `clientMessageId`로 대기 메시지와 서버 메시지의 중복 표시를 막습니다.
+- ACK가 늦거나 연결이 끊겨도 메시지를 곧바로 실패로 단정하지 않습니다.
+- `pending`·`sent`·`unconfirmed`·`failed` 상태를 나눠 전송 결과를 추적합니다.
+- 미확정 메시지는 새로고침 후에도 복원합니다.
+- STOMP 재연결 시 채팅방을 다시 구독하고 REST 내역을 재조회합니다.
+- `clientMessageId`로 대기 메시지와 서버 메시지의 중복 표시를 막습니다.
+
+### 대화 흐름을 지키는 새 메시지 안내
+
+- 상대 메시지가 와도 읽던 위치를 유지하고, 화면 아래의 새 메시지만 미리보기로 안내합니다.
+- `IntersectionObserver`로 말풍선 노출을 감지해 안내를 닫습니다.
+- `ResizeObserver`로 입력창 높이에 맞춰 하단 여백을 조정해 메시지 가림을 방지합니다.
 
 ### 만료된 토큰을 안전하게 갱신
 
-- Access Token 만료 시 Refresh Token Rotation(RTR) 후 원래 요청을 재시도합니다. 동시에 들어온 갱신 요청은 하나로 묶고, 이전 세션의 늦은 응답이 새 로그인에 반영되지 않게 합니다.
+- Access Token 만료 시 Refresh Token Rotation(RTR) 후 원래 요청을 재시도합니다.
+- 동시에 들어온 갱신 요청은 하나로 묶습니다.
+- 이전 세션의 늦은 응답이 새 로그인에 반영되지 않게 합니다.
 
 ### 기프티콘 중복 구매 방지
 
-- 연속 클릭으로 발생하는 중복 요청을 막습니다. 응답을 받지 못해 재시도할 때는 같은 `clientRequestId`를 보내 서버가 동일한 구매 시도로 식별할 수 있게 합니다.
+- 연속 클릭으로 발생하는 중복 요청을 막습니다.
+- 응답을 받지 못해 재시도할 때는 같은 `clientRequestId`를 보냅니다.
+- 서버는 이를 동일한 구매 시도로 식별합니다.
 
 ### 신고 증거와 처리 과정 연결
 
-- 증거 이미지의 사전 서명 URL을 일괄 발급받아 S3에 업로드합니다. 관리자는 신고 건별 증거를 확인하고 처리 상태를 변경할 수 있습니다.
+- 증거 이미지의 사전 서명 URL을 일괄 발급받아 S3에 업로드합니다.
+- 관리자는 신고 건별 증거를 확인하고 처리 상태를 변경할 수 있습니다.
 
 ### 오류 안내의 책임 분리
 
-- 브라우저 오프라인은 전역 배너에서 안내하고, HTTP 오류·시간 초과 등은 각 기능에서 처리합니다. 같은 문제에 여러 오류 UI가 겹치지 않도록 구분합니다.
+- 브라우저 오프라인은 전역 배너에서 안내합니다.
+- HTTP 오류·시간 초과 등은 각 기능에서 처리합니다.
+- 같은 문제에 여러 오류 UI가 겹치지 않도록 구분합니다.
 
 ## 🧭 개발 예정
 
@@ -82,11 +102,12 @@ CamNecT는 동문 탐색과 포트폴리오 공유, 커뮤니티, 대외활동 �
 
 ## 👥 팀 구성 및 역할 분담
 
-### 정상현 (인프라 · 인증 · 채팅)
+### 정상현 (인프라 · 인증 · 채팅 · 푸시 알림)
 
-- 프로젝트 기반 및 CI/CD, PWA·FCM·Service Worker 설정
+- 프로젝트 기반 및 CI/CD, PWA 설정
 - 인증·온보딩과 RTR 기반 세션 갱신
 - 커피챗 실시간 채팅 및 전송 상태 관리
+- FCM 푸시 알림 구현: 권한 요청·토큰 등록, 실시간 수신, Service Worker 알림 표시·클릭 이동
 
 ### 김나연 (마이페이지 · 포트폴리오 · 대외활동 · 신고)
 
