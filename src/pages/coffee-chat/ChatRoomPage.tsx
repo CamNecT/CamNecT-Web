@@ -567,7 +567,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         if (!candidateId) return;
 
         setSeenCandidateMessageId(candidateId);
-        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" })
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" })
     }
 
     return (
