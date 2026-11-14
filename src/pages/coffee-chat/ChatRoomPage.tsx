@@ -779,7 +779,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                 {
                                     // 이번 입장 전까지 읽은 위치를 방을 나갈 때까지 표시
                                     (msg.id === firstUnreadMessageId) && (
-                                    <div className="flex items-center gap-[15px] my-[10px]">
+                                    <div className="flex items-center gap-[15px] mt-[10px] mb-[7px]">
                                         <div className="flex-1 h-[1px] bg-gray-150"></div>
                                         <div className="text-r-12 text-gray-650 tracking-[-0.24px] shrink-0">
                                             이곳까지 읽으셨습니다
