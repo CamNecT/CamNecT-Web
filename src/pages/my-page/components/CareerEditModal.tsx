@@ -90,21 +90,32 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         return careersChanged || showPublicChanged;
     }, [listCareers, careers, showPublic, initialShowPublic]);
 
+    // 추가 버튼을 누르지 않은 마지막 입력도 완료 시 함께 저장한다.
+    const completedFormData: Partial<CareerItem> = useMemo(() => {
+        const pendingPosition = newPosition.trim();
+        if (!pendingPosition) return formData;
+
+        return {
+            ...formData,
+            positions: [...(formData.positions || []), pendingPosition],
+        };
+    }, [formData, newPosition]);
+
     // 수정/추가 각각의 변경사항 추적
     const hasFormChanges: boolean = useMemo(() => {
-        if (!formData.organization || !formData.organization.trim()) {
+        if (!completedFormData.organization || !completedFormData.organization.trim()) {
             return false;
         }
         if (currentView === 'add') {
-            return endDateMode !== 'unselected' && !!(formData.organization.trim());
+            return endDateMode !== 'unselected';
         }
         if (currentView === 'edit' && editingId !== null) {
             const original = listCareers.find(c => c.id === editingId);
             if (!original) return false;
-            return JSON.stringify(formData) !== JSON.stringify(original);
+            return JSON.stringify(completedFormData) !== JSON.stringify(original);
         }
         return false;
-    }, [formData, currentView, editingId, listCareers, endDateMode]);
+    }, [completedFormData, currentView, editingId, listCareers, endDateMode]);
 
     const saveMutation = useMutation({
         mutationFn: async () => {
@@ -202,7 +213,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
     };
 
     const handleSaveForm = () => {
-        if (!formData.organization || !formData.organization.trim()) {
+        if (!completedFormData.organization || !completedFormData.organization.trim()) {
             return;
         }
         
@@ -214,14 +225,15 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         if (currentView === 'add') {
             const newCareer: CareerItem = {
                 id: generateId(),
-                ...formData as Omit<CareerItem, 'id'>
+                ...completedFormData as Omit<CareerItem, 'id'>
             };
             setListCareers([...listCareers, newCareer]);
         } else if (currentView === 'edit' && editingId !== null) {
             setListCareers(listCareers.map(c => 
-                c.id === editingId ? { ...c, ...formData } : c
+                c.id === editingId ? { ...c, ...completedFormData } : c
             ));
         }
+        setNewPosition('');
         setCurrentView('list');
     };
 

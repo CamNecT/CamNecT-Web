@@ -49,30 +49,35 @@ export default function InfoSection({
             <div className="text-gray-650">{emptyText[type]}</div>
             ) : (
                     displayItems.map((item, idx) => (
-                        <div key={idx} className="flex flex-col gap-[3px]">
-                            <div className="text-r-12-hn text-gray-650">{item.period}</div>
-                            {type === "career" ? (
-                                <div className="flex gap-[5px]">
-                                    <div className="text-r-16-hn text-gray-900 w-[120px]">{item.mainText}</div>
+                        type === "career" ? (
+                            <div key={idx} className="flex items-start gap-[10px]">
+                                <div className="w-[98px] shrink-0 text-r-12-hn text-gray-650">
+                                    {item.period}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="break-words text-r-16-hn text-gray-900">
+                                        {item.mainText}
+                                    </div>
                                     {item.position && item.position.length > 0 && (
-                                        <div className="flex-1 flex flex-col gap-[3px]">
+                                        <div className="mt-[6px] flex flex-col gap-[3px]">
                                             {item.position.map((position, positionIdx) => (
-                                                <div key={positionIdx} className="text-r-14-hn text-gray-750">
+                                                <div key={positionIdx} className="break-words text-r-14-hn text-gray-750">
                                                     - {position}
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                            ) : (
+                            </div>
+                        ) : (
+                            <div key={idx} className="flex flex-col gap-[3px]">
+                                <div className="text-r-12-hn text-gray-650">{item.period}</div>
                                 <div className="flex items-center gap-[5px]">
                                     <span className="text-r-16-hn text-gray-900">{item.mainText}</span>
                                     {item.status && <span className="text-r-14-hn text-gray-750">{item.status}</span>}
-                                    
                                 </div>
-                            )}
-                            
-                        </div>
+                            </div>
+                        )
                     ))
                 )}
             </div>
