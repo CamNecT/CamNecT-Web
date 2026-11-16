@@ -20,7 +20,7 @@ const FilterIcon = ({
   const buttonClassName = [
     // 적용된 필터 칩과 동일한 높이로 맞춰 필터 영역의 세로폭을 일정하게 유지한다.
     'flex items-center justify-center bg-transparent p-0',
-    largeTouchTarget ? 'size-12 shrink-0 rounded-[5px] active:bg-gray-150' : 'size-[25px] rounded-[3px]',
+    largeTouchTarget ? 'size-12 shrink-0 rounded-[5px]' : 'size-[25px] rounded-[3px]',
     className,
   ]
     .filter(Boolean)

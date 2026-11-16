@@ -82,7 +82,7 @@ function RecommendBox({
                         as="button"
                         intensity="soft"
                         type="button"
-                        className="-m-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3 active:bg-gray-150"
+                        className="-m-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3"
                         onClick={(event) => {
                             event.stopPropagation();
                             navigate(`/alumni/profile/${userId}`);

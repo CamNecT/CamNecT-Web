@@ -38,7 +38,7 @@ const SortSelector = <SortKey extends string>({
           type='button'
           aria-label={`${modalTitle}: ${sortLabels[sortKey]}`}
           aria-expanded={isOpen}
-          className={`inline-flex min-h-12 min-w-12 items-center justify-center gap-[6px] rounded-[5px] px-2 active:bg-gray-150 ${buttonClassName}`}
+          className={`inline-flex min-h-12 min-w-12 items-center justify-center gap-[6px] rounded-[5px] px-2 ${buttonClassName}`}
           onClick={() => setIsOpen((open) => !open)}
         >
           {sortLabels[sortKey]}

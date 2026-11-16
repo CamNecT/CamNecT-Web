@@ -73,7 +73,7 @@ export const MainHeader = ({
   // 높이 50px인 헤더 안에서 아이콘 크기를 유지하고 버튼 영역만 넓힌다.
   const actionClassName = twMerge(
     'flex items-center justify-center',
-    largeTouchTarget && 'size-12 shrink-0 rounded-[5px] active:bg-gray-150',
+    largeTouchTarget && 'size-12 shrink-0 rounded-[5px]',
   );
 
   return (
