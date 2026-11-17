@@ -109,13 +109,13 @@ const PopUp = ({
 
     return (
       <div className={`flex flex-col ${
-        hasWarningCheckbox
-        ? 'gap-[7px]'
+        type === 'warning'
+        ? 'gap-[15px] px-[15px]'
         : 'min-h-[clamp(85px,10vw,100px)] justify-center gap-[15px] px-[15px] pt-[10px]'
       } text-center break-words`}
       >
         {type === 'error' ? (
-          <div className='flex flex-col gap-[10px]'>
+          <div className='flex flex-col'>
             {isRenderableNode(normalizedTitle) && (
               <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>
                 {normalizedTitle}
@@ -258,11 +258,11 @@ const PopUp = ({
       aria-modal='true'
     >
       {/* 모달 본체: clamp로 반응형 너비, 최소 높이 보장 */}
-      <div className='flex min-h-[200px] w-[clamp(260px,85vw,325px)] max-w-full flex-col rounded-[20px] bg-[var(--ColorWhite,#FFF)] px-[20px] py-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.16)]'>
+      <div className={`flex min-h-[200px] w-[clamp(260px,85vw,325px)] max-w-full flex-col rounded-[20px] bg-[var(--ColorWhite,#FFF)] px-[20px] py-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.16)] ${type === 'warning' ? 'justify-center' : ''}`}>
         {renderContent()}
 
-        {/* 버튼 영역을 하단에 고정 */}
-        <div className={hasWarningCheckbox ? 'mt-[15px]' : type === 'loading' ? 'mt-auto' : 'mt-auto pt-[20px]'}>
+        {/* 삭제 경고는 문구와 버튼을 함께 가운데 배치해 체크 옵션 유무와 관계없이 상하 여백을 맞춘다. */}
+        <div className={type === 'warning' ? 'mt-[20px]' : type === 'loading' ? 'mt-auto' : 'mt-auto pt-[20px]'}>
           {renderButtons()}
         </div>
       </div>
