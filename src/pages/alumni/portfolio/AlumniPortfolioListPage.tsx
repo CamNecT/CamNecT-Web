@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -87,6 +88,7 @@ export const AlumniPortfolioListPage = () => {
 
     return (
       <PopUp
+        httpStatus={axios.isAxiosError(portfolioError) ? portfolioError.response?.status : undefined}
         type="error"
         title="일시적 오류"
         content="잠시 후 다시 시도해주세요."

@@ -32,14 +32,16 @@ export const useCommunityErrorPopup = () => {
         ? getServerErrorCode(axiosError)
         : undefined;
 
-      setErrorPopup(
-        getCommunityErrorPopupConfig({
+      setErrorPopup({
+        ...getCommunityErrorPopupConfig({
           action,
           status: axiosError?.response?.status,
           errorCode,
           isNetworkError: Boolean(axiosError && !axiosError.response),
         }),
-      );
+        // 서버 코드가 별도 문구로 매핑되어도 HTTP 500의 문의 동작은 유지한다.
+        httpStatus: axiosError?.response?.status,
+      });
     },
     [],
   );

@@ -26,6 +26,7 @@ import { resolveNotificationDestination } from './notificationRouting';
 import { getNotificationErrorPopupConfig } from './utils/notificationError';
 
 type PopUpConfig = {
+  httpStatus?: number;
   title: string;
   content: string;
 };
@@ -127,6 +128,7 @@ const getNavigationErrorPopUpConfig = (
   }
   if (status === 500) {
     return {
+      httpStatus: status,
       title: '알림 화면으로 이동하지 못했어요',
       content:
         '연결된 정보를 확인하는 중 문제가 생겼어요.',
@@ -625,6 +627,7 @@ export const NotificationPage = () => {
         <PopUp
           isOpen={!!activePopUpConfig}
           type="error"
+          httpStatus={activePopUpConfig.httpStatus}
           title={activePopUpConfig.title}
           content={activePopUpConfig.content}
           onClick={() => {
