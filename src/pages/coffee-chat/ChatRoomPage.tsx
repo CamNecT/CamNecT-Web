@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
-// [모바일 LAN UI 테스트 전용] 필요할 때 아래 import를 활성화한다.
+// [모바일 LAN UI 테스트 전용] 아래 import 활성화
 // import { isStompEnabled } from "../../api/stompClient";
 import Icon from "../../components/Icon";
 import PopUp from "../../components/Pop-up";
@@ -27,17 +27,23 @@ import { NewMessagePreview } from "./components/NewMessagePreview";
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
 
+    // 방 변경 시 재마운트 (연결 이력·읽음 경계 초기화)
     return <ChatRoomContent key={id} roomId={id || ""} />;
 };
 
 const ChatRoomContent = ({ roomId }: { roomId: string }) => {
+
+    // ==================== 외부 훅 · 전역 상태 · 서버 데이터 ====================
+
+    // ---------- 화면 이동·쿼리 캐시 ----------
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
+    // ---------- 로그인 사용자 ----------
     const { user } = useAuthStore();
     const userId = user?.id;
 
-    // 전송 대기 메시지 리스트
+    // ---------- 메시지 전송 상태·소켓 연결 ----------
     const {
         pendingMessages,
         removePendingMessage,
@@ -52,46 +58,64 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }))
     );
 
+    // ---------- 채팅방 상세 조회 ----------
     const {
         data: chatRoomData,
         isLoading: isRoomLoading,
         isFetchedAfterMount: isRoomFetchedAfterMount,
     } = useChatRoom(roomId);
+
+    // ---------- 채팅 종료·나가기 ----------
     const {
         mutate: endChat,
         isPending: isEndChatPending,
     } = useChatRoomClose();
+
     const { mutate: exitChat } = useChatRoomExit();
     const {
         mutate: endAndExitChat,
         isPending: isEndAndExitPending,
     } = useChatRoomCloseAndExit();
 
+    // ---------- 실시간 메시지 송수신·방 구독 ----------
     const { messages: socketMessages,
         sendMessage, retryMessage, leaveChatRoom,
         isRoomSubscriptionReady } = useStompChat(roomId);
 
-    // 검색 관련 상태
+    // ======================== 로컬 상태 (useState) ========================
+
+    // ---------- 대화 검색 ----------
     const [isSearching, setIsSearching] = useState(false);
     const [roomSearchQuery, setRoomSearchQuery] = useState("");
 
-    // [채팅방 입장 시] 안읽은 메시지 Id 상태
+    // ---------- 읽음 구분선 ----------
     const [firstUnreadMessageId, setFirstUnreadMessageId]
-        = useState<string | null | undefined>(undefined);
+        = useState<string | null | undefined>(undefined); // undefined 미확정 / null 경계 없음
 
+    // ---------- 입력창 높이 ----------
+    // 고정 입력창의 실측 높이
     const [typingAreaHeight, setTypingAreaHeight] = useState(65);
-    // 화면 밑에 있는 후보 메시지 id
+
+    // ---------- 새 메시지 미리보기 ----------
+    // 화면 아래의 최신 상대 메시지 ID (미리보기 후보)
     const [belowCandidateMessageId, setBelowCandidateMessageId] = useState<string | null>(null);
-    // 이미 본 후보 메시지 id
+    // 확인된 미리보기 메시지 ID
     const [seenCandidateMessageId, setSeenCandidateMessageId] = useState<string | null>(null);
 
-    // 메뉴 관련 상태
+    // ---------- 채팅방 메뉴 ----------
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    // ---------- 신고 ----------
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
+    // ---------- 모집 공고 ----------
     const [isRecruitExpanded, setIsRecruitExpanded] = useState(false);
+
+    // ---------- 확인·오류 팝업 ----------
     // 종료 팝업의 채팅방 삭제 선택 여부
     const [shouldDeleteChatRoom, setShouldDeleteChatRoom] = useState(false);
 
+    // 공통 확인 팝업 설정 (문구·확정 동작)
     const [confirmPopUpConfig, setConfirmPopUpConfig] = useState<{
         title: string;
         content: string;
@@ -105,44 +129,61 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         content: string;
     } | null>(null);
 
-    // 전송 실패 메시지의 드롭다운: 열려 있는 메시지의 id (없으면 null)
+    // ---------- 전송 실패 메뉴 ----------
+    // 메뉴가 열린 메시지 ID (없으면 null)
     const [openFailedMenuId, setOpenFailedMenuId] = useState<string | null>(null);
 
-    // 초기 진입 시 깜빡임 방지를 위한 상태
+    // ---------- 초기 화면 배치 ----------
+    // 초기 하단 스크롤 배치 완료 여부 (깜빡임 방지)
     const [isReady, setIsReady] = useState(false);
 
-    // 이 방에서 실시간 연결과 구독이 한 번이라도 준비됐는지 기억
-    // false → true로만 전환하며, roomId 변경 시 key 재마운트로 초기화
+    // ---------- 실시간 연결 이력 ----------
+    // false → true 단방향 전환 / 방 변경 시 초기화
     const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
 
+    // ==================== DOM 참조 · 이전 값 (useRef) ====================
+
+    // ---------- 입력창 높이·스크롤 보정 ----------
     const typingAreaRef = useRef<HTMLDivElement>(null);
+    // 입력창 높이 차이 계산용 이전 높이
     const previousTypingAreaHeightRef = useRef(65);
 
+    // ---------- 새 메시지 미리보기 ----------
+    // 최신 상대 메시지 말풍선 참조 (화면 노출 감지)
     const candidateRef = useRef<HTMLDivElement>(null);
 
-    // 종료 여부 
+    // ==================== 일반 변수 · 파생 값 ====================
+
+    // ---------- 채팅방 이용 상태 ----------
+    // 채팅 종료·상대방 퇴장 여부
     const isTerminated = Boolean(chatRoomData?.closed);
     const opponentExited = chatRoomData?.opponentExited;
 
     const isLoading = isRoomLoading;
-    // 실시간 채팅 기능 이용가능 여부
+
+    // ---------- 실시간 연결 ----------
+    // 실시간 연결 준비 여부 (소켓 연결 + 방 구독)
     const isRealtimeReady = isStompConnected && isRoomSubscriptionReady;
 
-    // 렌더링 중에 조건부로 직접 갱신 (useEffect 사용 시 연쇄 렌더링 가능성)
+    // 최초 연결 완료 시 렌더 중 상태 갱신 (JSX 반영 전 재렌더)
     if (isRealtimeReady && !hasConnectedOnce) {
         setHasConnectedOnce(true);
     }
 
-    const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited; // 초기 REST 로딩·방 데이터 없음·채팅 종료·상대방 퇴장만 판단
-    const isComposerVisible = isRealtimeReady || hasConnectedOnce; // online or 1번이라도 online이면 입력 영역 표시
+    // ---------- 입력창·연결 안내 표시 ----------
+    // 입력 영역 비활성 조건 (로딩·방 정보 없음·종료·상대방 퇴장)
+    const isChatUnavailable = isLoading || !chatRoomData || isTerminated || opponentExited;
+    // 최초 연결 전 안내문 표시 / 연결 이력이 있으면 재연결 중에도 입력창 유지
+    const isComposerVisible = isRealtimeReady || hasConnectedOnce;
 
     // [모바일 LAN/PWA UI 테스트 전용]
-    // STOMP가 비활성화된 로컬 환경에서도 TypingArea를 표시하려면 파일 상단의
-    // `isStompEnabled` import를 활성화하고, 위 배포용 조건 대신 아래 조건을 임시 사용한다.
+    // STOMP 비활성 환경의 입력창 확인용
+    // 상단 isStompEnabled import 활성화 후 아래 조건 임시 사용
     // const isComposerVisible = isRealtimeReady || hasConnectedOnce || !isStompEnabled;
 
     const isTypingAreaVisible = !isChatUnavailable && isComposerVisible;
 
+    // ---------- 참여자·요청 정보 ----------
     const roomInfo = chatRoomData?.partner;
     const requestInfo = chatRoomData?.requestInfo;
     const isAdminPartner = isAdminUserId(roomInfo?.id);
@@ -150,9 +191,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const myId = String(userId);
 
+    // ---------- 새 메시지 미리보기 ----------
     let latestOpponentMessage: (typeof socketMessages)[number] | undefined;
 
-    // 실시간 채팅 중에 상대방의 마지막 메시지 추출
+    // 소켓 수신 목록의 최신 상대 메시지 추출 (미리보기 후보)
     if (userId != null) {
         for (let i = socketMessages.length - 1; i >= 0; i--) {
             if (String(socketMessages[i].senderId) !== String(userId)) {
@@ -163,30 +205,34 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     }
 
     const previewMessageCandidate = latestOpponentMessage ? {
-        id: String(latestOpponentMessage.messageId), // 동일 메시지 내용 구별 용도
+        id: String(latestOpponentMessage.messageId), // 같은 내용의 메시지 구별용
         message: latestOpponentMessage.message,
     } : null;
 
     const candidateId = previewMessageCandidate?.id;
-    // NewMessagePreview 가능한지
+    // 미리보기 표시 조건 (검색 중 제외·화면 아래·미확인)
     const isPreviewVisible= !isSearching && candidateId != null &&
         belowCandidateMessageId === candidateId && seenCandidateMessageId !== candidateId;
 
-    // 채팅방 전용 상단 안내는 임시 비활성화 -> 브라우저 offline 안내는 App의 GlobalOfflineBanner가 담당
+    // ---------- 상단 연결 안내 (비활성) ----------
+    // 오프라인 안내는 GlobalOfflineBanner 담당
     // const shouldShowRealtimeNotice = !isSearching && hasConnectedOnce && !isRealtimeReady && !isChatUnavailable;
 
-    // 이번 입장에서 받은 첫 상세 응답의 경계를 고정한다.
-    // 백엔드가 아직 필드를 보내지 않으면 구분선을 생략하고 다음 응답을 기다린다.
+    // ---------- 읽음 구분선 ----------
+    // 입장 후 첫 읽음 경계 고정 (필드 누락 시 다음 응답 대기)
     if (isRoomFetchedAfterMount && firstUnreadMessageId === undefined && chatRoomData?.firstUnreadMessageId !== undefined) {
         setFirstUnreadMessageId(chatRoomData.firstUnreadMessageId);
     }
 
-    // 기존 채팅 내역 + 실시간 채팅 내역 병합 (pending 메시지)
+    // ==================== 메시지 가공 (useMemo) ====================
+
+    // ---------- 메시지 통합 ----------
+    // REST·소켓·전송 대기 메시지 병합 (중복 제거·시간순 정렬)
     const allMessages = useMemo(() => {
-        // 1. API로 받은 기존 채팅 내역 데이터들
+        // 1) REST 채팅 내역
         const remoteMessages = chatRoomData?.messages || [];
 
-        // 2. 실시간 메시지를 도메인 타입으로 변환
+        // 2) 실시간 메시지 타입 변환
         const mappedSocketMessages = socketMessages.map((msg): ChatMessage => ({
             id: String(msg.messageId),
             roomId: String(msg.roomId),
@@ -195,10 +241,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             createdAt: msg.sendDate,
             readAt: msg.readAt,
 
-            // 서버에서 수신된 메시지는 저장이 완료된 상태
+            // 서버 수신 메시지 → 저장 완료
             clientMessageId: msg.clientMessageId,
             deliveryState: 'sent',
-            // todo 재전송 기능 구현 전까지 서버 메시지의 재시도 횟수는 관리하지 않음
+            // 서버 메시지의 재시도 횟수 미관리
             retryCount: null,
 
             // 읽음 여부 판단용
@@ -211,38 +257,39 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             serverMessagesById.set(message.id, message)
         });
 
+        // 같은 ID 중복 시 소켓 수신 값 우선
         mappedSocketMessages.forEach((message) => {
             serverMessagesById.set(message.id, message)
         })
 
-        // messageId 중복제거된 서버 메시지들
+        // messageId 기준 중복 제거 결과
         const serverMessages = Array.from(serverMessagesById.values());
 
-        // 3. 현재 roomId의 pendingMessages들 선택
+        // 3) 현재 방의 전송 대기 메시지 추출
         const currentRoomPendingMessages = pendingMessages.filter(
             (pending) => pending.roomId === roomId
         );
 
-        // 중복 제거: 서버에서 이미 수신되어 화면에 표시되고 있는 pending 메시지는 제외
+        // 서버 수신이 확인된 전송 대기 메시지 제외
         const visiblePendingMessages = currentRoomPendingMessages.filter((pending) => {
-            // 1) 서버 메시지가 먼저 도착 (clientMessageId로 확인)
+            // 서버 메시지 우선 수신 시 clientMessageId로 대조
             const matchedByClientMessageId = serverMessages.some(
                 (serverMessage) =>
                 (serverMessage.clientMessageId !== null &&
                     serverMessage.clientMessageId === pending.clientMessageId)
             );
 
-            // 2) ACK가 먼저 도착 (serverMessageId로 확인)
+            // ACK(전송 확인 응답) 우선 수신 시 serverMessageId로 대조
             const matchedByServerMessageId =
-                // null이 아니라 undefined인 이유
+                // 최초 ACK 수신 전 serverMessageId 미할당
                 pending.serverMessageId !== undefined &&
                 serverMessagesById.has(String(pending.serverMessageId));
 
-            // 서버 메시지가 아닌 pending 메시지만 유지
+            // 서버 수신 미확인 메시지만 유지
             return !matchedByClientMessageId && !matchedByServerMessageId;
         });
 
-        // 4. 화면에 남길 임시 메시지를 ChatMessage 타입으로 변환
+        // 4) 화면에 남길 전송 대기 메시지 타입 변환
         const mappedPendingMessages = visiblePendingMessages.map(
             (pending): ChatMessage => ({
                 id: `pending:${pending.clientMessageId}`, // clientMessageId로 임시 ID 설정
@@ -255,25 +302,26 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 retryCount: pending.retryCount,
                 errorCode: pending.errorCode,
 
-                // 읽음 여부: pending 상태이므로 당연히 false
+                // 전송 대기 메시지의 읽음 상태 초기값
                 isRead: false,
-                readAt: null // 아직 전송 전이거나 서버에서 응답이 안 왔으므로 null
+                readAt: null // 읽음 확인 전
             })
         );
 
-        // 5. 기존 메시지 + 실시간 메시지 + pending 메시지 모두 합치기
+        // 5) 서버 메시지 + 전송 대기 메시지 병합
         const mergedMessages = [
             ...serverMessages,
             ...mappedPendingMessages,
         ]
 
-        // 6 메시지 시간 순 정렬
+        // 6) 전송 시간순 정렬
         return mergedMessages.sort(
             (a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf()
         );
     }, [chatRoomData?.messages, socketMessages, pendingMessages, myId, roomId]);
 
-    // 검색어 필터링 적용을 포함한 현재 화면의 메시지 리스트
+    // ---------- 대화 검색 ----------
+    // 검색어 필터링 결과 (현재 화면의 메시지 목록)
     const localMessages = useMemo(() => {
         if (!isSearching || !roomSearchQuery.trim()) return allMessages;
         return allMessages.filter(msg =>
@@ -281,7 +329,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         );
     }, [allMessages, isSearching, roomSearchQuery]);
 
-    // 내가 보낸 제일 마지막 메시지 인덱스 (읽음 표시용)
+    // ---------- 읽음 표시 ----------
+    // 내 마지막 전송 완료 메시지 인덱스
     const lastMyMessageIndex = useMemo(() => {
         for (let i = localMessages.length - 1; i >= 0; i--) {
             const message = localMessages[i];
@@ -293,16 +342,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         return -1;
     }, [localMessages, myId]);
 
-    // 메뉴 바깥 클릭/터치 감지 로직은 ChatDropdown 컴포넌트로 이동함 (menuRef, useEffect 제거)
+    // ==================== 외부 동기화 · 화면 배치 (useEffect / useLayoutEffect) ====================
 
-    // STOMP 채팅방 나가기 처리 (브라우저 종료/새로고침 대응)
-    // SPA 내부 이동 시 퇴장 처리는 useStompChat 훅의 클린업에서 자동으로 수행
+    // ---------- 채팅방 퇴장 ----------
+    // 브라우저 종료·새로고침 시 STOMP 퇴장 처리
+    // SPA 내부 이동 시 useStompChat 클린업에서 처리
     useEffect(() => {
         const handleBeforeUnload = () => {
             leaveChatRoom();
         };
 
-        // beforeunload : 브라우저 수준의 종료/새로고침시의 대응
+        // 브라우저 종료·새로고침 이벤트 등록
         window.addEventListener('beforeunload', handleBeforeUnload);
 
         return () => {
@@ -310,14 +360,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }
     }, [leaveChatRoom]);
 
-    // REST 채팅 내역에서 서버 저장이 확인된 메시지를 zustand / sessionStorage에서 제거
+    // ---------- 전송 대기 메시지 정리 ----------
+    // REST 저장 확인 항목 제거 (Zustand·sessionStorage)
     useEffect(() => {
         const serverMessages = chatRoomData?.messages;
 
-        // 아직 REST 조회 결과가 없으면 대조하지 않음
+        // REST 조회 전 대조 생략
         if (!serverMessages) return;
 
-        // REST 정상 메시지들의 clientMessageId 목록
+        // REST 저장 확인 메시지의 clientMessageId 목록
         const serverClientMessageIds = new Set(
             serverMessages
                 .map((message) => message.clientMessageId)
@@ -334,7 +385,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     pending.clientMessageId
                 )
             )
-            .forEach((pending) => {                         // 서버 저장이 확인됐으므로 로컬에서 실제 삭제
+            .forEach((pending) => {                         // 서버 저장 확인 후 로컬 대기 항목 삭제
                 removePendingMessage(
                     pending.clientMessageId
                 );
@@ -346,6 +397,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         removePendingMessage,
     ]);
 
+    // ---------- 새 메시지 미리보기 ----------
+    // 후보 위치 감지 (노출 시 확인·화면 아래일 때 표시)
     useEffect(() => {
         if (!isReady || isSearching ||
             !candidateId || seenCandidateMessageId === candidateId) {
@@ -353,27 +406,29 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }
 
         const messageElement = candidateRef.current; // 관찰할 말풍선 (상대의 최근 메시지)
-        if (!messageElement) return; // todo 이해안됨
+        // 말풍선 DOM 미연결 시 관찰 생략
+        if (!messageElement) return;
 
         const observer = new IntersectionObserver(
             ([entry]) => {
-                // 1. 말풍선이 화면에 보일때
+                // 1) 화면 노출 → 확인 처리
                 if (entry.isIntersecting) {
                     setSeenCandidateMessageId(candidateId);
                     setBelowCandidateMessageId(null);
                 }
-                // 2. 말풍선이 화면 아래
+                // 2) 화면 아래 → 미리보기 후보 등록
                 else if (
                     entry.boundingClientRect.top >=
                     (entry.rootBounds?.bottom ?? window.innerHeight)
                 ) {
                     setBelowCandidateMessageId(candidateId);
                 }
-                // 3.말풍선이 화면 위 -> 미리보기 표시 X
+                // 3) 화면 위 → 미리보기 숨김
                 else {
                     setBelowCandidateMessageId(null);
                 }
             },
+            // 입력창 높이만큼 관찰 영역 하단 축소 (가려진 말풍선 제외)
             { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
         );
 
@@ -382,13 +437,15 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         return () => observer.disconnect();
     }, [candidateId, isReady, isSearching, seenCandidateMessageId, typingAreaHeight]);
 
+    // ---------- 입력창 높이·스크롤 보정 ----------
+    // 입력창 높이 감지 → 하단 여백·미리보기 관찰 영역 갱신
     useEffect(() => {
         if (!isTypingAreaVisible) return;
 
         const element = typingAreaRef.current;
         if (!element) return;
 
-        const observer = new ResizeObserver(() => { // todo 이해할 것
+        const observer = new ResizeObserver(() => {
             const height = Math.ceil(element.getBoundingClientRect().height);
 
             setTypingAreaHeight((previous) =>
@@ -400,7 +457,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         return () => observer.disconnect();
     }, [isTypingAreaVisible]);
 
-    // 입력창 높이가 변한 만큼 메시지 위치를 이동해 가려짐을 방지
+    // 입력창 높이 증가분만큼 스크롤 보정 (화면 반영 전)
     useLayoutEffect(() => {
         const heightDifference = typingAreaHeight - previousTypingAreaHeightRef.current;
 
@@ -411,6 +468,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }
     }, [typingAreaHeight]);
 
+    // ---------- 초기 화면 배치 ----------
+    // 최초 진입 시 하단 이동 → 다음 프레임 위치 재확인 → 화면 표시
+    // isReady로 초기 배치 반복 방지
     useLayoutEffect(() => {
         if (!isLoading && !isReady) {
             if (localMessages.length > 0) {
@@ -427,21 +487,25 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         }
     }, [isLoading, localMessages.length, isReady]);
 
-    // 채팅방을 나갈 때(언마운트) 전역 안 읽은 개수 다시 가져오도록 설정
+    // ---------- 안 읽은 메시지 개수 동기화 ----------
+    // 언마운트 시 전역 개수 캐시 무효화
     useEffect(() => {
         return () => {
             queryClient.invalidateQueries({ queryKey: ['chatUnreadCount', userId] });
         };
     }, [queryClient, userId]);
 
-    // 메시지 전송 함수
+    // ==================== 사용자 이벤트 핸들러 ====================
+
+    // ---------- 메시지 전송·재전송·취소 ----------
+    // 메시지 전송 시작 여부 반환 (서버 저장 여부는 메시지 상태로 관리)
     const handleSendMessage = (text: string): boolean => {
         if (isChatUnavailable) return false;
 
         const sendStarted = sendMessage(text);
 
         if (sendStarted) {
-            // 보낸 메시지가 화면에 추가된 뒤 맨 아래로 이동한다.
+            // 메시지 화면 반영 후 하단 이동
             requestAnimationFrame(() => {
                 window.scrollTo(0, document.documentElement.scrollHeight);
             });
@@ -458,8 +522,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         return retryMessage(clientMessageId);
     }
 
-    // 서버가 미전송으로 확정한 failed 메시지만 삭제한다.
-    // 삭제는 로컬 대기 항목 제거만 수행하며 publish를 호출하지 않는다.
+    // 미전송 확정 메시지의 로컬 대기 항목 삭제 (failed 전용)
     const handleRemoveMessage = (clientMessageId: string) => {
         setOpenFailedMenuId(null); // 메뉴 닫기
 
@@ -474,6 +537,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         });
     }
 
+    // ---------- 채팅 종료·나가기 ----------
     // 채팅 종료 함수
     const handleEndChat = () => {
         setIsMenuOpen(false);
@@ -537,13 +601,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         });
     }
 
-    //신고하기 함수
+    // ---------- 신고 ----------
+    // 신고하기 함수
     const handleReportChat = () => {
         setIsMenuOpen(false);
         setIsReportModalOpen(true);
     }
 
-    // 신고 접수 후 사용자가 원할 때 바로 채팅을 종료할 수 있도록 안내
+    // 신고 접수 후 채팅 종료 선택 팝업
     const handleReportSubmitted = () => {
         setConfirmPopUpConfig({
             title: "신고 처리가 완료되었습니다",
@@ -559,7 +624,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         });
     }
 
-    // 메시지 미리보기 버튼 클릭 시
+    // ---------- 새 메시지 미리보기 ----------
+    // 미리보기 확인 처리·대화 하단 즉시 이동
     const handlePreviewClick = () => {
         if (!candidateId) return;
 
@@ -570,6 +636,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     return (
         <HeaderLayout
             headerSlot={
+                // ---------- 기본 헤더·검색 헤더 ----------
                 !isSearching ? (
                     <div className="fixed left-1/2 top-0 z-50 w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 bg-white">
                         <MainHeader
@@ -580,7 +647,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             ]}
                         />
 
-                        {/* 전역 네트워크 배너와 같은 디자인의 채팅방 상단 안내안 (비활성)
+                        {/* 채팅방 상단 연결 안내 (비활성)
                         {shouldShowRealtimeNotice && (
                             <div className="flex min-h-10 w-80 items-center gap-1.5 rounded-[5px] bg-neutral-50 px-[15px] py-2 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)]">
                                 <Icon name="error_circle" size={24} className="text-red" />
@@ -636,9 +703,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
                         )}
 
-                        {/* 더보기 메뉴 드롭다운
-                            기존 인라인 마크업 → ChatDropdown 컴포넌트로 교체.
-                            위치/셀렉터/스타일 값은 기존과 동일하고, 항목만 items 배열로 옮김 */}
+                        {/* 더보기 메뉴 (종료된 방 → 나가기 / 진행 중인 방 → 종료하기) */}
                         <ChatDropdown
                             isOpen={isMenuOpen}
                             onClose={() => setIsMenuOpen(false)}
@@ -706,7 +771,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 )
             }
         >
-            {/* 고정 TypingArea가 메시지를 가리지 않도록 환경별 하단 공간을 확보한다. */}
+            {/* ==================== 대화 본문 · 메시지 목록 ==================== */}
+            {/* 고정 입력창 높이만큼 하단 여백 확보 */}
             <div
                 className={`flex flex-col ${
                     !isTypingAreaVisible ? "pb-[80px]" : ""
@@ -738,23 +804,24 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 <div className="flex flex-col mt-[40px] px-[25px] select-none">
                     {localMessages.map((msg, index) => {
                         const isMe = String(msg.senderId) === myId;
-                        const clientMessageId = msg.clientMessageId; // 삭제 식별용 아이디
+                        const clientMessageId = msg.clientMessageId; // 재전송·전송 취소 시 로컬 대기 메시지를 식별
 
                         // 날짜 구분선 표시 여부 확인
                         const showDateDivider = index === 0 || !dayjs(msg.createdAt).isSame(dayjs(localMessages[index - 1].createdAt), 'day');
 
-                        // 연속 메시지 판단 (작성자가 같고 1분 이내)
+                        // 연속 메시지 묶음 (같은 작성자·같은 분)
                         const isSameAsPrev = index > 0 && msg.senderId === localMessages[index - 1].senderId
                             && dayjs(msg.createdAt).isSame(dayjs(localMessages[index - 1].createdAt), 'minute');
 
                         const isSameAsNext = index < localMessages.length - 1 && msg.senderId === localMessages[index + 1].senderId
                             && dayjs(msg.createdAt).isSame(dayjs(localMessages[index + 1].createdAt), 'minute');
 
-                        // 말풍선 곡률: 중간 메시지는 둥글게, 마지막 메시지만 꼬리 노출
+                        // 말풍선 곡률 (중간 메시지 둥글게·마지막 메시지 꼬리 노출)
                         const bubbleRounding = isMe
                             ? (isSameAsNext ? 'rounded-[20px]' : 'rounded-l-[20px] rounded-br-[20px] rounded-tr-none')
                             : (isSameAsNext ? 'rounded-[20px]' : 'rounded-t-[20px] rounded-br-[20px] rounded-bl-none');
 
+                        // 전송 상태별 문구·재전송 메뉴 분기
                         const isPending = msg.deliveryState === 'pending';
                         const isUnconfirmed = msg.deliveryState === 'unconfirmed';
                         const isFailed = msg.deliveryState === 'failed'; 
@@ -774,7 +841,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                 )}
 
                                 {
-                                    // 이번 입장 전까지 읽은 위치를 방을 나갈 때까지 표시
+                                    // 이번 입장의 읽음 경계 구분선
                                     (msg.id === firstUnreadMessageId) && (
                                     <div className="flex items-center gap-[15px] mt-[10px] mb-[7px]">
                                         <div className="flex-1 h-[1px] bg-gray-150"></div>
@@ -788,7 +855,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                 <div className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} ${isSameAsPrev ? 'mt-[3px]' : 'mt-[7px]'}`}>
                                     <div className={`flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-[6px] max-w-[80%]`}>
 
-                                        {/* 상대방일 때 프로필 영역: isSameAsPrev일 때도 공간은 차지해야 함 */}
+                                        {/* 상대 프로필 영역 (연속 메시지도 공간 유지) */}
                                         {!isMe && (
                                             <div className="w-[32px] mr-[4px] flex-shrink-0 self-start">
                                                 {!isSameAsPrev && (
@@ -845,7 +912,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                             <Icon name="send_failed" size={24} className="text-red" />
                                                         </button>
 
-                                                        {/* 아이콘 클릭시 메뉴 드롭다운 */}
+                                                        {/* 실패 아이콘 클릭 시 메뉴 */}
                                                         <ChatDropdown
                                                             isOpen={openFailedMenuId === msg.id}
                                                             onClose={() => setOpenFailedMenuId(null)}
@@ -873,17 +940,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
                                         {msg.deliveryState === 'sent' && (
                                             <div className={`flex flex-col justify-end gap-[2px] mb-[2px] ${isMe ? 'items-end' : 'items-start'}`}>
-                                                {/* 1. 내 메시지이고 안 읽었을 때 & "내가 보낸 전체 메시지 중 마지막"일 때만 '1' 표시 */}
+                                                {/* 내 마지막 전송 완료 메시지·안 읽음 → '1' 표시 */}
                                                 {isMe && !msg.isRead && index === lastMyMessageIndex && (
                                                     <span className="text-[11px] text-primary font-bold leading-none mb-[1px]">1</span>
                                                 )}
 
-                                                {/* 2. 내 메시지이고 읽었을 때 & "내가 보낸 전체 메시지 중 마지막"일 때만 '읽음' 표시 */}
+                                                {/* 내 마지막 전송 완료 메시지·읽음 → '읽음' 표시 */}
                                                 {isMe && msg.isRead && index === lastMyMessageIndex && (
                                                     <span className="text-[11px] text-gray-400 font-medium leading-none mb-[1px]">읽음</span>
                                                 )}
 
-                                                {/* 3. 시간 표시: 읽음 여부와 관계없이 보낸 시간을 묶음의 마지막 메시지에만 노출 */}
+                                                {/* 묶음의 마지막 메시지만 전송 시간 표시 */}
                                                 {!isSameAsNext && (
                                                     <span className="text-r-12 text-gray-750 tracking-[-0.24px] shrink-0">
                                                         {formatTime(msg.createdAt)}
@@ -933,7 +1000,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 </div>
             </div>
 
-            {/* 고정된 입력창 */}
+            {/* ==================== 하단 고정 영역 · 입력창 / 연결 안내 ==================== */}
             {!isChatUnavailable && (
                 isComposerVisible ? (
                     <div className="fixed bottom-0 left-1/2 z-50 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 flex-col gap-[18px]">
@@ -975,6 +1042,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 )
             )}
 
+            {/* ==================== 팝업 · 신고 모달 · 방 정보 없음 안내 ==================== */}
             <PopUp isOpen={isLoading} type="loading" />
 
             {confirmPopUpConfig && (
