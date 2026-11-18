@@ -4,7 +4,7 @@ import type { GifticonProduct, GifticonPurchaseRequest } from "../api-types/gift
 import { purchaseProduct, viewGifticonList, viewGifticonProduct } from "../api/gifticon";
 import { useAuthStore } from "../store/useAuthStore";
 import { usePointStore } from "../store/usePointStore";
-import { pointHistoryKey, purchaseHistoryKey } from "../pages/shop/hooks/useShopHistoryQuery";
+import { pointHistoryKey } from "../pages/shop/hooks/useShopHistoryQuery";
 
 // data.ts의 ShopItem 형식으로 매핑하는 헬퍼 함수
 const mapToShopItem = (product: GifticonProduct) => ({
@@ -87,9 +87,8 @@ export const useGifticonPurchaseMutation = () => {
 
             queryClient.invalidateQueries({ queryKey: ['gifticonList'] });
             queryClient.invalidateQueries({ queryKey: ['home'] });
-            // 구매 후 전체·차감 내역과 주문 목록이 모두 새 주문을 반영해야 한다.
+            // 구매 직후 전체·차감 내역에서 최신 포인트 거래를 다시 조회한다.
             queryClient.invalidateQueries({ queryKey: [pointHistoryKey, user?.id] });
-            queryClient.invalidateQueries({ queryKey: [purchaseHistoryKey, user?.id] });
         }
     })
 }
