@@ -350,7 +350,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 화면 목록의 마지막 메시지
     const latestMessage = localMessages.at(-1);
     const latestMessageId = latestMessage?.id;
-    const isRecentMessageButtonVisible = isReady && belowLastMessageId != null && !isPreviewVisible;
+    const isRecentMessageButtonVisible =
+        isReady && latestMessage != null &&
+        belowLastMessageId === latestMessageId &&
+        !isPreviewVisible;
 
     // ==================== 외부 동기화 · 화면 배치 (useEffect / useLayoutEffect) ====================
 
