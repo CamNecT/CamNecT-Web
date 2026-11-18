@@ -63,7 +63,7 @@ export const TypingArea = ({ onSend, disabled }: TypingAreaProps) => {
                     <div className="relative flex-1">
                         <textarea
                             ref = {textareaRef}
-                            placeholder="메시지 입력" 
+                            placeholder="메시지 보내기..." 
                             rows={1}
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}

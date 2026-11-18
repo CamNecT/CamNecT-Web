@@ -92,9 +92,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     const [firstUnreadMessageId, setFirstUnreadMessageId]
         = useState<string | null | undefined>(undefined); // undefined 미확정 / null 경계 없음
 
-    // ---------- 입력창 높이 ----------
-    // 고정 입력창의 실측 높이
-    const [typingAreaHeight, setTypingAreaHeight] = useState(65);
+    // ---------- 하단 고정 영역 높이 ----------
+    // 현재 표시된 입력창 또는 연결 안내 영역의 실측 높이
+    const [measuredBottomAreaHeight, setMeasuredBottomAreaHeight] = useState(0);
 
     // ---------- 메시지 관련 ----------
     // 화면 아래의 최신 상대 메시지 ID (미리보기 후보)
@@ -143,10 +143,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // ======================== DOM 참조 · 이전 값 (useRef) ========================
 
-    // ---------- 입력창 높이·스크롤 보정 ----------
-    const typingAreaRef = useRef<HTMLDivElement>(null);
+    // ---------- 하단 고정 영역 높이·스크롤 보정 ----------
+    const bottomAreaRef = useRef<HTMLDivElement>(null);
     // 입력창 높이 차이 계산용 이전 높이
-    const previousTypingAreaHeightRef = useRef(65);
+    const previousBottomAreaHeightRef = useRef(0);
 
     // ---------- 메시지 관련  ----------
     const candidateRef = useRef<HTMLDivElement>(null); // 최신 상대 메시지 말풍선 참조
@@ -181,7 +181,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 상단 isStompEnabled import 활성화 후 아래 조건 임시 사용
     // const isComposerVisible = isRealtimeReady || hasConnectedOnce || !isStompEnabled;
 
-    const isTypingAreaVisible = !isChatUnavailable && isComposerVisible;
+    const isBottomAreaVisible = !isChatUnavailable;
+    const isTypingAreaVisible = isBottomAreaVisible && isComposerVisible;
+    // 위치·노출 계산에 사용할 하단 고정 영역 높이 (입력창·연결 안내가 없으면 0)
+    const bottomAreaHeight = isBottomAreaVisible ? measuredBottomAreaHeight : 0;
 
     // ---------- 참여자·요청 정보 ----------
     const roomInfo = chatRoomData?.partner;
@@ -441,14 +444,14 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     setBelowCandidateMessageId(null);
                 }
             },
-            // 입력창 높이만큼 관찰 영역 하단 축소 (가려진 말풍선 제외)
-            { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
+            // 하단 고정 영역만큼 관찰 영역 축소 (가려진 말풍선 제외)
+            { rootMargin: `0px 0px -${bottomAreaHeight}px 0px` }
         );
 
         observer.observe(messageElement); // 후보 메시지를 관찰대상에 등록
 
         return () => observer.disconnect();
-    }, [candidateId, canObservePreviewCandidate, typingAreaHeight]);
+    }, [candidateId, canObservePreviewCandidate, bottomAreaHeight]);
 
     // ---------- 최근 메시지 visible 탐지 ----------
     useEffect(() => {
@@ -477,46 +480,47 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     setBelowLastMessageId(null);
                 }
             },
-            // 입력창 높이만큼 관찰 영역 하단 축소 (가려진 말풍선 제외)
-            { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
+            // 하단 고정 영역만큼 관찰 영역 축소 (가려진 말풍선 제외)
+            { rootMargin: `0px 0px -${bottomAreaHeight}px 0px` }
         );
 
         observer.observe(messageElement);
 
         return () => observer.disconnect();
-    }, [latestMessageId, typingAreaHeight])
+    }, [latestMessageId, bottomAreaHeight])
 
-    // ---------- 입력창 높이·스크롤 보정 ----------
-    // 입력창 높이 감지 → 하단 여백·미리보기 관찰 영역 갱신
-    useEffect(() => {
-        if (!isTypingAreaVisible) return;
+    // ---------- 하단 고정 영역 높이·스크롤 보정 ----------
+    // 최초 높이·표시 전환을 화면을 그리기 전에 반영하고, 이후 크기 변화도 관찰
+    useLayoutEffect(() => {
+        if (!isBottomAreaVisible) return;
 
-        const element = typingAreaRef.current;
+        const element = bottomAreaRef.current;
         if (!element) return;
 
-        // 요소의 크기 변화를 알려주는 웹 API
-        const observer = new ResizeObserver(() => { 
+        const updateHeight = () => {
             const height = Math.ceil(element.getBoundingClientRect().height);
 
-            setTypingAreaHeight((previous) =>
+            setMeasuredBottomAreaHeight((previous) =>
                 previous === height ? previous : height
             );
-        });
+        };
 
+        updateHeight();
+        const observer = new ResizeObserver(updateHeight);
         observer.observe(element);
         return () => observer.disconnect();
-    }, [isTypingAreaVisible]);
+    }, [isBottomAreaVisible, isTypingAreaVisible]);
 
     // 입력창 높이 증가분만큼 스크롤 보정 (화면 반영 전)
     useLayoutEffect(() => {
-        const heightDifference = typingAreaHeight - previousTypingAreaHeightRef.current;
+        const heightDifference = bottomAreaHeight - previousBottomAreaHeightRef.current;
 
-        previousTypingAreaHeightRef.current = typingAreaHeight;
+        previousBottomAreaHeightRef.current = bottomAreaHeight;
 
-        if (heightDifference > 0) {
+        if (isTypingAreaVisible && heightDifference > 0) {
             window.scrollBy(0, heightDifference);
         }
-    }, [typingAreaHeight]);
+    }, [bottomAreaHeight, isTypingAreaVisible]);
 
     // ---------- 초기 화면 배치 ----------
     // 최초 진입 시 하단 이동 → 다음 프레임 위치 재확인 → 화면 표시
@@ -827,11 +831,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             }
         >
             {/* ==================== 대화 본문 · 메시지 목록 ==================== */}
-            {/* 고정 입력창 높이만큼 하단 여백 확보 */}
+            {/* 입력창·연결 안내가 표시될 때만 해당 영역의 하단 여백 확보 */}
             <div
-                className={`flex flex-col ${
-                    !isTypingAreaVisible ? "pb-[80px]" : ""
-                } ${!isReady ? "invisible" : "visible"} ${
+                className={`flex flex-col ${!isReady ? "invisible" : "visible"} ${
                     allMessages.length === 0
                         ? "min-h-[calc(100dvh-100px)] justify-end"
                         : ""
@@ -842,9 +844,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             ? isRecruitExpanded ? "200px" : "134px"
                             : "74px"
                     } + env(safe-area-inset-top, 0px))`,
-                    paddingBottom: isTypingAreaVisible
-                        ? `${typingAreaHeight}px`
-                        : undefined,
+                    paddingBottom: bottomAreaHeight,
                 }}
             >
                 {/* 상단 정보 영역 */}
@@ -1064,51 +1064,56 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     onClick={handleLatestClick}
                     aria-label="최신 메시지로 이동"
                     className="fixed right-[40px] z-[60] inline-flex items-center gap-[3px] rounded-[40px] bg-[var(--Gray-100,#FFF)] p-[8px] shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]"
-                    style={{ bottom: typingAreaHeight + 16 }}
+                    style={{
+                        bottom: isBottomAreaVisible
+                            ? bottomAreaHeight + (isTypingAreaVisible ? 16 : 40)
+                            : "calc(40px + env(safe-area-inset-bottom, 0px))",
+                    }}
                 >
                     <Icon name="chat_preview_arrow_down" size={24} />
                 </button>
             )}
 
-            {/* ==================== 하단 고정 영역 · 입력창 / 연결 안내 ==================== */}
-            {!isChatUnavailable && (
-                isComposerVisible ? (
-                    <div className="fixed bottom-0 left-1/2 z-50 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 flex-col gap-[18px]">
-                        {isPreviewVisible && (
-                            <div className="flex justify-center px-[40px]">
-                                <NewMessagePreview
-                                    message={previewMessageCandidate?.message ?? ""}
-                                    onClick={handlePreviewClick}
-                                />
-                            </div>
-                        )}
-                        <div ref={typingAreaRef}>
-                            <TypingArea
-                                onSend={handleSendMessage}
-                                disabled={isChatUnavailable}
-                            />
-                        </div>
-                    </div>
+            {/* 입력창 유무와 관계없이 미확인 프리뷰 유지 (높이 측정 대상에서 제외) */}
+            {isPreviewVisible && (
+                <div
+                    className="fixed left-1/2 z-50 flex w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2 justify-center px-[40px]"
+                    style={{
+                        bottom: isBottomAreaVisible
+                            ? bottomAreaHeight + (isTypingAreaVisible ? 18 : 40)
+                            : "calc(40px + env(safe-area-inset-bottom, 0px))",
+                    }}
+                >
+                    <NewMessagePreview
+                        message={previewMessageCandidate?.message ?? ""}
+                        onClick={handlePreviewClick}
+                    />
+                </div>
+            )}
 
-                ) : (
-                    <div
-                        role="status"
-                        aria-live="polite"
-                        className="
-                            fixed bottom-0 left-1/2 z-50 flex
-                            w-full max-w-[var(--app-mobile-max-width)]
-                            -translate-x-1/2 justify-center
-                            border-t border-gray-150
-                            bg-white
-                            pt-[15px]
-                            pb-[calc(15px+env(safe-area-inset-bottom))]
-                        "
-                    >
-                        <span className="text-m-16 text-gray-650 text-center tracking-[-0.4px]">
-                            연결 중에는 이전 대화만 확인할 수 있어요
-                        </span>
-                    </div>
-                )
+            {/* ==================== 하단 고정 영역 · 입력창 / 연결 안내 ==================== */}
+            {isBottomAreaVisible && (
+                <div
+                    ref={bottomAreaRef}
+                    className="fixed bottom-0 left-1/2 z-50 w-full max-w-[var(--app-mobile-max-width)] -translate-x-1/2"
+                >
+                    {isTypingAreaVisible ? (
+                        <TypingArea
+                            onSend={handleSendMessage}
+                            disabled={isChatUnavailable}
+                        />
+                    ) : (
+                        <div
+                            role="status"
+                            aria-live="polite"
+                            className="flex w-full justify-center border-t border-gray-150 bg-white pt-[15px] pb-[calc(15px+env(safe-area-inset-bottom))]"
+                        >
+                            <span className="text-m-16 text-gray-650 text-center tracking-[-0.4px]">
+                                연결 중에는 이전 대화만 확인할 수 있어요
+                            </span>
+                        </div>
+                    )}
+                </div>
             )}
 
             {/* ==================== 팝업 · 신고 모달 · 방 정보 없음 안내 ==================== */}
