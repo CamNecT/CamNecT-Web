@@ -8,6 +8,7 @@ import { useShallow } from "zustand/react/shallow";
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import Icon from "../../components/Icon";
 import PopUp from "../../components/Pop-up";
+import PressableMotion from "../../components/PressableMotion";
 import ReportModal from "../../components/report/ReportModal";
 import Toggle from "../../components/Toggle/Toggle";
 import { useChatRoom, useChatRoomClose, useChatRoomCloseAndExit, useChatRoomExit } from "../../hooks/useChatQuery";
@@ -1059,7 +1060,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
             {/* 최신 메시지 이동 버튼 */}
             {isRecentMessageButtonVisible && (
-                <button
+                <PressableMotion
+                    as="button"
+                    intensity="soft"
                     type="button"
                     onClick={handleLatestClick}
                     aria-label="최신 메시지로 이동"
@@ -1071,7 +1074,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                     }}
                 >
                     <Icon name="chat_preview_arrow_down" size={24} />
-                </button>
+                </PressableMotion>
             )}
 
             {/* 입력창 유무와 관계없이 미확인 프리뷰 유지 (높이 측정 대상에서 제외) */}

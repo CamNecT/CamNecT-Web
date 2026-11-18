@@ -1,4 +1,5 @@
 import Icon from "../../../components/Icon";
+import PressableMotion from "../../../components/PressableMotion";
 
 interface NewMessagePreviewProps {
     message: string;
@@ -7,7 +8,9 @@ interface NewMessagePreviewProps {
 
 export const NewMessagePreview = ({ message, onClick }: NewMessagePreviewProps) => {
     return (
-        <button
+        <PressableMotion
+            as="button"
+            intensity="soft"
             type="button"
             onClick={onClick}
             className="inline-flex h-[40px] w-fit min-w-0 max-w-full items-center gap-[3px] rounded-[40px] bg-[var(--Gray-100,#FFF)] py-[8px] pl-[10px] pr-[16px] text-left shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]"
@@ -17,6 +20,6 @@ export const NewMessagePreview = ({ message, onClick }: NewMessagePreviewProps) 
             <span className="line-clamp-1 min-w-0 text-ellipsis text-r-16 text-gray-750 tracking-[-0.4px]">
                 {message}
             </span>
-        </button>
+        </PressableMotion>
     );
 };
