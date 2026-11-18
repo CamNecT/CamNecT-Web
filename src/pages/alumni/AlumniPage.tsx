@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAlumniList } from '../../api/alumni';
 import Category from '../../components/Category';
@@ -28,6 +29,7 @@ export const AlumniSearchPage = () => {
   const [alumniItems, setAlumniItems] = useState<ReturnType<typeof mapAlumniApiListToProfiles> | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [searchError, setSearchError] = useState<ReturnType<typeof getAlumniSearchError>>(null);
+  const [isServerErrorPopupOpen, setIsServerErrorPopupOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -48,6 +50,7 @@ export const AlumniSearchPage = () => {
     const timer = window.setTimeout(async () => {
       setIsSearching(true);
       setSearchError(null);
+      setIsServerErrorPopupOpen(false);
       try {
         // 서버 필터 결과를 받아 클라이언트 모델로 변환합니다.
         const response = await getAlumniList({
@@ -64,6 +67,7 @@ export const AlumniSearchPage = () => {
         // 이전 검색의 취소·늦은 실패는 현재 검색 결과를 덮어쓰거나 오류로 표시하지 않습니다.
         if (isActive && !controller.signal.aborted) {
           setSearchError(getAlumniSearchError(error));
+          setIsServerErrorPopupOpen(axios.isAxiosError(error) && error.response?.status === 500);
         }
       } finally {
         if (isActive) {
@@ -276,6 +280,17 @@ export const AlumniSearchPage = () => {
         allTags={filterTags}
       />
       <PopUp isOpen={isInitialLoading} type="loading" />
+      {/* 팝업을 닫아도 목록의 오류 안내와 다시 시도 버튼은 남겨 둔다. */}
+      {searchError && isServerErrorPopupOpen && !isInitialLoading && (
+        <PopUp
+          isOpen
+          type="error"
+          httpStatus={500}
+          title={searchError.title}
+          content={searchError.content}
+          onClick={() => setIsServerErrorPopupOpen(false)}
+        />
+      )}
     </FullLayout>
   );
 };
