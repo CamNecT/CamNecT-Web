@@ -120,8 +120,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     const candidateRef = useRef<HTMLDivElement>(null);
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
     // 종료 여부 
     const isTerminated = Boolean(chatRoomData?.closed);
     const opponentExited = chatRoomData?.opponentExited;
@@ -275,7 +273,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         );
     }, [chatRoomData?.messages, socketMessages, pendingMessages, myId, roomId]);
 
-    // 검색어 필터링 적용
+    // 검색어 필터링 적용을 포함한 현재 화면의 메시지 리스트
     const localMessages = useMemo(() => {
         if (!isSearching || !roomSearchQuery.trim()) return allMessages;
         return allMessages.filter(msg =>
@@ -445,7 +443,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         if (sendStarted) {
             // 보낸 메시지가 화면에 추가된 뒤 맨 아래로 이동한다.
             requestAnimationFrame(() => {
-                if (!messagesEndRef.current) return;
                 window.scrollTo(0, document.documentElement.scrollHeight);
             });
         }
@@ -933,7 +930,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                             <div className="flex-1 h-[1px] bg-gray-150"></div>
                         </div>
                     )}
-                    <div ref={messagesEndRef} />
                 </div>
             </div>
 
@@ -963,28 +959,18 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                         role="status"
                         aria-live="polite"
                         className="
-                            fixed bottom-0 left-1/2 z-50
+                            fixed bottom-0 left-1/2 z-50 flex
                             w-full max-w-[var(--app-mobile-max-width)]
-                            -translate-x-1/2
+                            -translate-x-1/2 justify-center
                             border-t border-gray-150
                             bg-white
-                            px-[25px] pt-[12px]
-                            pb-[calc(20px+env(safe-area-inset-bottom))]
+                            pt-[15px]
+                            pb-[calc(15px+env(safe-area-inset-bottom))]
                         "
                     >
-                        <div
-                            className="
-                                flex min-h-[44px] flex-col
-                                items-center justify-center
-                                rounded-[10px] bg-gray-100
-                                px-[15px] py-[8px]
-                                text-center
-                            "
-                        >
-                            <span className="text-m-14 text-gray-750">
-                                연결 중에는 이전 대화만 확인할 수 있어요
-                            </span>
-                        </div>
+                        <span className="text-m-16 text-gray-650 text-center tracking-[-0.4px]">
+                            연결 중에는 이전 대화만 확인할 수 있어요
+                        </span>
                     </div>
                 )
             )}
