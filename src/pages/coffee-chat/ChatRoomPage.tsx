@@ -5,24 +5,24 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 // [모바일 LAN UI 테스트 전용] 아래 import 활성화
 // import { isStompEnabled } from "../../api/stompClient";
+import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import Icon from "../../components/Icon";
 import PopUp from "../../components/Pop-up";
+import ReportModal from "../../components/report/ReportModal";
 import Toggle from "../../components/Toggle/Toggle";
-import { useChatRoom, useChatRoomClose, useChatRoomCloseAndExit, useChatRoomExit} from "../../hooks/useChatQuery";
+import { useChatRoom, useChatRoomClose, useChatRoomCloseAndExit, useChatRoomExit } from "../../hooks/useChatQuery";
 import { useStompChat } from "../../hooks/useStompChat";
 import { HeaderLayout } from "../../layouts/HeaderLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useChatStore } from "../../store/useChatStore";
 import type { ChatMessage } from "../../types/coffee-chat/coffeeChatTypes";
+import { isAdminUserId } from '../../utils/admin';
 import { formatFullDateWithDay, formatTime } from "../../utils/formatDate";
 import { ChatDropdown } from "./components/ChatDropdown";
 import { ChatRoomInfo } from "./components/ChatRoomInfo";
-import { TypingArea } from "./components/TypingArea";
-import ReportModal from "../../components/report/ReportModal";
-import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
-import { isAdminUserId } from '../../utils/admin';
 import { NewMessagePreview } from "./components/NewMessagePreview";
+import { TypingArea } from "./components/TypingArea";
 
 export const ChatRoomPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -96,16 +96,16 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // 고정 입력창의 실측 높이
     const [typingAreaHeight, setTypingAreaHeight] = useState(65);
 
-    // ---------- 새 메시지 미리보기 ----------
+    // ---------- 메시지 관련 ----------
     // 화면 아래의 최신 상대 메시지 ID (미리보기 후보)
-    const [belowCandidateMessageId, setBelowCandidateMessageId] = useState<string | null>(null);
+    const [belowCandidateMessageId, setBelowCandidateMessageId] = useState<string | null>(null);  
     // 확인된 미리보기 메시지 ID
     const [seenCandidateMessageId, setSeenCandidateMessageId] = useState<string | null>(null);
+    // 화면 아래의 마지막 메시지 ID
+    const [belowLastMessageId, setBelowLastMessageId] = useState<string | null>(null);
 
     // ---------- 채팅방 메뉴 ----------
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-    // ---------- 신고 ----------
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
     // ---------- 모집 공고 ----------
@@ -141,18 +141,18 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // false → true 단방향 전환 / 방 변경 시 초기화
     const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
 
-    // ==================== DOM 참조 · 이전 값 (useRef) ====================
+    // ======================== DOM 참조 · 이전 값 (useRef) ========================
 
     // ---------- 입력창 높이·스크롤 보정 ----------
     const typingAreaRef = useRef<HTMLDivElement>(null);
     // 입력창 높이 차이 계산용 이전 높이
     const previousTypingAreaHeightRef = useRef(65);
 
-    // ---------- 새 메시지 미리보기 ----------
-    // 최신 상대 메시지 말풍선 참조 (화면 노출 감지)
-    const candidateRef = useRef<HTMLDivElement>(null);
+    // ---------- 메시지 관련  ----------
+    const candidateRef = useRef<HTMLDivElement>(null); // 최신 상대 메시지 말풍선 참조
+    const latestMessageRef = useRef<HTMLDivElement>(null);// 마지막 메시지 말풍선 참조
 
-    // ==================== 일반 변수 · 파생 값 ====================
+    // ======================== 일반 변수 · 파생 값 ========================
 
     // ---------- 채팅방 이용 상태 ----------
     // 채팅 종료·상대방 퇴장 여부
@@ -196,9 +196,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     // 소켓 수신 목록의 최신 상대 메시지 추출 (미리보기 후보)
     if (userId != null) {
-        for (let i = socketMessages.length - 1; i >= 0; i--) {
-            if (String(socketMessages[i].senderId) !== String(userId)) {
-                latestOpponentMessage = socketMessages[i];
+        for (let index = socketMessages.length - 1; index >= 0; index--) {
+            if (String(socketMessages[index].senderId) !== String(userId)) {
+                latestOpponentMessage = socketMessages[index];
                 break;
             }
         }
@@ -346,6 +346,12 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         return -1;
     }, [localMessages, myId]);
 
+    // ---------- 최근 메시지 이동 관련 ----------
+    // 화면 목록의 마지막 메시지
+    const latestMessage = localMessages.at(-1);
+    const latestMessageId = latestMessage?.id;
+    const isRecentMessageButtonVisible = isReady && belowLastMessageId != null && !isPreviewVisible;
+
     // ==================== 외부 동기화 · 화면 배치 (useEffect / useLayoutEffect) ====================
 
     // ---------- 채팅방 퇴장 ----------
@@ -408,9 +414,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
         const messageElement = candidateRef.current; // 관찰할 말풍선 (상대의 최근 메시지)
         // 말풍선 DOM 미연결 시 관찰 생략
-        if (!messageElement) return; // todo 이해안됨
+        if (!messageElement) return; 
 
+        // 대상 요소와 뷰포트의 교차 상태 변화를 비동기로 감지
         const observer = new IntersectionObserver(
+            // 브라우저의 관찰결과를 실행하는 함수 (entry : 관찰결과)
             ([entry]) => {
                 // 1) 화면 노출 → 확인 처리
                 if (entry.isIntersecting) {
@@ -419,6 +427,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 }
                 // 2) 화면 아래 → 미리보기 후보 등록
                 else if (
+                    // 말풍선 위쪽 끝 <-> 관찰영역 아래쪽 끝
                     entry.boundingClientRect.top >=
                     (entry.rootBounds?.bottom ?? window.innerHeight)
                 ) {
@@ -433,10 +442,46 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
         );
 
-        observer.observe(messageElement);
+        observer.observe(messageElement); // 후보 메시지를 관찰대상에 등록
 
         return () => observer.disconnect();
     }, [candidateId, canObservePreviewCandidate, typingAreaHeight]);
+
+    // ---------- 최근 메시지 visible 탐지 ----------
+    useEffect(() => {
+        if (!latestMessageId) return;
+
+        const messageElement = latestMessageRef.current;
+        // 말풍선 DOM 미연결 시 관찰 생략
+        if (!messageElement) return; 
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                // 1) 화면 노출 → 확인 처리
+                if (entry.isIntersecting) {
+                    setBelowLastMessageId(null);
+                }
+                // 2) 화면 아래 → 미리보기 후보 등록
+                else if (
+                    // 말풍선 위쪽 끝 <-> 관찰영역 아래쪽 끝
+                    entry.boundingClientRect.top >=
+                    (entry.rootBounds?.bottom ?? window.innerHeight)
+                ) {
+                    setBelowLastMessageId(latestMessageId);
+                }
+                // 3) 화면 위 → 미리보기 숨김
+                else {
+                    setBelowLastMessageId(null);
+                }
+            },
+            // 입력창 높이만큼 관찰 영역 하단 축소 (가려진 말풍선 제외)
+            { rootMargin: `0px 0px -${typingAreaHeight}px 0px` }
+        );
+
+        observer.observe(messageElement);
+
+        return () => observer.disconnect();
+    }, [latestMessageId, typingAreaHeight])
 
     // ---------- 입력창 높이·스크롤 보정 ----------
     // 입력창 높이 감지 → 하단 여백·미리보기 관찰 영역 갱신
@@ -446,7 +491,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         const element = typingAreaRef.current;
         if (!element) return;
 
-        const observer = new ResizeObserver(() => { // todo 이해할 것
+        // 요소의 크기 변화를 알려주는 웹 API
+        const observer = new ResizeObserver(() => { 
             const height = Math.ceil(element.getBoundingClientRect().height);
 
             setTypingAreaHeight((previous) =>
@@ -625,12 +671,17 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         });
     }
 
-    // ---------- 새 메시지 미리보기 ----------
+    // ---------- 메시지 이동 관련 ----------
     // 미리보기 확인 처리·대화 하단 즉시 이동
     const handlePreviewClick = () => {
         if (!candidateId) return;
 
         setSeenCandidateMessageId(candidateId);
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" })
+    }
+
+    // 아래 버튼 클릭시 하단 즉시 이동
+    const handleLatestClick = () => {
         window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" })
     }
 
@@ -891,7 +942,9 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             )}
 
                                             {/* 채팅 메시지 */}
-                                            <div className="flex items-center gap-[7px] relative">
+                                            <div className="flex items-center gap-[7px] relative"
+                                                ref={msg.id === latestMessage?.id ? latestMessageRef : undefined}>
+                                                
                                                 <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
                                                     ${isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'}
                                                     ${isPending || isUnconfirmed ? 'opacity-40' : ''}`}
@@ -1001,6 +1054,19 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                 </div>
             </div>
 
+            {/* 최신 메시지 이동 버튼 */}
+            {isRecentMessageButtonVisible && (
+                <button
+                    type="button"
+                    onClick={handleLatestClick}
+                    aria-label="최신 메시지로 이동"
+                    className="fixed right-[40px] z-[60] inline-flex items-center gap-[3px] rounded-[40px] bg-[var(--Gray-100,#FFF)] p-[8px] shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]"
+                    style={{ bottom: typingAreaHeight + 16 }}
+                >
+                    <Icon name="chat_preview_arrow_down" size={24} />
+                </button>
+            )}
+
             {/* ==================== 하단 고정 영역 · 입력창 / 연결 안내 ==================== */}
             {!isChatUnavailable && (
                 isComposerVisible ? (
@@ -1019,7 +1085,6 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                 disabled={isChatUnavailable}
                             />
                         </div>
-
                     </div>
 
                 ) : (
