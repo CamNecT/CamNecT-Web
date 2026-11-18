@@ -210,6 +210,10 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     } : null;
 
     const candidateId = previewMessageCandidate?.id;
+    // 미리보기 후보 관찰 가능 여부 (화면 준비·검색 종료·후보 존재·미확인)
+    const canObservePreviewCandidate = isReady && !isSearching &&
+        !!candidateId && seenCandidateMessageId !== candidateId;
+
     // 미리보기 표시 조건 (검색 중 제외·화면 아래·미확인)
     const isPreviewVisible= !isSearching && candidateId != null &&
         belowCandidateMessageId === candidateId && seenCandidateMessageId !== candidateId;
@@ -244,7 +248,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
             // 서버 수신 메시지 → 저장 완료
             clientMessageId: msg.clientMessageId,
             deliveryState: 'sent',
-            // 서버 메시지의 재시도 횟수 미관리
+            // todo 재전송 기능 구현 전까지 서버 메시지의 재시도 횟수는 관리하지 않음
             retryCount: null,
 
             // 읽음 여부 판단용
@@ -400,14 +404,11 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
     // ---------- 새 메시지 미리보기 ----------
     // 후보 위치 감지 (노출 시 확인·화면 아래일 때 표시)
     useEffect(() => {
-        if (!isReady || isSearching ||
-            !candidateId || seenCandidateMessageId === candidateId) {
-            return;
-        }
+        if (!canObservePreviewCandidate) return;
 
         const messageElement = candidateRef.current; // 관찰할 말풍선 (상대의 최근 메시지)
         // 말풍선 DOM 미연결 시 관찰 생략
-        if (!messageElement) return;
+        if (!messageElement) return; // todo 이해안됨
 
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -435,7 +436,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         observer.observe(messageElement);
 
         return () => observer.disconnect();
-    }, [candidateId, isReady, isSearching, seenCandidateMessageId, typingAreaHeight]);
+    }, [candidateId, canObservePreviewCandidate, typingAreaHeight]);
 
     // ---------- 입력창 높이·스크롤 보정 ----------
     // 입력창 높이 감지 → 하단 여백·미리보기 관찰 영역 갱신
@@ -445,7 +446,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
         const element = typingAreaRef.current;
         if (!element) return;
 
-        const observer = new ResizeObserver(() => {
+        const observer = new ResizeObserver(() => { // todo 이해할 것
             const height = Math.ceil(element.getBoundingClientRect().height);
 
             setTypingAreaHeight((previous) =>
