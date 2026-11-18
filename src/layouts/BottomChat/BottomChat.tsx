@@ -19,6 +19,8 @@ type BottomChatProps = {
   focusToken?: number;
   // 댓글 API 제한을 입력 단계에서도 동일하게 적용하기 위한 최대 길이이다.
   maxLength?: number;
+  showLike?: boolean;
+  showSave?: boolean;
 };
 
 export const BottomChat = ({
@@ -35,6 +37,8 @@ export const BottomChat = ({
   replyTargetName,
   focusToken,
   maxLength,
+  showLike = true,
+  showSave = true,
 }: BottomChatProps) => {
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -134,17 +138,21 @@ export const BottomChat = ({
             ) : null}
           </form>
         </div>
-        <div className='flex shrink-0 items-center gap-[clamp(8px,3vw,13px)] pb-[12px] self-end'>
-          <div
-            className='flex items-center justify-center gap-[clamp(4px,1.5vw,5px)]'
-          >
-            <LikeToggle width={24} height={24} isActive={isLiked} onToggle={onLikeChange} />
-            <span className='min-w-[1.5ch] text-left text-[16px] tabular-nums text-[var(--ColorGray2,#A1A1A1)]'>
-              {likeCount}
-            </span>
+        {showLike || showSave ? (
+          <div className='flex shrink-0 items-center gap-[clamp(8px,3vw,13px)] pb-[12px] self-end'>
+            {showLike ? (
+              <div className='flex items-center justify-center gap-[clamp(4px,1.5vw,5px)]'>
+                <LikeToggle width={24} height={24} isActive={isLiked} onToggle={onLikeChange} />
+                <span className='min-w-[1.5ch] text-left text-[16px] tabular-nums text-[var(--ColorGray2,#A1A1A1)]'>
+                  {likeCount}
+                </span>
+              </div>
+            ) : null}
+            {showSave ? (
+              <SaveToggle width={24} height={24} isActive={isSaved} onToggle={onSaveChange} />
+            ) : null}
           </div>
-          <SaveToggle width={24} height={24} isActive={isSaved} onToggle={onSaveChange} />
-        </div>
+        ) : null}
       </div>
     </div>
   );

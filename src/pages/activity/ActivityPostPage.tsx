@@ -6,17 +6,33 @@ import PopUp from '../../components/Pop-up';
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
-import BottomReact from './components/BottomReact';
 import type { ActivityPostStatus } from '../../types/activityPage/activityPageTypes';
 import { formatPostDisplayDate } from './utils/post';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTags, getActivityDetail, deleteActivity, toggleActivityBookmark, closeActivity } from '../../api/activityApi';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import {
+  closeActivity,
+  createActivityComment,
+  deleteActivity,
+  deleteActivityComment,
+  getActivityComments,
+  getActivityDetail,
+  getTags,
+  toggleActivityBookmark,
+  updateActivityComment,
+} from '../../api/activityApi';
 import { mapDetailToActivityPost } from './utils/activityMapper';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import ImagePopUp from '../../components/ImagePopUp';
 import ReportModal from '../../components/report/ReportModal';
 import { isAdminUserId } from '../../utils/admin';
+import { BottomChat } from '../../layouts/BottomChat/BottomChat';
+import CommentListItem from '../community/components/CommentItem';
+import { useCommentActions } from '../community/hooks/useCommentActions';
+import { mapFlatCommentsToTree } from '../../utils/communityMapper';
+import type { CommentItem } from '../../types/community';
+import type { ActivityCommentItem } from '../../api-types/activityApiTypes';
+import { useCommunityErrorPopup } from '../community/hooks/useCommunityErrorPopup';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -125,7 +141,118 @@ const ActivityPostContent = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedComment, setSelectedComment] = useState<CommentItem | null>(null);
+  const [isCommentOptionOpen, setIsCommentOptionOpen] = useState(false);
+  const [isCommentDeletePopupOpen, setIsCommentDeletePopupOpen] = useState(false);
   const isAdminAuthor = isAdminUserId(selectedPost.author.id);
+  const { errorPopup, showCommunityError, closeCommunityError } = useCommunityErrorPopup();
+
+  const {
+    data: commentPages,
+    isLoading: isLoadingComments,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch: refetchComments,
+  } = useInfiniteQuery({
+    queryKey: ['activityComments', activityId],
+    queryFn: async ({ pageParam }) => {
+      try {
+        return await getActivityComments(activityId, {
+          ...(pageParam ? { cursorId: pageParam } : {}),
+          size: 20,
+        });
+      } catch (error) {
+        showCommunityError(error, 'commentList');
+        throw error;
+      }
+    },
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.data.hasNext ? (lastPage.data.nextCursorId ?? undefined) : undefined,
+    retry: false,
+  });
+
+  const commentItemsFromApi = useMemo(() => {
+    const seen = new Set<number>();
+    return (commentPages?.pages ?? []).flatMap((page) =>
+      page.data.items.filter((comment) => {
+        if (seen.has(comment.commentId)) return false;
+        seen.add(comment.commentId);
+        return true;
+      }),
+    );
+  }, [commentPages]);
+
+  const commentTree = useMemo(
+    () => mapFlatCommentsToTree(commentItemsFromApi as ActivityCommentItem[]),
+    [commentItemsFromApi],
+  );
+
+  const {
+    isSubmittingComment,
+    commentContent,
+    setCommentContent,
+    commentCount,
+    sortedComments,
+    editingCommentId,
+    editingCommentContent,
+    setEditingCommentContent,
+    highlightedCommentId,
+    replyTarget,
+    replyFocusToken,
+    handleReplyClick,
+    handleSubmitComment,
+    handleSaveEdit,
+    handleCancelEdit,
+    deleteComment,
+    startEditingComment,
+    formatCommentDisplayDate,
+  } = useCommentActions({
+    currentUser: null,
+    initialComments: commentTree,
+    resetKey: String(activityId),
+    isLockedQuestion: false,
+    isQuestionPost: false,
+    isAdopted: false,
+    onSubmitCommentApi: async ({ content, parentCommentId }) => {
+      try {
+        const numericParentId = parentCommentId ? Number(parentCommentId) : null;
+        await createActivityComment(activityId, {
+          content,
+          parentCommentId:
+            numericParentId !== null && Number.isInteger(numericParentId) && numericParentId > 0
+              ? numericParentId
+              : null,
+        });
+        await refetchComments();
+        return true;
+      } catch (error) {
+        showCommunityError(error, 'commentCreate');
+        return false;
+      }
+    },
+    onDeleteCommentApi: async (commentId) => {
+      const numericCommentId = Number(commentId);
+      if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
+      try {
+        await deleteActivityComment(numericCommentId);
+        await refetchComments();
+      } catch (error) {
+        showCommunityError(error, 'commentDelete');
+      }
+    },
+    onUpdateCommentApi: async ({ commentId, content }) => {
+      const numericCommentId = Number(commentId);
+      if (!Number.isInteger(numericCommentId) || numericCommentId < 1) return;
+      try {
+        await updateActivityComment(numericCommentId, { content });
+        await refetchComments();
+      } catch (error) {
+        showCommunityError(error, 'commentUpdate');
+      }
+    },
+  });
   
   //북마크 토글
   const bookmarkMutation = useMutation({
@@ -199,6 +326,58 @@ const ActivityPostContent = ({
   };
 
   const statusLabel = status === 'CLOSED' ? '모집 완료' : '모집 중';
+
+  const handleOpenCommentOptions = (comment: CommentItem) => {
+    setSelectedComment(comment);
+    setIsCommentOptionOpen(true);
+  };
+
+  const selectedCommentIsMine = selectedComment?.author.id === String(userId);
+  const selectedCommentIsAdmin = selectedComment
+    ? isAdminUserId(selectedComment.author.id)
+    : false;
+
+  const handleCommentOptionClick = (action: 'profile' | 'edit' | 'delete') => {
+    setIsCommentOptionOpen(false);
+    if (!selectedComment) return;
+
+    if (action === 'profile') {
+      if (selectedCommentIsMine || selectedCommentIsAdmin) return;
+      navigate(`/alumni/profile/${selectedComment.author.id}`, {
+        state: { author: selectedComment.author },
+      });
+      return;
+    }
+    if (action === 'edit' && selectedCommentIsMine) {
+      startEditingComment(selectedComment.id);
+      return;
+    }
+    if (action === 'delete' && (selectedCommentIsMine || isAdmin)) {
+      setIsCommentDeletePopupOpen(true);
+    }
+  };
+
+  const renderComment = (comment: CommentItem, isReply = false): React.ReactNode => (
+    <CommentListItem
+      key={comment.id}
+      comment={comment}
+      isReply={isReply}
+      isQuestionPost={false}
+      isAdopted={false}
+      showAdoptButton={false}
+      isHighlighted={highlightedCommentId === comment.id}
+      isEditing={editingCommentId === comment.id}
+      editingContent={editingCommentId === comment.id ? editingCommentContent : comment.content}
+      onEditingChange={setEditingCommentContent}
+      onSaveEdit={handleSaveEdit}
+      onCancelEdit={handleCancelEdit}
+      onOpenCommentOptions={handleOpenCommentOptions}
+      onOpenAdoptPopup={() => undefined}
+      onReplyClick={handleReplyClick}
+      formatDate={formatCommentDisplayDate}
+      renderReply={(reply) => renderComment(reply, true)}
+    />
+  );
 
 
   return (
@@ -349,15 +528,68 @@ const ActivityPostContent = ({
             </div>
           </section>
 
+          {isMine ? (
+            <div className='border-b border-[#ECECEC] px-[25px] py-[20px]'>
+              <button
+                type='button'
+                onClick={() => setIsCloseRecruitPopupOpen(true)}
+                disabled={status === 'CLOSED'}
+                className={`text-b-16-hn flex h-[44px] w-full items-center justify-center rounded-[10px] disabled:cursor-not-allowed ${
+                  status === 'CLOSED'
+                    ? 'bg-gray-300 text-white'
+                    : 'bg-[#FFEFEF] text-red'
+                }`}
+              >
+                {status === 'CLOSED' ? '모집 완료됨' : '모집 완료하기'}
+              </button>
+            </div>
+          ) : null}
+
+          <section className='flex flex-col'>
+            <div className='px-[25px] pb-[15px] pt-[20px] text-[16px] font-semibold text-[var(--ColorBlack,#202023)]'>
+              댓글 ({commentCount})
+            </div>
+            {isLoadingComments ? (
+              <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
+                댓글을 불러오는 중...
+              </div>
+            ) : (
+              <div className='flex flex-col'>
+                {sortedComments.length === 0 ? (
+                  <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
+                    첫 댓글을 작성해 보세요
+                  </div>
+                ) : (
+                  sortedComments.map((comment) => renderComment(comment))
+                )}
+                {hasNextPage ? (
+                  <button
+                    type='button'
+                    disabled={isFetchingNextPage}
+                    onClick={() => void fetchNextPage()}
+                    className='mx-[25px] my-[15px] rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] py-[10px] text-m-14 text-[var(--ColorGray3,#646464)] disabled:opacity-50'
+                  >
+                    {isFetchingNextPage ? '댓글을 불러오는 중...' : '댓글 더 보기'}
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </section>
+
         </div>
       </div>
 
-      <BottomReact
-        isMine={isMine}
-        status={status}
-        isBookmarked={isBookmarked}
-        onBookmarkToggle={() => bookmarkMutation.mutate()}
-        onOpenCompletePopup={() => setIsCloseRecruitPopupOpen(true)}
+      <BottomChat
+        content={commentContent}
+        onChange={setCommentContent}
+        onSubmit={handleSubmitComment}
+        disabled={isSubmittingComment}
+        replyTargetName={replyTarget?.name}
+        focusToken={replyFocusToken}
+        maxLength={5000}
+        showLike={false}
+        isSaved={isBookmarked}
+        onSaveChange={() => bookmarkMutation.mutate()}
       />
 
       <BottomSheetModal isOpen={isOptionOpen} onClose={() => setIsOptionOpen(false)} height='auto'>
@@ -380,6 +612,50 @@ const ActivityPostContent = ({
         </div>
       </BottomSheetModal>
 
+      <BottomSheetModal
+        isOpen={isCommentOptionOpen}
+        onClose={() => setIsCommentOptionOpen(false)}
+        height='auto'
+      >
+        <div className='flex flex-col px-[clamp(16px,6vw,25px)] pb-[max(50px,env(safe-area-inset-bottom,0px))] pt-[30px]'>
+          <div className='flex flex-col divide-y divide-[var(--ColorGray1,#ECECEC)]'>
+            {selectedCommentIsMine ? (
+              <button
+                type='button'
+                onClick={() => handleCommentOptionClick('edit')}
+                className='flex items-center gap-[15px] py-[15px] text-left'
+              >
+                <BottomSheetIcon name='writing' />
+                <span className='text-[16px] font-medium text-[var(--ColorGray3,#646464)]'>
+                  댓글 수정
+                </span>
+              </button>
+            ) : !selectedCommentIsAdmin ? (
+              <button
+                type='button'
+                onClick={() => handleCommentOptionClick('profile')}
+                className='flex items-center gap-[15px] py-[15px] text-left'
+              >
+                <BottomSheetIcon name='account' />
+                <span className='text-[16px] font-medium text-[var(--ColorGray3,#646464)]'>
+                  작성자 프로필 보기
+                </span>
+              </button>
+            ) : null}
+            {selectedCommentIsMine || isAdmin ? (
+              <button
+                type='button'
+                onClick={() => handleCommentOptionClick('delete')}
+                className='flex items-center gap-[15px] py-[15px] text-left'
+              >
+                <BottomSheetIcon name='trash' />
+                <span className='text-[16px] font-medium text-red'>댓글 삭제</span>
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </BottomSheetModal>
+
       <PopUp
         isOpen={isCloseRecruitPopupOpen}
         type='info'
@@ -396,6 +672,27 @@ const ActivityPostContent = ({
         content='삭제된 내용은 복구 불가능합니다.'
         onLeftClick={() => {setIsDeletePopupOpen(false); deleteMutation.mutate();}}
         onRightClick={() => setIsDeletePopupOpen(false)}
+      />
+
+      <PopUp
+        isOpen={isCommentDeletePopupOpen}
+        type='warning'
+        title='댓글을 삭제하시겠습니까?'
+        content='삭제된 댓글은 복구할 수 없습니다.'
+        onLeftClick={() => {
+          if (selectedComment) deleteComment(selectedComment.id);
+          setIsCommentDeletePopupOpen(false);
+        }}
+        onRightClick={() => setIsCommentDeletePopupOpen(false)}
+      />
+
+      <PopUp
+        isOpen={Boolean(errorPopup)}
+        type='error'
+        title={errorPopup?.title ?? ''}
+        content={errorPopup?.content ?? ''}
+        rightButtonText='확인'
+        onClick={closeCommunityError}
       />
 
       {!isAdminAuthor && (
