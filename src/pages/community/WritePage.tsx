@@ -1033,6 +1033,7 @@ export const WritePage = () => {
                 <PopUp
                     isOpen={true}
                     type='error'
+                    httpStatus={communityErrorPopup?.httpStatus}
                     title={(communityErrorPopup ?? errorPopUp)?.title}
                     content={(communityErrorPopup ?? errorPopUp)?.content}
                     onClick={() => {

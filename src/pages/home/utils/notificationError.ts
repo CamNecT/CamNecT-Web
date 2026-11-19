@@ -6,7 +6,7 @@ import {
 import { getServerErrorCode } from '../../../utils/getServerErrorCode';
 
 export type NotificationErrorAction = 'list' | 'unreadCount' | 'read' | 'readAll';
-export type NotificationErrorPopupConfig = { title: string; content: string };
+export type NotificationErrorPopupConfig = { title: string; content: string; httpStatus?: number };
 
 const FALLBACK_MESSAGES: Record<NotificationErrorAction, NotificationErrorPopupConfig> = {
   list: {
@@ -37,7 +37,7 @@ const CODE_MESSAGES: Partial<Record<string, NotificationErrorPopupConfig>> = {
 
 // 커뮤니티와 동일하게 HTTP 상태보다 서버 코드를 우선하고, 수행하던 동작으로 안내를 결정한다.
 // 조회 오류도 호출부에서 계산하므로 별도 effect나 전역 팝업 상태가 필요하지 않다.
-export const getNotificationErrorPopupConfig = (
+const resolveNotificationErrorPopupConfig = (
   error: unknown,
   action: NotificationErrorAction,
 ): NotificationErrorPopupConfig | null => {
@@ -67,4 +67,16 @@ export const getNotificationErrorPopupConfig = (
   if (status === 404 && action === 'read') return MESSAGES.notificationNotFound;
   if (status && status >= 500) return { ...fallback, content: MESSAGES.internal };
   return fallback;
+};
+
+// 서버 코드별 안내 문구를 유지하면서 실제 500 응답에만 문의 버튼을 노출한다.
+export const getNotificationErrorPopupConfig = (
+  error: unknown,
+  action: NotificationErrorAction,
+): NotificationErrorPopupConfig | null => {
+  const config = resolveNotificationErrorPopupConfig(error, action);
+  return config ? {
+    ...config,
+    httpStatus: axios.isAxiosError(error) ? error.response?.status : undefined,
+  } : null;
 };

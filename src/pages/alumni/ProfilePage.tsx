@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -95,6 +96,7 @@ export const AlumniProfilePage = ({
     // 네트워크/서버 오류 시 안내 팝업.
     return (
       <PopUp
+        httpStatus={axios.isAxiosError(profileError) ? profileError.response?.status : undefined}
         isOpen={true}
         type="confirm"
         title="일시적 오류"

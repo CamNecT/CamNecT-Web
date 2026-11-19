@@ -16,6 +16,7 @@ type PopUpCheckbox = {
 type PopUpProps = {
   isOpen: boolean;
   type: PopUpType;
+  httpStatus?: number;
   // ReactNode type : React가 렌더링하는 거의 모든 타입 (tsx를 받기 위해) 
   // 목적 : title ~ content의 텍스트 부분 스타일링
   title?: ReactNode; 
@@ -34,6 +35,7 @@ type PopUpProps = {
 const PopUp = ({
   isOpen,
   type,
+  httpStatus,
   title,
   titleSecondary,
   content,
@@ -50,9 +52,8 @@ const PopUp = ({
 
   const hasWarningCheckbox = type === 'warning' && Boolean(checkbox);
 
-  // 유형별 텍스트 정렬
-  const contentAlign =
-    type === 'warning' || type === 'confirm' || type === 'info' ? 'text-center' : 'text-left';
+  // 서버 오류 여부는 문구가 아니라 실제 HTTP 응답으로 판단한다.
+  const hasInquiryLink = httpStatus === 500 && (type === 'error' || type === 'confirm');
 
   // string 값에 들어온 "\n" 문자를 실제 줄바꿈으로 변환
   const normalizeEscapedNewlines = (value?: ReactNode): ReactNode => {
@@ -108,13 +109,13 @@ const PopUp = ({
 
     return (
       <div className={`flex flex-col ${
-        hasWarningCheckbox
-        ? 'gap-[7px]'
-        : 'h-[clamp(85px,10vw,100px)] justify-center gap-[15px] px-[15px] pt-[10px]'
-      } ${contentAlign}`}
+        type === 'warning'
+        ? 'gap-[15px] px-[15px]'
+        : 'min-h-[clamp(85px,10vw,100px)] justify-center gap-[15px] px-[15px] pt-[10px]'
+      } text-center break-words`}
       >
         {type === 'error' ? (
-          <div className='flex flex-col gap-[10px]'>
+          <div className='flex flex-col'>
             {isRenderableNode(normalizedTitle) && (
               <div className='text-b-18 whitespace-pre-wrap text-[var(--ColorBlack,#202023)]'>
                 {normalizedTitle}
@@ -162,6 +163,29 @@ const PopUp = ({
       return null;
     }
 
+    // 마이페이지와 같은 문의 폼을 새 탭으로 열어 현재 화면과 확인 동작을 유지한다.
+    if (hasInquiryLink) {
+      return (
+        <div className='flex w-full gap-[10px]'>
+          <a
+            href='https://forms.gle/pS8UMuVxyCAYbMVB6'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='flex min-h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorSub2,#F2FCF8)] text-center text-sb-14 text-[var(--ColorMain,#00C56C)]'
+          >
+            문의하기
+          </a>
+          <Button
+            type='button'
+            label={buttonText ?? '확인'}
+            font='b-14-hn'
+            onClick={onClick}
+            className='min-h-[45px] h-auto max-w-none rounded-[10px] text-center whitespace-pre-wrap'
+          />
+        </div>
+      );
+    }
+
     // 확인 팝업: 단일 버튼
     if (type === 'confirm' || type === 'error') {
       return (
@@ -170,7 +194,7 @@ const PopUp = ({
           label={buttonText ?? '확인'}
           font='b-14-hn'
           onClick={onClick}
-          className='h-[45px] max-w-none rounded-[10px] whitespace-pre-wrap'
+          className='h-[45px] max-w-none rounded-[10px] text-center whitespace-pre-wrap'
         />
       );
     }
@@ -187,7 +211,7 @@ const PopUp = ({
             disabled={isActionPending}
             className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--Color_Red2,#FFEFEF)] text-b-14-hn text-[var(--ColorRed,#FF3838)] disabled:cursor-not-allowed disabled:opacity-40'
           >
-            <span className='whitespace-pre-wrap'>{leftButtonText ?? '삭제하기'}</span>
+            <span className='text-center whitespace-pre-wrap'>{leftButtonText ?? '삭제하기'}</span>
           </PressableMotion>
           <PressableMotion
             as='button'
@@ -197,7 +221,7 @@ const PopUp = ({
             disabled={isActionPending}
             className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorGray1,#ECECEC)] text-sb-14 text-[var(--ColorGray2,#A1A1A1)] disabled:cursor-not-allowed disabled:opacity-40'
           >
-            <span className='whitespace-pre-wrap'>{rightButtonText ?? '아니오'}</span>
+            <span className='text-center whitespace-pre-wrap'>{rightButtonText ?? '아니오'}</span>
           </PressableMotion>
         </div>
       );
@@ -213,7 +237,7 @@ const PopUp = ({
           onClick={onLeftClick}
           className='flex h-[45px] w-full items-center justify-center rounded-[10px] bg-[var(--ColorSub2,#F2FCF8)] text-sb-14 text-[var(--ColorMain,#00C56C)]'
         >
-          <span className='whitespace-pre-wrap'>{leftButtonText ?? '아니오'}</span>
+          <span className='text-center whitespace-pre-wrap'>{leftButtonText ?? '아니오'}</span>
         </PressableMotion>
         <Button
           type='button'
@@ -221,7 +245,7 @@ const PopUp = ({
           font='b-14-hn'
           onClick={onRightClick}
           loading={isActionPending}
-          className='h-[45px] max-w-none rounded-[10px] whitespace-pre-wrap'
+          className='h-[45px] max-w-none rounded-[10px] text-center whitespace-pre-wrap'
         />
       </div>
     );
@@ -234,11 +258,11 @@ const PopUp = ({
       aria-modal='true'
     >
       {/* 모달 본체: clamp로 반응형 너비, 최소 높이 보장 */}
-      <div className='flex min-h-[200px] w-[clamp(260px,85vw,325px)] flex-col rounded-[20px] bg-[var(--ColorWhite,#FFF)] px-[20px] py-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.16)]'>
+      <div className={`flex min-h-[200px] w-[clamp(260px,85vw,325px)] max-w-full flex-col rounded-[20px] bg-[var(--ColorWhite,#FFF)] px-[20px] py-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.16)] ${type === 'warning' ? 'justify-center' : ''}`}>
         {renderContent()}
 
-        {/* 버튼 영역을 하단에 고정 */}
-        <div className={hasWarningCheckbox ? 'mt-[15px]' : 'mt-auto'}>
+        {/* 삭제 경고는 문구와 버튼을 함께 가운데 배치해 체크 옵션 유무와 관계없이 상하 여백을 맞춘다. */}
+        <div className={type === 'warning' ? 'mt-[20px]' : type === 'loading' ? 'mt-auto' : 'mt-auto pt-[20px]'}>
           {renderButtons()}
         </div>
       </div>

@@ -26,6 +26,7 @@ import { mapHomeResponseToViewModel } from './homeMapper';
 import { getNotificationErrorPopupConfig } from './utils/notificationError';
 
 type PopUpConfig = {
+    httpStatus?: number;
     title: string;
     content: string;
 };
@@ -64,6 +65,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
     }
     if (status === 500) {
         return {
+            httpStatus: status,
             title: '시스템 오류가 발생했습니다',
             content:
                 '서비스 이용에 불편을 드려 죄송합니다.\\n잠시 후 다시 시도해 주세요.',
@@ -353,6 +355,7 @@ export const HomePage = () => {
                 <PopUp
                     isOpen={!!popUpConfig}
                     type="error"
+                    httpStatus={popUpConfig.httpStatus}
                     title={popUpConfig.title}
                     content={popUpConfig.content}
                     onClick={() => {

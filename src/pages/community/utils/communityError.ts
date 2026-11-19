@@ -19,6 +19,7 @@ export type CommunityErrorAction =
   | 'bookmark';
 
 export type CommunityErrorPopupConfig = {
+  httpStatus?: number;
   title: string;
   content: string;
 };

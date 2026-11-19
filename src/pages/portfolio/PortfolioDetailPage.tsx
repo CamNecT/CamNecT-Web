@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import PortfolioEditModal from './components/PortfolioEditModal';
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
@@ -21,12 +22,14 @@ type PortfolioDetailPageProps = {
     ownerId?: string | number;
     isMine?: boolean;
     portfolioId?: string | number;
+    showServerErrorInquiry?: boolean;
 };
 
 export const PortfolioDetailPage = ({
     ownerId: ownerIdProp,
     isMine: isMineProp,
     portfolioId: portfolioIdProp,
+    showServerErrorInquiry = false,
 }: PortfolioDetailPageProps) => {
     const authUser = useAuthStore(state => state.user);
     const meUserId = authUser?.id ? parseInt(authUser.id) : null;
@@ -59,7 +62,7 @@ export const PortfolioDetailPage = ({
         }
     }, []);
 
-    const { data, isLoading, isError } = useQuery({
+    const { data, isLoading, isError, error } = useQuery({
         queryKey: ['portfolioDetail', portfolioUserId, portfolioId],
         queryFn: () => getPortfolioDetail(meUserId!, portfolioUserId, portfolioId!),
         enabled: !!meUserId && !!portfolioId,
@@ -140,9 +143,14 @@ export const PortfolioDetailPage = ({
 
     // 에러 발생
     if (isError) {
+        // 포트폴리오 상세를 공유하는 화면 중 문의 버튼을 요청한 곳에만 HTTP 상태를 전달한다.
+        const httpStatus = showServerErrorInquiry && axios.isAxiosError(error)
+            ? error.response?.status
+            : undefined;
         return (
             <PopUp
                 type="error"
+                httpStatus={httpStatus}
                 title="일시적 오류"
                 content="잠시 후 다시 시도해주세요."
                 isOpen={true}

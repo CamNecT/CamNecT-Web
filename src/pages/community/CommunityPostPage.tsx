@@ -42,6 +42,7 @@ import type {
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
 type PopUpConfig = {
+  httpStatus?: number;
   type: 'info' | 'warning' | 'confirm' | 'error' | 'loading';
   title: string;
   content?: string;
@@ -457,6 +458,7 @@ const CommunityPostPage = () => {
           <PopUp
             isOpen={true}
             type={activePopUpConfig.type}
+            httpStatus={activePopUpConfig.httpStatus}
             title={activePopUpConfig.title}
             titleSecondary={activePopUpConfig.titleSecondary}
             content={activePopUpConfig.content}
@@ -1099,6 +1101,7 @@ const CommunityPostPage = () => {
         <PopUp
           isOpen={true}
           type={activePopUpConfig.type}
+          httpStatus={activePopUpConfig.httpStatus}
           title={activePopUpConfig.title}
           titleSecondary={activePopUpConfig.titleSecondary}
           content={activePopUpConfig.content}
