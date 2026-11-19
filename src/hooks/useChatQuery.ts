@@ -30,6 +30,7 @@ export interface ChatRoomDetailData {
         activityId?: number;
     };
     messages: ChatMessage[];
+    firstUnreadMessageId?: string | null;
     closed: boolean;
     opponentExited: boolean;
 }
@@ -133,6 +134,9 @@ export const useChatRoom = (roomId: string) => {
                     recruitmentId: data.recruitmentId,
                     activityId: data.activityId,
                 },
+                firstUnreadMessageId: data.firstUnreadMessageId == null
+                    ? data.firstUnreadMessageId
+                    : String(data.firstUnreadMessageId),
                 // 채팅 메시지 리스트
                 messages: data.chatList.map((message): ChatMessage => ({
                     id: String(message.messageId),
@@ -152,7 +156,9 @@ export const useChatRoom = (roomId: string) => {
                 opponentExited: data.opponentExited,
             };
         },
-        enabled: !!roomId && !!userId
+        enabled: !!roomId && !!userId,
+        // 다시 입장할 때 이전 방문의 구분선 ID를 캐시에서 가져오지 않도록
+        gcTime: 0,
     });
 };
 

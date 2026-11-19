@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+// import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
@@ -20,12 +20,16 @@ if (window.isSecureContext && 'serviceWorker' in navigator) {
   })
 }
 
+// StrictMode는 개발 중 Effect의 설정/정리를 추가 실행해 부수효과 문제를 찾는다.
+// 현재는 useStompChat 정리 단계가 /leave를 보내 미읽음 구분선이 사라지므로 비활성화
+// 다시 켤 조건: 구독 재설정 중에는 /leave가 전송되지 않고, 미읽음 구분선이 유지되며,
+// 실제 채팅방 이탈 시에만 /leave가 전송되는 것을 개발 환경에서 확인할 것
 const renderApp = () => {
   createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
-      <StrictMode>
-        <RouterProvider router={router} />
-      </StrictMode>
+      {/* <StrictMode> */}
+      <RouterProvider router={router} />
+      {/* </StrictMode> */}
     </QueryClientProvider>
   )
 };

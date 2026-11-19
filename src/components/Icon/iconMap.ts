@@ -45,6 +45,7 @@ const figmaIconNames = [
   "arrow_right",
   "folder",
   "arrow_down",
+  "chat_preview_arrow_down",
   "image",
   "link",
   "search",
