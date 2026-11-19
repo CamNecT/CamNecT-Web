@@ -76,6 +76,7 @@ const figmaIconNames = [
   "send",
   "bell_notification",
   "error_circle",
+  "error_circle_stroke",
   "send_failed",
 ] as const;
 

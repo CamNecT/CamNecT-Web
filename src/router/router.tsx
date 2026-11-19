@@ -40,6 +40,7 @@ import { EditPasswordPage } from "../pages/my-page/sidebar/EditPasswordPage";
 import { MyBookmarksPage } from "../pages/my-page/sidebar/MyBookmarksPage";
 import { MyPostsPage } from "../pages/my-page/sidebar/MyPostPage";
 import { MySettingsPage } from "../pages/my-page/sidebar/MySettingsPage";
+import { PhoneSettingsPage } from "../pages/my-page/sidebar/PhoneSettingsPage";
 import { TermsPage } from "../pages/my-page/sidebar/TermsPage";
 import { OnboardingPage } from "../pages/onboarding/OnboardingPage";
 import { PortfolioDetailPage } from "../pages/portfolio/PortfolioDetailPage";
@@ -330,6 +331,10 @@ export const router = createBrowserRouter([
                                             {
                                                 path: "password",
                                                 element: <EditPasswordPage/>
+                                            },
+                                            {
+                                                path: "phone",
+                                                element: <PhoneSettingsPage/>
                                             },
                                             {
                                                 path: "delete-account",

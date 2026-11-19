@@ -148,7 +148,7 @@ export const DeleteAccountPage = () => {
                     <button
                         onClick={handleSubmit}
                         disabled={!password || isSubmitting}
-                        className="w-full py-[12px] rounded-full bg-red disabled:bg-gray-300 flex items-center justify-center transition-colors mb-[20px]"
+                        className="w-full h-[50px] py-[12px] rounded-full bg-red disabled:bg-gray-300 flex items-center justify-center transition-colors mb-[20px]"
                     >
                         <span className="text-sb-16-hn text-white">
                             {isSubmitting ? "처리 중..." : "회원 탈퇴하기"}
