@@ -7,6 +7,7 @@ import { useShallow } from "zustand/react/shallow";
 // import { isStompEnabled } from "../../api/stompClient";
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import Icon from "../../components/Icon";
+import { LinkifiedText } from "../../components/LinkifiedText";
 import PopUp from "../../components/Pop-up";
 import PressableMotion from "../../components/PressableMotion";
 import ReportModal from "../../components/report/ReportModal";
@@ -752,8 +753,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                 <span className="text-m-14 tracking-[-0.56px] text-gray-650 whitespace-nowrap">
                                                     요청 내용
                                                 </span>
-                                                <span className="text-m-14 tracking-[-0.56px] text-gray-750">
-                                                    {requestInfo.content}
+                                                <span className="min-w-0 text-m-14 tracking-[-0.56px] text-gray-750">
+                                                    <LinkifiedText text={requestInfo.content} />
                                                 </span>
                                             </div>
                                         )}
@@ -940,21 +941,25 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             </div>
                                         )}
 
-                                        <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} pt-[3px] gap-[7px]`}>
+                                        <div className={`flex min-w-0 flex-col ${isMe ? 'items-end' : 'items-start'} pt-[3px] gap-[7px]`}>
                                             {!isMe && !isSameAsPrev && (
                                                 <span className="text-r-12 text-gray-750 tracking-[-0.24px] ml-[2px] ">{roomInfo?.name}</span>
                                             )}
 
                                             {/* 채팅 메시지 */}
-                                            <div className="flex items-center gap-[7px] relative"
+                                            <div className="flex min-w-0 max-w-full items-center gap-[7px] relative"
                                                 ref={msg.id === latestMessage?.id ? latestMessageRef : undefined}>
-                                                
-                                                <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
+                                                <div className={`min-w-0 px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
                                                     ${isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'}
                                                     ${isPending || isUnconfirmed ? 'opacity-40' : ''}`}
-                                                    ref = {msg.id === candidateId ? candidateRef : undefined}
+                                                    ref={msg.id === candidateId ? candidateRef : undefined}
                                                 >
-                                                    <span className="select-text whitespace-pre-wrap">{msg.content}</span>
+                                                    <span className="select-text whitespace-pre-wrap">
+                                                        <LinkifiedText
+                                                            text={msg.content}
+                                                            linkClassName={isMe ? 'text-white' : 'text-primary'}
+                                                        />
+                                                    </span>
                                                 </div>
 
                                                 {/* 전송 실패 메시지 */}

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef } from 'react';
 import Icon from '../../../components/Icon';
+import { LinkifiedText } from '../../../components/LinkifiedText';
 import type { CommentItem as CommentItemType } from '../../../types/community';
 
 type CommentItemProps = {
@@ -158,7 +159,7 @@ const CommentItem = ({
               />
             ) : (
               <div className='mt-[5px] select-text whitespace-pre-wrap text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)]'>
-                {comment.content}
+                <LinkifiedText text={comment.content} />
               </div>
             )}
 

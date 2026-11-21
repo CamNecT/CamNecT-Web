@@ -24,6 +24,7 @@ import {
 import { mapDetailToActivityPost } from './utils/activityMapper';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import ImagePopUp from '../../components/ImagePopUp';
+import { LinkifiedText } from '../../components/LinkifiedText';
 import ReportModal from '../../components/report/ReportModal';
 import { isAdminUserId } from '../../utils/admin';
 import { BottomChat } from '../../layouts/BottomChat/BottomChat';
@@ -488,7 +489,7 @@ const ActivityPostContent = ({
 
             <div className='flex flex-col gap-[20px]'>
               <div className='text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] whitespace-pre-wrap break-keep [overflow-wrap:anywhere]'>
-                {selectedPost.content}
+                <LinkifiedText text={selectedPost.content ?? ''} />
               </div>
               {selectedPost.postImages && selectedPost.postImages.length > 0 && (
                 <div className='mt-[30px] -mr-5 overflow-x-auto sm:-mr-[25px]'>

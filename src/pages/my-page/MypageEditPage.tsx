@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Icon from "../../components/Icon";
+import { LinkifiedText } from "../../components/LinkifiedText";
 import InfoSection from "./components/InfoSection";
 import ImageEditModal from "./components/ImageEditModal";
 import { useProfileEdit } from "./hooks/useProfileEdit";
@@ -278,7 +279,7 @@ export const MypageEditPage = () => {
                                         </button>
                                     </div>
                                     <div className="w-full flex text-R-14 text-gray-750 leading-[1.5] pl-[4px] line-clamp-3 whitespace-pre-line break-keep [overflow-wrap:anywhere]">
-                                        {user.introduction}
+                                        <LinkifiedText text={user.introduction} />
                                     </div>
                                 </div>
                             </div>
