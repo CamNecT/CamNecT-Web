@@ -6,6 +6,7 @@ import { useShallow } from "zustand/react/shallow";
 // [모바일 LAN UI 테스트 전용] 필요할 때 아래 import를 활성화한다.
 // import { isStompEnabled } from "../../api/stompClient";
 import Icon from "../../components/Icon";
+import { LinkifiedText } from "../../components/LinkifiedText";
 import PopUp from "../../components/Pop-up";
 import Toggle from "../../components/Toggle/Toggle";
 import { useChatRoom, useChatRoomClose, useChatRoomCloseAndExit, useChatRoomExit} from "../../hooks/useChatQuery";
@@ -512,8 +513,8 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                                 <span className="text-m-14 tracking-[-0.56px] text-gray-650 whitespace-nowrap">
                                                     요청 내용
                                                 </span>
-                                                <span className="text-m-14 tracking-[-0.56px] text-gray-750">
-                                                    {requestInfo.content}
+                                                <span className="min-w-0 text-m-14 tracking-[-0.56px] text-gray-750">
+                                                    <LinkifiedText text={requestInfo.content} />
                                                 </span>
                                             </div>
                                         )}
@@ -679,17 +680,22 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
                                             </div>
                                         )}
 
-                                        <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} pt-[3px] gap-[7px]`}>
+                                        <div className={`flex min-w-0 flex-col ${isMe ? 'items-end' : 'items-start'} pt-[3px] gap-[7px]`}>
                                             {!isMe && !isSameAsPrev && (
                                                 <span className="text-r-12 text-gray-750 tracking-[-0.24px] ml-[2px] ">{roomInfo?.name}</span>
                                             )}
 
                                             {/* 채팅 메시지 */}
-                                            <div className="flex items-center gap-[7px] relative">
-                                                <div className={`px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
+                                            <div className="flex min-w-0 max-w-full items-center gap-[7px] relative">
+                                                <div className={`min-w-0 px-[13px] py-[7px] text-r-16 tracking-[-0.64px] ${bubbleRounding}
                                                     ${isMe ? 'bg-primary text-white' : 'bg-gray-150 text-gray-750'}
                                                     ${isPending || isUnconfirmed ? 'opacity-40' : ''}`}>
-                                                    <span className="select-text">{msg.content}</span>
+                                                    <span className="select-text">
+                                                        <LinkifiedText
+                                                            text={msg.content}
+                                                            linkClassName={isMe ? 'text-white' : 'text-primary'}
+                                                        />
+                                                    </span>
                                                 </div>
 
                                                 {/* 전송 실패 메시지 */}
