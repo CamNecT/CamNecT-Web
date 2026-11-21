@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { LinkifiedText } from "../../../components/LinkifiedText";
 import type { ChatUser } from "../../../types/coffee-chat/coffeeChatTypes";
 import { formatFullDateWithDay } from "../../../utils/formatDate";
 import { formatStudentLabel } from "../../../utils/formatStudent";
@@ -81,7 +82,9 @@ export const ChatRoomInfo = ({ partner, requestInfo }: ChatRoomInfoProps) => {
                 </div>
                 <div className="flex flex-col gap-[7px]">
                     <p className="text-sb-16 text-gray-900 tracking-[-0.64px]">요청 내용</p>
-                    <p className="text-r-14 text-gray-750 tracking-[-0.56px] whitespace-pre-wrap">{requestInfo.content || '요청 내용이 없습니다.'}</p>
+                    <p className="text-r-14 text-gray-750 tracking-[-0.56px] whitespace-pre-wrap">
+                        <LinkifiedText text={requestInfo.content || '요청 내용이 없습니다.'} />
+                    </p>
                 </div>
             </section>
         </div>

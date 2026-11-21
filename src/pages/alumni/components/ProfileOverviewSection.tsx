@@ -1,6 +1,7 @@
 import defaultImg from '../../../assets/image/defaultProfileImg.png';
 import Button from '../../../components/Button';
 import Category from '../../../components/Category';
+import { LinkifiedText } from '../../../components/LinkifiedText';
 import type { AlumniProfile } from '../../../types/alumni/alumniTypes';
 import FollowButton from './FollowButton';
 
@@ -89,7 +90,7 @@ const ProfileOverviewSection = ({
         )}
 
         <p className='line-clamp-3 whitespace-pre-line text-r-14 text-[color:var(--ColorGray2,#A1A1A1)] [padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]'>
-          {profile.intro}
+          <LinkifiedText text={profile.intro} />
         </p>
       </div>
     </section>

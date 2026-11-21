@@ -7,6 +7,7 @@ import defaultProfileImg from "../../assets/image/defaultProfileImg.png";
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import Icon from '../../components/Icon';
+import { LinkifiedText } from '../../components/LinkifiedText';
 import PopUp from '../../components/Pop-up';
 import SaveToggle from '../../layouts/BottomChat/components/SaveToggle';
 import Button from '../../components/Button';
@@ -305,7 +306,7 @@ export const RecruitDetailPage = () => {
                     {/* 모집 내용 */}
                     <div className='flex py-[20px]'>
                         <p className='text-r-16 text-gray-750 whitespace-pre-line'>
-                            {recruitment.content}
+                            <LinkifiedText text={recruitment.content} />
                         </p>
                     </div>
                 </section>

@@ -4,6 +4,7 @@ import PortfolioEditModal from './components/PortfolioEditModal';
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
 import ModalIcon from '../../components/BottomSheetModal/Icon';
 import PopUp from '../../components/Pop-up';
+import { LinkifiedText } from '../../components/LinkifiedText';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -231,7 +232,7 @@ export const PortfolioDetailPage = ({
                                     </div>
                                     <div className='bg-gray-150 h-[1px] w-full'/>
                                     <div className="text-r-14 text-gray-750 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]">
-                                        {portfolio.description}
+                                        <LinkifiedText text={portfolio.description} />
                                     </div>
                                 </div>
 
@@ -317,7 +318,7 @@ export const PortfolioDetailPage = ({
                         <div className="px-[25px] flex flex-col gap-[8px]">
                             <span className="text-m-14-hn text-gray-750">Problem & Solution</span>
                             <div className="text-r-12 text-gray-650 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]">
-                                {portfolio.review}
+                                <LinkifiedText text={portfolio.review} />
                             </div>
                         </div>
                     </div>
