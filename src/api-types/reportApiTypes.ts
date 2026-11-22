@@ -2,6 +2,7 @@
 export type TargetType =
   | 'COMMUNITY'
   | 'COMMUNITY_COMMENT'
+  | 'ACTIVITY_COMMENT'
   | 'ACTIVITY'
   | 'ACTIVITY_RECRUITMENT'
   | 'USER'
