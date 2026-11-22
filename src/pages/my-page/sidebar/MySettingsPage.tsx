@@ -1,3 +1,4 @@
+import { useFcmToken } from "../../../hooks/useFcmNotification";
 import { useNavigate } from "react-router-dom";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { MainHeader } from "../../../layouts/headers/MainHeader";
@@ -5,7 +6,8 @@ import PopUp from "../../../components/Pop-up";
 import defaultProfileImg from "../../../assets/image/defaultProfileImg.png"
 import { useAuthStore } from "../../../store/useAuthStore";
 import { getSettingInfo } from "../../../api/profileApi";
-import { useQuery } from "@tanstack/react-query";
+import { fetchPushPreference, savePushPreference } from "../../../api/push";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -19,6 +21,17 @@ export const MySettingsPage = () => {
         queryKey: ["setting", userId],
         queryFn: () => getSettingInfo(userId!),
         enabled: !!userId,
+    });
+
+    const { handleRequestPermission } = useFcmToken();
+    const device = useMutation({ mutationFn: handleRequestPermission });
+    const queryClient = useQueryClient();
+    const preferenceKey = ["pushPreference", authUser?.id];
+    const preference = useQuery({ queryKey: preferenceKey, queryFn: fetchPushPreference, enabled: !!userId });
+    const save = useMutation({
+        mutationFn: savePushPreference,
+        onSuccess: saved => queryClient.setQueryData(preferenceKey, saved),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: preferenceKey }),
     });
 
     const userSetting = SettingInfoResponse?.data;
@@ -127,6 +140,26 @@ export const MySettingsPage = () => {
 
                 {/* Menu Items */}
                 <div className="flex flex-col">
+                    <label className="flex items-center justify-between px-[25px] py-[20px] text-m-16-hn">
+                        전체 푸시 알림
+                        {preference.data ? (
+                            <input type="checkbox" role="switch" checked={preference.data.pushEnabled}
+                                disabled={save.isPending} onChange={event => save.mutate(event.target.checked)} />
+                        ) : preference.isLoading ? '불러오는 중' : (
+                            <button type="button" onClick={() => preference.refetch()}>다시 불러오기</button>
+                        )}
+                    </label>
+                    {save.isError && <p role="alert" className="px-[25px]">알림 설정을 저장하지 못했습니다. 다시 시도해 주세요.</p>}
+                    {preference.data?.pushEnabled && "Notification" in window && Notification.permission === "denied" &&
+                        <p className="px-[25px]">이 기기에서 받으려면 브라우저 설정에서 알림을 허용해 주세요.</p>}
+                    {preference.data?.pushEnabled && "Notification" in window && Notification.permission !== "denied" &&
+                        <div className="px-[25px]">
+                            <button type="button" disabled={device.isPending || device.data === true}
+                                onClick={() => device.mutate()}>
+                                {device.data ? "이 기기 알림 연결됨" : "이 기기에서 알림 받기"}
+                            </button>
+                            {device.data === false && <p role="status">기기를 연결하지 못했습니다. 브라우저 권한을 확인해 주세요.</p>}
+                        </div>}
                     {menuItems.map((item) => (
                         <button
                             key={item.id}

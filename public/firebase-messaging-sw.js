@@ -22,7 +22,7 @@ const messaging = firebase.messaging();
 // todo 4,5번 이해할 것
 // 4. 백그라운드 메시지 핸들러
 messaging.onBackgroundMessage((payload) => {
-    console.log('💤 [백그라운드] FCM 메시지 도착:', payload);
+
     
     // 백엔드에서 data 필드에 title, body를 담아 보내준다
     const title = payload.data?.title || payload.notification?.title || "CamNecT";
@@ -40,14 +40,16 @@ messaging.onBackgroundMessage((payload) => {
         }
     };
     
-    self.registration.showNotification(title, notificationOptions);
+    return self.registration.showNotification(title, notificationOptions);
 });
 
 // 5. 알림 클릭 이벤트 처리
 self.addEventListener('notificationclick', function (event) {
     event.notification.close(); 
 
-    const urlToOpen = event.notification.data?.link || '/';          
+    const link = event.notification.data?.link;
+    const urlToOpen = typeof link === 'string' && link.startsWith('/') && !link.startsWith('//') &&
+        new URL(link, self.location.origin).origin === self.location.origin ? link : '/';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
@@ -60,7 +62,7 @@ self.addEventListener('notificationclick', function (event) {
                         break;
                     }
                 }
-                return client.navigate(urlToOpen).then(c => c.focus());
+                return client.navigate(urlToOpen).then(c => c?.focus());
             }
             // (B) 우리 사이트가 전혀 열려있지 않다면?
             if (clients.openWindow) {

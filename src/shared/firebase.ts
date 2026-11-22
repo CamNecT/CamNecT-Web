@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, isSupported, type Messaging } from "firebase/messaging";
-import { getInstallations } from "firebase/installations";
+import { getId, getInstallations } from "firebase/installations";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -32,6 +32,6 @@ export const getFirebaseMessaging = () => {
 };
 
 // 설치 (FID 발급용) 객체
-export const installations = getInstallations(app);
+export const getInstallationId = async () => getId(getInstallations(app));
 
 export default app;

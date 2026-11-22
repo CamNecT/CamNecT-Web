@@ -1,3 +1,4 @@
+import { fetchPushPreference } from "../../api/push";
 
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
@@ -81,22 +82,30 @@ export const HomePage = () => {
         state.items.some((notice) => !notice.isRead),
     );
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const storedUserId = useAuthStore((state) => state.user?.id);
+    const pushPreference = useQuery({
+        queryKey: ["pushPreference", storedUserId],
+        queryFn: fetchPushPreference,
+        enabled: isAuthenticated && !!storedUserId,
+    });
     const { handleRequestPermission } = useFcmToken();
     const [isNotificationPopupOpen, setIsNotificationPopupOpen] = useState(false);
 
     useEffect(() => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated || !storedUserId || !pushPreference.data?.pushEnabled) return;
 
         // 브라우저가 Notification API를 지원하는지 확인
         if (!("Notification" in window)) return;
 
         // 세션 내에 이미 등록을 시도했는지 확인
-        const isRegisteredInSession = sessionStorage.getItem('FCM_REGISTERED_IN_SESSION');
+        const registrationKey = 'FCM_REGISTERED_ACCOUNT';
+        const isRegisteredInSession = sessionStorage.getItem(registrationKey);
 
         // 1. 이미 알림 권한이 허용된 상태라면 (이번 세션 최초 1회만 등록/최신화)
-        if (Notification.permission === 'granted' && !isRegisteredInSession) {
-            handleRequestPermission();
-            sessionStorage.setItem('FCM_REGISTERED_IN_SESSION', 'true');
+        if (Notification.permission === 'granted' && isRegisteredInSession !== storedUserId) {
+            void handleRequestPermission().then(registered => {
+                if (registered) sessionStorage.setItem(registrationKey, storedUserId);
+            });
             return;
         }
 
@@ -109,7 +118,7 @@ export const HomePage = () => {
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [isAuthenticated, handleRequestPermission]);
+    }, [isAuthenticated, storedUserId, pushPreference.data?.pushEnabled, handleRequestPermission]);
 
     const handleClosePopup = () => {
         setIsNotificationPopupOpen(false);
@@ -125,7 +134,6 @@ export const HomePage = () => {
         await handleRequestPermission();
     };
     const storedUserName = useAuthStore((state) => state.user?.name);
-    const storedUserId = useAuthStore((state) => state.user?.id);
     const userIdParam = resolveUserIdParam(storedUserId);
     const hasValidUserId = userIdParam !== null;
 

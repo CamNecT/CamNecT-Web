@@ -7,9 +7,8 @@ export interface BaseResponse<T> {
 
 // 1. FCM Token 등록 (/api/notification/push/tokens)
 export interface RegisterFcmTokenRequest {
-    userId: number;
     deviceId: string;
-    platform: "ANDROID"; 
+    platform: "WEB";
     token: string;
 }
 
