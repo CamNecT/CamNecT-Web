@@ -12,6 +12,10 @@ import type {
   FollowListResponse,
   SettingInfoResponse,
   ChangePasswordRequest,
+  PhoneStatusResponse,
+  UpdatePhoneRequest,
+  SendPhoneVerificationResponse,
+  ConfirmPhoneVerificationRequest,
 } from "../api-types/profileApiTypes";
 import { getId } from "firebase/installations";
 import { installations } from "../shared/firebase";
@@ -88,6 +92,37 @@ export const getSettingInfo = async (userId: number) => {
   const response = await axiosInstance.get<SettingInfoResponse>(
     "/api/profile/me/settings",
     { params: { userId } }
+  );
+  return response.data;
+};
+
+// 내 전화번호 및 인증 상태 조회 [GET] (/api/profile/me/phone)
+export const getPhoneStatus = async (): Promise<PhoneStatusResponse> => {
+  const response = await axiosInstance.get<PhoneStatusResponse>("/api/profile/me/phone");
+  return response.data;
+};
+
+// 전화번호 등록/변경 [PUT] (/api/profile/me/phone)
+export const updatePhone = async (data: UpdatePhoneRequest): Promise<PhoneStatusResponse> => {
+  const response = await axiosInstance.put<PhoneStatusResponse>("/api/profile/me/phone", data);
+  return response.data;
+};
+
+// 전화번호 인증번호 발송 [POST] (/api/profile/me/phone/verification/send)
+export const sendPhoneVerification = async (): Promise<SendPhoneVerificationResponse> => {
+  const response = await axiosInstance.post<SendPhoneVerificationResponse>(
+    "/api/profile/me/phone/verification/send",
+  );
+  return response.data;
+};
+
+// 전화번호 인증 확인 [POST] (/api/profile/me/phone/verification/confirm)
+export const confirmPhoneVerification = async (
+  data: ConfirmPhoneVerificationRequest,
+): Promise<PhoneStatusResponse> => {
+  const response = await axiosInstance.post<PhoneStatusResponse>(
+    "/api/profile/me/phone/verification/confirm",
+    data,
   );
   return response.data;
 };
