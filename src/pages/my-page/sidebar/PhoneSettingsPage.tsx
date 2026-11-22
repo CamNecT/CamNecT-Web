@@ -156,15 +156,18 @@ const PhoneSettingsForm = ({
     const requestMutation = useMutation({
         mutationFn: async (requestedPhone: string) => {
             const updated = await updatePhone({ phoneNum: requestedPhone });
-            if (updated.data.phoneVerified) return { alreadyVerified: true as const };
+            if (updated.data.phoneVerified) {
+                return { alreadyVerified: true as const, updated };
+            }
             const sent = await sendPhoneVerification();
-            return { alreadyVerified: false as const, sent };
+            return { alreadyVerified: false as const, updated, sent };
         },
         retry: false,
         onMutate: () => {
             setPhoneError('');
         },
         onSuccess: (result, requestedPhone) => {
+            queryClient.setQueryData(['phoneStatus', userId], result.updated);
             void queryClient.invalidateQueries({ queryKey: ['setting'] });
             if (result.alreadyVerified) {
                 clearVerificationSession(userId);
@@ -280,7 +283,10 @@ const PhoneSettingsForm = ({
         }
     };
 
-    const canRequest = isValidPhoneNumber(phoneNumber) && resendAfter === 0 && initialStatus.smsAvailable;
+    const canRequest = isValidPhoneNumber(phoneNumber)
+        && resendAfter === 0
+        && initialStatus.smsAvailable
+        && !confirmMutation.isPending;
     const canConfirm = Boolean(challengeId) && expiresIn > 0 && /^\d{6}$/.test(verificationCode);
 
     return (
