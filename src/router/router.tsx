@@ -47,6 +47,7 @@ import { PortfolioDetailPage } from "../pages/portfolio/PortfolioDetailPage";
 import { PortfolioListPage } from "../pages/portfolio/PortfolioListPage";
 import { Schedule } from "../pages/schedule/Schedule";
 import { ShopDetailPage } from "../pages/shop/ShopDetailPage";
+import { ShopPointHistoryPage } from "../pages/shop/ShopHistoryPage";
 import { ShopPage } from "../pages/shop/ShopPage";
 import { AuthGuard } from "./AuthGuard";
 import { AdminGuard } from "./AdminGuard";
@@ -364,6 +365,10 @@ export const router = createBrowserRouter([
                             {
                                 index: true,
                                 element: <ShopPage />,
+                            },
+                            {
+                                path: "history",
+                                element: <ShopPointHistoryPage />,
                             },
                             {
                                 path: ":productId",
