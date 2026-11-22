@@ -1,6 +1,7 @@
 {
-  "name": "CamNect",
-  "short_name": "CamNect",
+  "lang": "ko",
+  "name": "캠넥트(CamNecT)",
+  "short_name": "캠넥트",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
