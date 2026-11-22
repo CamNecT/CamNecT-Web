@@ -118,7 +118,11 @@ export const MySettingsPage = () => {
                                     <span>이메일</span>
                                 </div>
                                 <div className="w-full min-w-0 flex flex-col gap-[5px] text-m-16-hn text-gray-750 ">
-                                    <span>{formatPhoneNumber(userSetting.phoneNum) || '-'}</span>
+                                    <span>
+                                        {userSetting.phoneVerified && userSetting.phoneNum
+                                            ? formatPhoneNumber(userSetting.phoneNum)
+                                            : '미등록'}
+                                    </span>
                                     <div className="w-full min-w-0 break-all whitespace-normal">{userSetting.email}</div>
                                 </div>
                             </div>
