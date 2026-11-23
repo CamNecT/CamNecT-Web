@@ -12,7 +12,7 @@ const CertificateSection = ({ items }: CertificateSectionProps) => (
       {items.map((item) => (
         <div key={item.id} className='flex flex-col gap-[3px]'>
           <div className='text-r-12-hn text-gray-650'>{item.date}</div>
-          <div className='text-r-16-hn text-gray-900'>{item.name}</div>
+          <div className='break-words text-r-16-hn text-gray-900'>{item.name}</div>
         </div>
       ))}
     </div>

@@ -13,8 +13,8 @@ const EducationSection = ({ items }: EducationSectionProps) => (
         <div key={item.id} className='flex flex-col gap-[3px]'>
           <div className='text-r-12-hn text-gray-650'>{item.period}</div>
           <div className='flex items-center gap-[5px]'>
-            <span className='text-r-16-hn text-gray-900'>{item.school}</span>
-            <span className='text-r-14-hn text-gray-750'>{item.status}</span>
+            <span className='min-w-0 break-words text-r-16-hn text-gray-900'>{item.school}</span>
+            <span className='shrink-0 text-r-14-hn text-gray-750'>{item.status}</span>
           </div>
         </div>
       ))}
