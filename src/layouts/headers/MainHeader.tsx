@@ -32,6 +32,7 @@ type MainHeaderProps = {
   // 뱃지 관련 속성 추가
   showBadge?: boolean;
   isAdmin?: boolean;
+  badgeColor?: string;
   className?: string;
   largeTouchTarget?: boolean;
 };
@@ -45,6 +46,7 @@ export const MainHeader = ({
   leftAriaLabel,
   showBadge,
   isAdmin,
+  badgeColor,
   className,
   largeTouchTarget = false,
 }: MainHeaderProps) => {
@@ -139,7 +141,7 @@ export const MainHeader = ({
                     }}
                   />
                   {/* 뱃지 조건부 렌더링 */}
-                  {showBadge && index === 0 ? <Badge /> : null}
+                  {showBadge && index === 0 ? <Badge color={badgeColor} /> : null}
                 </span>
               </PressableMotion>
             ))

@@ -116,6 +116,7 @@ export const ChatListPage = () => {
     setActiveId(id as ChatRoomListItemType);
     setIsEditMode(false);
     setSelectedRoomIds(new Set());
+    handleSortKeyChange('all');
   };
 
   const handleSortKeyChange = (key: SortKey) => {
@@ -220,6 +221,7 @@ export const ChatListPage = () => {
               { icon: 'coffeechat_request_basic', onClick: () => navigate('/chat/requests') }
             ]}
             showBadge={requestExists}
+            badgeColor="var(--color-red)"
           />
           <Tabs
             tabs={tabs}
