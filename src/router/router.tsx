@@ -89,9 +89,108 @@ export const router = createBrowserRouter([
                 element: <IconPreviewPage />,
             },
 
-            // 로그인 필수 페이지들 
             {
-                element: <AuthGuard/>,
+                // 비회원 공개 범위는 홈·공모전 미리보기 (추천 동문·개인 데이터 제외)
+                path: "home",
+                children: [
+                    {
+                        index: true,
+                        element: <HomePage />,
+                    },
+                    {
+                        element: <AuthGuard />,
+                        children: [
+                            {
+                                path: "notices",
+                                element: <NotificationPage />,
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                // 비회원 공개 범위는 메인·전체/정보/질문 목록, 정보글 상세·댓글·대댓글·첨부
+                // 질문글은 제목 등 목록 표시 정보만 공개
+                path: "community",
+                children: [
+                    {
+                        index: true,
+                        element: <CommunityPage />,
+                    },
+                    {
+                        // 정보글과 질문글이 같은 URL을 사용하며, 상세 열람 권한은 서버가 판단한다.
+                        path: "post/:postId",
+                        element: <CommunityPostPage />,
+                    },
+                    {
+                        element: <AuthGuard />,
+                        children: [
+                            {
+                                path: "write",
+                                element: <WritePage />,
+                            },
+                            {
+                                path: "edit/:postId",
+                                element: <WritePage />,
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                // 비회원 공개 범위는 동아리·스터디·대외활동·취업정보 목록·상세·댓글·대댓글
+                // 팀원 모집은 회원 전용
+                path: "activity",
+                children: [
+                    {
+                        index: true,
+                        element: <ActivityPage />,
+                    },
+                    {
+                        path: "internal/:postId",
+                        element: <ActivityPostPage />,
+                    },
+                    {
+                        // 대외활동과 취업정보 공고가 공유하는 상세 경로다.
+                        path: "external/:postId",
+                        element: <ExternalActivityPostPage />,
+                    },
+                    {
+                        element: <AuthGuard />,
+                        children: [
+                            {
+                                path: "write",
+                                element: <ActivityWritePage />,
+                            },
+                            {
+                                path: "edit/:postId",
+                                element: <ActivityWritePage />,
+                            },
+                            {
+                                path: "recruit/:recruitId",
+                                element: <RecruitDetailPage />,
+                            },
+                            {
+                                path: ":activityId/recruit-write",
+                                children: [
+                                    {
+                                        index: true,
+                                        element: <RecruitWritePage />,
+                                    },
+                                    {
+                                        path: ":recruitId",
+                                        element: <RecruitWritePage />,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+
+            // 도메인 전체에 로그인이 필요한 경로
+            {
+                element: <AuthGuard />,
                 children: [
                     {
                         path: "admin",
@@ -161,19 +260,6 @@ export const router = createBrowserRouter([
                     },
                 
                     {
-                        path: "home",
-                        children: [
-                            {
-                                index: true,
-                                element: <HomePage />,
-                            },
-                            {
-                                path: "notices",
-                                element: <NotificationPage />,
-                            },
-                        ]
-                    },
-                    {
                         path: "alumni",
                         children: [
                             {
@@ -232,48 +318,6 @@ export const router = createBrowserRouter([
                             }
                         ]
                         
-                    },
-                    {
-                        path: "activity",
-                        children: [
-                            {
-                                index: true,
-                                element: <ActivityPage />,
-                            },
-                            {
-                                path: "write",
-                                element: <ActivityWritePage />,
-                            },
-                            {
-                                path: "edit/:postId",
-                                element: <ActivityWritePage />,
-                            },
-                            {
-                                path: "internal/:postId",
-                                element: <ActivityPostPage />,
-                            },
-                            {
-                                path: "external/:postId",
-                                element: <ExternalActivityPostPage />
-                            },
-                            {
-                                path: "recruit/:recruitId",
-                                element: <RecruitDetailPage/>
-                            },
-                            {
-                                path:":activityId/recruit-write",
-                                children: [
-                                    {
-                                        index: true,
-                                        element: <RecruitWritePage/>
-                                    },
-                                    {
-                                        path: ":recruitId",
-                                        element: <RecruitWritePage/>
-                                    }
-                                ]
-                            }
-                        ]
                     },
                     {
                         path: "schedule",
@@ -352,14 +396,6 @@ export const router = createBrowserRouter([
                         ]
                     },
                     {
-                        path: "community",
-                        element: <CommunityPage />,
-                    },
-                    {
-                        path: "community/post/:postId",
-                        element: <CommunityPostPage />,
-                    },
-                    {
                         path: "shop",
                         children: [
                             {
@@ -373,27 +409,6 @@ export const router = createBrowserRouter([
                             {
                                 path: ":productId",
                                 element: <ShopDetailPage />,
-                            },
-                        ]
-                    },
-                    {
-                        path: "community",
-                        children: [
-                            {
-                                index: true,
-                                element: <CommunityPage />,
-                            },
-                            {
-                                path: "write",
-                                element: <WritePage />,
-                            },
-                            {
-                                path: "edit/:postId",
-                                element: <WritePage />,
-                            },
-                            {
-                                path: "post/:postId",
-                                element: <CommunityPostPage />,
                             },
                         ]
                     },
