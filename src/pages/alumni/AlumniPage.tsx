@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAlumniList } from '../../api/alumni';
+import Button from '../../components/Button';
 import Category from '../../components/Category';
 import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
@@ -10,7 +11,8 @@ import { useTagList } from '../../hooks/useTagList';
 import { FullLayout } from '../../layouts/FullLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { mapAlumniApiListToProfiles } from '../../utils/alumniMapper';
-import Button from '../../components/Button';
+import AlumniCoffeeChatButton from './components/AlumniCoffeeChatButton';
+import { useAlumniChatRoom } from './hooks/useAlumniChatRoom';
 import defaultImg from "../../assets/image/defaultProfileImg.png"
 import { useAuthStore } from '../../store/useAuthStore';
 import { getAlumniSearchError } from './utils/alumniSearchError';
@@ -21,6 +23,9 @@ export const AlumniSearchPage = () => {
   const navigate = useNavigate();
   const authUser = useAuthStore(state => state.user);
   const meUserId = authUser?.id ? parseInt(authUser.id) : null;
+
+  const [chatRoomError, setChatRoomError] = useState<{ title: string; content: string } | null>(null);
+  const { openChatRoom, pendingOpponentId } = useAlumniChatRoom(setChatRoomError);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -238,24 +243,20 @@ export const AlumniSearchPage = () => {
                 </div>
               </Link>
 
-              {/* 3그룹: 커피챗 요청 버튼 */}
-              {alumni.privacy.openToCoffeeChat && (
-                <Button
-                  label="커피챗 요청하기"
-                  font="sb-14"
-                  type="button"
-                  className="w-full h-auto max-w-none py-[10px] rounded-[clamp(8px,2.8cqw,10px)] bg-[var(--ColorMain,#00C56C)]"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    navigate(`/alumni/profile/${alumni.id}?coffeeChat=1`);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
+              {/* 기존 대화가 있으면 새 커피챗 요청보다 채팅방 이동을 우선한다. */}
+              {(alumni.hasChat || alumni.privacy.openToCoffeeChat) && (
+                <AlumniCoffeeChatButton
+                  hasChat={alumni.hasChat}
+                  alumniName={alumni.author.name}
+                  isPending={pendingOpponentId === alumni.userId}
+                  disabled={alumni.hasChat && pendingOpponentId !== undefined}
+                  onClick={() => {
+                    if (alumni.hasChat) {
+                      openChatRoom(alumni.userId);
+                    } else {
                       navigate(`/alumni/profile/${alumni.id}?coffeeChat=1`);
                     }
                   }}
-                  aria-label={`${alumni.author.name} 커피챗 요청하기`}
                 />
               )}
             </div>
@@ -276,6 +277,15 @@ export const AlumniSearchPage = () => {
         allTags={filterTags}
       />
       <PopUp isOpen={isInitialLoading} type="loading" />
+      {chatRoomError && (
+        <PopUp
+          isOpen
+          type='error'
+          title={chatRoomError.title}
+          content={chatRoomError.content}
+          onClick={() => setChatRoomError(null)}
+        />
+      )}
     </FullLayout>
   );
 };

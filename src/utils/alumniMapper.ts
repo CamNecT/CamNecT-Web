@@ -22,7 +22,9 @@ const resolveStudentId = (studentNo: string | null, yearLevel: number | null) =>
   return "";
 };
 
-export const mapAlumniApiItemToProfile = (item: AlumniApiItem): AlumniProfile => {
+type AlumniSearchProfile = AlumniProfile & { hasChat: boolean };
+
+export const mapAlumniApiItemToProfile = (item: AlumniApiItem): AlumniSearchProfile => {
   const { userProfile, tagList } = item;
   const userIdString = String(item.userId);
   const tagNames = Array.isArray(tagList)
@@ -33,6 +35,7 @@ export const mapAlumniApiItemToProfile = (item: AlumniApiItem): AlumniProfile =>
   return {
     id: `alumni-${userIdString}`,
     userId: userIdString,
+    hasChat: item.hasChat === true,
     author: {
       name: resolveName(item),
       major: resolveMajor(userProfile.majorId),
@@ -59,7 +62,7 @@ export const mapAlumniApiItemToProfile = (item: AlumniApiItem): AlumniProfile =>
   };
 };
 
-export const mapAlumniApiListToProfiles = (items: AlumniApiItem[]): AlumniProfile[] =>
+export const mapAlumniApiListToProfiles = (items: AlumniApiItem[]): AlumniSearchProfile[] =>
   items
     .filter((item) => item.userId !== 2)
     .map(mapAlumniApiItemToProfile);
