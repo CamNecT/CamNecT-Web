@@ -23,6 +23,7 @@ import { mapToCommunityPostDetail } from '../../utils/communityMapper';
 import { getFileName } from '../../utils/getFileName';
 import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
+import { DraftTagSuggestions } from './components/DraftTagSuggestions';
 
 // 프론트에서도 Community Bean Validation과 동일한 경계를 적용해 불필요한 업로드/요청을 막는다.
 const MAX_TITLE_LENGTH = 200;
@@ -133,9 +134,11 @@ export const WritePage = () => {
     });
     const userId = useAuthStore((state) => state.user?.id);
 
-    const [selectedTags, setSelectedTags] = useState<string[]>(
-        editPost?.categories ?? [],
-    );
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+    const selectedTags = mapTagIdsToNames(selectedTagIds);
+    const originalTagIds = editPost?.tagIds ?? [];
+    const tagsChanged = !isEditMode || originalTagIds.length !== selectedTagIds.length ||
+        originalTagIds.some((id, index) => id !== selectedTagIds[index]);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const openBoardSelector = () => {
@@ -187,7 +190,7 @@ export const WritePage = () => {
         // 목록에 태그 없는 새 글이 생기지 않도록 등록 시 최소 한 개를 요구한다.
         if (!isEditMode && selectedTags.length === 0) {
             nextErrors.tagIds = '태그를 최소 1개 이상 선택해 주세요.';
-        } else if (selectedTags.length > 5 || new Set(selectedTags).size !== selectedTags.length) {
+        } else if (tagsChanged && (selectedTags.length > 5 || new Set(selectedTags).size !== selectedTags.length)) {
             nextErrors.tagIds = '태그는 중복 없이 최대 5개까지 선택할 수 있습니다.';
         }
         if (existingAttachments.length + newAttachments.length > MAX_ATTACHMENTS) {
@@ -355,22 +358,17 @@ export const WritePage = () => {
 
     useEffect(() => {
         if (!isEditMode || !editPost || didInitEditRef.current) return;
-        const mappedTags = editPost.tagIds
-            ? mapTagIdsToNames(editPost.tagIds)
-            : editPost.categories ?? [];
-        const needsTags = Boolean(editPost.tagIds && editPost.tagIds.length > 0);
-        if (needsTags && mappedTags.length === 0) return;
         const nextBoardType = editPost.boardType as BoardType;
         setBoardType(nextBoardType);
         setDraftBoardType(nextBoardType);
         setTitle(editPost.title);
         setContent(editPost.content);
-        setSelectedTags(mappedTags);
+        setSelectedTagIds(editPost.tagIds ?? mapTagNamesToIds(editPost.categories ?? []));
         setExistingAttachments(editPost.attachments ?? []);
         setNewAttachments([]);
         originalAttachmentKeysRef.current = getSortedAttachmentKeys(editPost.attachments ?? []);
         didInitEditRef.current = true;
-    }, [isEditMode, editPost, mapTagIdsToNames]);
+    }, [isEditMode, editPost, mapTagNamesToIds]);
 
     // 파일 선택 -> 서버 허용 MIME/크기/파일명 검증 -> object URL 미리보기 생성
     const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -476,8 +474,8 @@ export const WritePage = () => {
 
         const isQuestionBoard = boardType === '질문';
         const boardCode = isQuestionBoard ? 'QUESTION' : 'INFO';
-        const tagIds = mapTagNamesToIds(selectedTags);
-        if (new Set(tagIds).size !== tagIds.length || tagIds.length !== selectedTags.length) {
+        const tagIds = selectedTagIds;
+        if (tagsChanged && (new Set(tagIds).size !== tagIds.length || tagIds.length !== selectedTags.length)) {
             setFieldErrors((previous) => ({
                 ...previous,
                 tagIds: '유효하지 않거나 중복된 태그가 포함되어 있습니다.',
@@ -537,11 +535,7 @@ export const WritePage = () => {
                 const nextContent = content;
                 if (nextTitle !== editPost?.title) body.title = nextTitle;
                 if (nextContent !== editPost?.content) body.content = nextContent;
-                const originalTagIds = editPost?.tagIds ?? [];
-                if (
-                    originalTagIds.length !== tagIds.length ||
-                    originalTagIds.some((tagId, index) => tagId !== tagIds[index])
-                ) {
+                if (tagsChanged) {
                     body.tagIds = tagIds;
                 }
                 if (attachments !== null) body.attachments = attachments;
@@ -760,9 +754,25 @@ export const WritePage = () => {
                             activeFilters={selectedTags}
                             onOpenFilter={() => setIsFilterOpen(true)}
                             onRemoveFilter={(tag) =>
-                                setSelectedTags((prev) => prev.filter((item) => item !== tag))
+                                setSelectedTagIds((prev) => prev.filter((id) => mapTagIdToName(id) && mapTagIdToName(id) !== tag))
                             }
                         />
+                        {boardType && userId && filterTags.length > 0 && !isSubmitting && !isConfirmOpen && (!isEditMode || editPost) && (
+                            <DraftTagSuggestions
+                                title={title} content={content}
+                                boardCode={boardType === '질문' ? 'QUESTION' : 'INFO'}
+                                selected={selectedTags}
+                                onSelect={({ id, name }) => {
+                                    if (mapTagIdToName(id) !== name) return;
+                                    setSelectedTagIds(prev => {
+                                        const active = prev.filter(value => mapTagIdToName(value));
+                                        return active.length < 5 && !active.some(value => mapTagIdToName(value) === name)
+                                            ? [...active, id] : prev;
+                                    });
+                                    setFieldErrors((prev) => ({ ...prev, tagIds: '' }));
+                                }}
+                            />
+                        )}
                         {fieldErrors.tagIds ? (
                             <span role='alert' className='mt-[6px] text-r-12 text-[var(--Color_Red,#FF3838)]'>
                                 {fieldErrors.tagIds}
@@ -1050,7 +1060,10 @@ export const WritePage = () => {
                 tags={selectedTags}
                 onClose={() => setIsFilterOpen(false)}
                 onSave={(next) => {
-                    setSelectedTags(next);
+                    setSelectedTagIds(next.flatMap(name => {
+                        const existing = selectedTagIds.find(id => mapTagIdToName(id) === name);
+                        return existing === undefined ? mapTagNamesToIds([name]) : [existing];
+                    }));
                     setFieldErrors((previous) => ({ ...previous, tagIds: '' }));
                     setIsFilterOpen(false);
                 }}

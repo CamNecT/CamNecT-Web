@@ -39,6 +39,18 @@ const DEFAULT_TAB = "ALL";
 const DEFAULT_SORT = "RECOMMENDED";
 const DEFAULT_SIZE = 20;
 
+export type PostTagSuggestion = { id: number; name: string; evidence: string | null };
+
+export async function suggestPostTags(
+  draft: { title: string; content: string; boardCode: "INFO" | "QUESTION" },
+  signal: AbortSignal,
+) {
+  const response = await axiosInstance.post<ApiResponse<PostTagSuggestion[]>>(
+    "/api/community/posts/tag-suggestions", draft, { signal, timeout: 5000 },
+  );
+  return response.data.data;
+}
+
 export const getCommunityPosts = async (
   data: GetCommunityPostsParams,
   // 검색 조건이 바뀌면 호출부에서 이전 요청을 실제로 취소할 수 있도록 signal을 전달한다.
