@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { IoMdPhonePortrait } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../../../api/profileApi";
 import Icon from "../../../components/Icon";
 import PopUp from "../../../components/Pop-up";
+import { useLogout } from "../../../hooks/useLogout";
 import { usePwaInstall } from "../../../hooks/usePwaInstall";
-import { useAuthStore } from "../../../store/useAuthStore";
-import { clearClientSession } from "../../../utils/clearClientSession";
 
 type SideBarUser = {
   uid: string;
@@ -25,7 +23,7 @@ interface SideBarProps {
 
 export const SideBar = ({ isOpen, onClose, user }: SideBarProps) => {
     const navigate = useNavigate();
-    const userId = useAuthStore((s) => s.user?.id);
+    const { logoutAndRedirect } = useLogout();
     const { isInstallable, install } = usePwaInstall();
     
     const [isInstallPopupOpen, setIsInstallPopupOpen] = useState(false);
@@ -42,22 +40,6 @@ export const SideBar = ({ isOpen, onClose, user }: SideBarProps) => {
             setIsInstallPopupOpen(true);
         }
     };
-
-    const handleLogout = async () => {
-        try {
-            const loginUserId = Number(userId);
-            if (!Number.isFinite(loginUserId)) throw new Error("Invalid userId");
-
-            await logout(loginUserId);
-        } catch (e) {
-            // 401이어도 일단 로그아웃 처리
-            console.warn("logout failed:", e);
-        } finally {
-            clearClientSession();
-            onClose();
-            navigate("/login");
-        }
-    }
 
     if (!isOpen) return null;
 
@@ -182,7 +164,7 @@ export const SideBar = ({ isOpen, onClose, user }: SideBarProps) => {
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => handleLogout()} className="p-[10px] text-r-16-hn text-red">로그아웃</button>
+                            <button onClick={logoutAndRedirect} className="p-[10px] text-r-16-hn text-red">로그아웃</button>
                         </div>
                     </div>
                 </div>

@@ -4,9 +4,7 @@ import { twMerge } from 'tailwind-merge';
 import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
 import PressableMotion from '../../components/PressableMotion';
-import { logout } from '../../api/profileApi';
-import { useAuthStore } from '../../store/useAuthStore';
-import { clearClientSession } from '../../utils/clearClientSession';
+import { useLogout } from '../../hooks/useLogout';
 
 type HeaderAction = {
   icon: IconName;
@@ -51,20 +49,7 @@ export const MainHeader = ({
   largeTouchTarget = false,
 }: MainHeaderProps) => {
   const navigate = useNavigate();
-  const authUserId = useAuthStore((s) => s.user?.id);
-  const handleLogout = async () => {
-    try {
-      const loginUserId = Number(authUserId);
-      if (Number.isFinite(loginUserId)) {
-        await logout(loginUserId);
-      }
-    } catch (e) {
-      console.warn('logout failed:', e);
-    } finally {
-      clearClientSession();
-      navigate('/login');
-    }
-  };
+  const { logoutAndRedirect: handleLogout } = useLogout();
 
   const normalizedRightActions = rightActions ?? [];
   // 왼쪽 아이콘 기본 동작: 별도 전달이 없으면 mainBack + 뒤로가기(-1)

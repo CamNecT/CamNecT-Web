@@ -5,8 +5,8 @@ import { deleteAccount } from "../../../api/auth";
 import PopUp from "../../../components/Pop-up";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { MainHeader } from "../../../layouts/headers/MainHeader";
+import { useLogout } from "../../../hooks/useLogout";
 import { useAuthStore } from "../../../store/useAuthStore";
-import { clearClientSession } from "../../../utils/clearClientSession";
 
 const EyeClosedIcon = () => {
     return (
@@ -26,6 +26,7 @@ const EyeOpenIcon = () => {
 
 export const DeleteAccountPage = () => {
     const navigate = useNavigate();
+    const { leaveSession } = useLogout();
     const authUser = useAuthStore((s) => s.user);
     const userId = authUser?.id ? parseInt(authUser.id) : null;
 
@@ -87,9 +88,9 @@ export const DeleteAccountPage = () => {
         }
     };
 
+    // 탈퇴 완료 : 온보딩 화면으로 먼저 이동한 뒤 세션 정리 (화면 깜빡임 방지)
     const handleFinalDelete = () => {
-        clearClientSession();
-        navigate("/", { replace: true });
+        void leaveSession("/");
     };
 
     return (
