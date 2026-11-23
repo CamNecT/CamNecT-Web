@@ -108,8 +108,8 @@ export const OnboardingPage = () => {
           />
           <ButtonWhite
             className="!h-[50px] w-full max-w-[var(--app-mobile-max-width)]"
-            onClick={() => navigate("/signup")}
-            label="회원가입" 
+            onClick={() => navigate("/home")}
+            label="먼저 둘러보기" 
           />
         </div>
       </div>
