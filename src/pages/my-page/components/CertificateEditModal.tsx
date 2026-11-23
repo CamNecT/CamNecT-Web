@@ -305,20 +305,20 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                                     .map((cert, index) => (
                                     <div
                                         key={cert.id}
-                                        className="flex items-center justify-between px-[25px] py-[15px] border-b border-gray-150"
+                                        className="w-full flex items-center justify-between gap-[10px] px-[25px] py-[15px] border-b border-gray-150"
                                     >
-                                        <div className="flex items-center gap-[20px]">
-                                            <span className="text-m-16 text-gray-650 min-w-[24px] text-center">{index + 1}</span>
-                                            <div className="flex flex-col gap-[7px]">
+                                        <div className="flex min-w-0 flex-1 items-center gap-[20px]">
+                                            <span className="text-m-16 text-gray-650 min-w-[24px] shrink-0 text-center">{index + 1}</span>
+                                            <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
                                                 <span className="text-r-12-hn text-gray-650">
                                                     {cert.acquiredYear}.{String(cert.acquiredMonth).padStart(2, '0')}
                                                 </span>
-                                                <span className="text-m-16 text-gray-900">{cert.name}</span>
+                                                <span className="break-words text-m-16 text-gray-900">{cert.name}</span>
                                             </div>
                                         </div>
                                         
                                         <button 
-                                            className="text-sb-14-hn text-gray-650"
+                                            className="min-w-[25px] shrink-0 text-sb-14-hn text-gray-650"
                                             onClick={() => handleEditCertificate(cert.id)}
                                         >
                                             수정

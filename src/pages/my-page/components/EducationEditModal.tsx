@@ -102,7 +102,7 @@ function EducationSchoolWithStatus({
 
     return (
         <div ref={containerRef} className="flex w-full min-w-0 items-center gap-[10px]">
-            <span ref={schoolRef} className="min-w-0 break-keep text-m-16 text-gray-900">
+            <span ref={schoolRef} className="min-w-0 break-keep break-words text-m-16 text-gray-900">
                 {schoolName}
             </span>
             <span ref={statusRef} className="shrink-0 whitespace-nowrap text-r-14 text-gray-750">

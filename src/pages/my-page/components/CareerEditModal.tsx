@@ -406,21 +406,21 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                     .map((career, index) => (
                                     <div
                                         key={career.id}
-                                        className="w-full flex justify-between items-center px-[25px] py-[15px] border-b border-gray-150"
+                                        className="w-full flex justify-between items-center gap-[10px] px-[25px] py-[15px] border-b border-gray-150"
                                     >
-                                        <div className="flex items-center gap-[20px]">
-                                            <span className="text-m-16 text-gray-650 min-w-[24px] text-center">{index + 1}</span>
-                                            <div className="flex flex-col justify-center gap-[7px] max-w-[200px]">
+                                        <div className="flex min-w-0 flex-1 items-center gap-[20px]">
+                                            <span className="text-m-16 text-gray-650 min-w-[24px] shrink-0 text-center">{index + 1}</span>
+                                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-[7px]">
                                                 <span className="text-r-12-hn text-gray-650">
                                                     {career.startYear}.{String(career.startMonth).padStart(2, '0')}
                                                     {career.endYear && career.endMonth 
                                                         ? `~${career.endYear}.${String(career.endMonth).padStart(2, '0')}`
                                                         : '~현재'}
                                                 </span>
-                                                <span className="text-m-16 text-gray-900 pb-[3px]">{career.organization}</span>
+                                                <span className="break-words text-m-16 text-gray-900 pb-[3px]">{career.organization}</span>
                                                 <div className="flex flex-col gap-[2px]">
                                                     {career.positions.map((p, posIndex) => (
-                                                        <span key={posIndex} className="text-r-14 text-gray-750">
+                                                        <span key={posIndex} className="break-words text-r-14 text-gray-750">
                                                             - {p}
                                                         </span>
                                                     ))}
@@ -428,7 +428,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                             </div>
                                         </div>
                                         
-                                        <button className="min-w-[25px] text-sb-14-hn text-gray-650"
+                                        <button className="min-w-[25px] shrink-0 text-sb-14-hn text-gray-650"
                                             onClick={() => handleEditCareer(career.id)}>
                                             수정
                                         </button>
