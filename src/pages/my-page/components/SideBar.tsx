@@ -98,7 +98,7 @@ export const SideBar = ({ isOpen, onClose, user }: SideBarProps) => {
                                     <span className="text-m-16-hn text-gray-650">보유 포인트 : </span>
                                     <span className="text-sb-16-hn text-primary">{(user.point ?? 0).toLocaleString()} P</span>
                                 </span>
-                                <Icon name="arrow_right" size={24} />
+                                <Icon name="arrow_right" size={20} />
                             </button>
                         </div>
 
