@@ -437,7 +437,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                         onClick={handleComplete}
                                         disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        {saveMutation.isPending ? '저장중..' : '완료'}
+                                        {saveMutation.isPending ? '저장중..' : '저장'}
                                     </button>
                                 }
                             />

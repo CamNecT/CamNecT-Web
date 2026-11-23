@@ -314,7 +314,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                         onClick={handleComplete}
                                         disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        {saveMutation.isPending ? '저장중..' : '완료'}
+                                        {saveMutation.isPending ? '저장중..' : '저장'}
                                     </button>
                                 }
                             />
