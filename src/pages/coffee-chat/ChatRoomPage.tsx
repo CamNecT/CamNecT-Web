@@ -696,6 +696,7 @@ const ChatRoomContent = ({ roomId }: { roomId: string }) => {
 
     return (
         <HeaderLayout
+            includeBottomSafeArea={!isBottomAreaVisible}
             headerSlot={
                 // ---------- 기본 헤더·검색 헤더 ----------
                 !isSearching ? (
