@@ -45,6 +45,7 @@ const figmaIconNames = [
   "arrow_right",
   "folder",
   "arrow_down",
+  "chat_preview_arrow_down",
   "image",
   "link",
   "search",
@@ -76,6 +77,7 @@ const figmaIconNames = [
   "send",
   "bell_notification",
   "error_circle",
+  "error_circle_stroke",
   "send_failed",
 ] as const;
 

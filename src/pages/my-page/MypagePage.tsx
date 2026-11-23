@@ -5,6 +5,7 @@ import { getInstitution, getMajor } from "../../api/institutionApi";
 import { getMyProfile } from "../../api/profileApi";
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png";
 import Button from "../../components/Button";
+import { LinkifiedText } from "../../components/LinkifiedText";
 import PopUp from "../../components/Pop-up";
 import { FullLayout } from "../../layouts/FullLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
@@ -175,7 +176,7 @@ export const MypagePage = () => {
                 </button>
 
                 <p className="line-clamp-3 min-h-[63px] leading-[1.5] break-keep whitespace-pre-line text-R-14 text-gray-750 [overflow-wrap:anywhere]">
-                  {user.introduction}
+                  <LinkifiedText text={user.introduction} />
                 </p>
               </div>
             </div>

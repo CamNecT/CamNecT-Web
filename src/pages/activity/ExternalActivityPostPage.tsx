@@ -8,6 +8,7 @@ import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import Category from '../../components/Category';
 import Icon from '../../components/Icon';
+import { LinkifiedText } from '../../components/LinkifiedText';
 import PopUp from '../../components/Pop-up';
 import { RecruitPost } from '../../components/posts/RecruitPost';
 import SaveToggle from '../../layouts/BottomChat/components/SaveToggle';
@@ -193,7 +194,7 @@ export const ExternalActivityPostPage = () => {
             <span className='text-b-16-hn text-gray-900 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]'>{selectedPost.contextTitle}</span>
           )}
           <p className='text-r-14 text-gray-900 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]'>
-            {selectedPost.context}
+            <LinkifiedText text={selectedPost.context} />
           </p>
         </div>
       )}

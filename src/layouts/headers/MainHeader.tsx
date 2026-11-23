@@ -4,9 +4,7 @@ import { twMerge } from 'tailwind-merge';
 import Badge from '../../components/Badge';
 import Icon, { type IconName } from '../../components/Icon';
 import PressableMotion from '../../components/PressableMotion';
-import { logout } from '../../api/profileApi';
-import { useAuthStore } from '../../store/useAuthStore';
-import { clearClientSession } from '../../utils/clearClientSession';
+import { useLogout } from '../../hooks/useLogout';
 
 type HeaderAction = {
   icon: IconName;
@@ -32,7 +30,9 @@ type MainHeaderProps = {
   // 뱃지 관련 속성 추가
   showBadge?: boolean;
   isAdmin?: boolean;
+  badgeColor?: string;
   className?: string;
+  largeTouchTarget?: boolean;
 };
 
 export const MainHeader = ({
@@ -44,23 +44,12 @@ export const MainHeader = ({
   leftAriaLabel,
   showBadge,
   isAdmin,
+  badgeColor,
   className,
+  largeTouchTarget = false,
 }: MainHeaderProps) => {
   const navigate = useNavigate();
-  const authUserId = useAuthStore((s) => s.user?.id);
-  const handleLogout = async () => {
-    try {
-      const loginUserId = Number(authUserId);
-      if (Number.isFinite(loginUserId)) {
-        await logout(loginUserId);
-      }
-    } catch (e) {
-      console.warn('logout failed:', e);
-    } finally {
-      clearClientSession();
-      navigate('/login');
-    }
-  };
+  const { logoutAndRedirect: handleLogout } = useLogout();
 
   const normalizedRightActions = rightActions ?? [];
   // 왼쪽 아이콘 기본 동작: 별도 전달이 없으면 mainBack + 뒤로가기(-1)
@@ -68,6 +57,11 @@ export const MainHeader = ({
   const leftIconName = isAdmin ? 'logOut' : (leftAction?.icon ?? 'arrow_left');
   const leftClickHandler = isAdmin ? handleLogout : (leftAction?.onClick ?? (() => navigate(-1)));
   const leftLabel = isAdmin ? '로그아웃' : (leftAction?.ariaLabel ?? leftAriaLabel ?? '뒤로 가기');
+  // 높이 50px인 헤더 안에서 아이콘 크기를 유지하고 버튼 영역만 넓힌다.
+  const actionClassName = twMerge(
+    'flex items-center justify-center',
+    largeTouchTarget && 'size-12 shrink-0 rounded-[5px]',
+  );
 
   return (
     <header
@@ -83,7 +77,7 @@ export const MainHeader = ({
       <div className='flex w-[28px] items-center justify-start z-10'>
         {/* leftIcon="empty"를 받으면 좌측 아이콘 영역 자체를 숨김 */}
         {leftIcon !== 'empty' ? (
-          <PressableMotion as='button' intensity='soft' type='button' className='flex items-center justify-center' onClick={leftClickHandler} aria-label={leftLabel}>
+          <PressableMotion as='button' intensity='soft' type='button' className={twMerge(actionClassName, largeTouchTarget && '-ml-2.5')} onClick={leftClickHandler} aria-label={leftLabel}>
             <Icon
               name={leftIconName}
               style={{
@@ -116,7 +110,7 @@ export const MainHeader = ({
                 intensity='soft'
                 key={action.icon}
                 type='button'
-                className='flex items-center justify-center'
+                className={twMerge(actionClassName, largeTouchTarget && 'last:-mr-2.5')}
                 onClick={action.onClick}
                 aria-label={action.ariaLabel ?? action.icon}
               >
@@ -132,7 +126,7 @@ export const MainHeader = ({
                     }}
                   />
                   {/* 뱃지 조건부 렌더링 */}
-                  {showBadge && index === 0 ? <Badge /> : null}
+                  {showBadge && index === 0 ? <Badge color={badgeColor} /> : null}
                 </span>
               </PressableMotion>
             ))

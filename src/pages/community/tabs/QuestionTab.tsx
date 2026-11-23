@@ -60,6 +60,7 @@ const QuestionTab = ({
       <div className='flex flex-wrap items-center gap-[12px]'>
         <div className='flex-1'>
           <FilterHeader
+            largeTouchTarget
             activeFilters={selectedTags}
             onOpenFilter={() => setIsFilterOpen(true)}
             onRemoveFilter={(tag) => {
@@ -68,7 +69,7 @@ const QuestionTab = ({
             }}
           />
         </div>
-        <SortSelector sortKey={sortKey} sortLabels={sortLabels} onChange={onSortChange} />
+        <SortSelector sortKey={sortKey} sortLabels={sortLabels} onChange={onSortChange} largeTouchTarget />
       </div>
 
       {/* 질문글 리스트 */}

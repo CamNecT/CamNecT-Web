@@ -40,12 +40,14 @@ import { EditPasswordPage } from "../pages/my-page/sidebar/EditPasswordPage";
 import { MyBookmarksPage } from "../pages/my-page/sidebar/MyBookmarksPage";
 import { MyPostsPage } from "../pages/my-page/sidebar/MyPostPage";
 import { MySettingsPage } from "../pages/my-page/sidebar/MySettingsPage";
+import { PhoneSettingsPage } from "../pages/my-page/sidebar/PhoneSettingsPage";
 import { TermsPage } from "../pages/my-page/sidebar/TermsPage";
 import { OnboardingPage } from "../pages/onboarding/OnboardingPage";
 import { PortfolioDetailPage } from "../pages/portfolio/PortfolioDetailPage";
 import { PortfolioListPage } from "../pages/portfolio/PortfolioListPage";
 import { Schedule } from "../pages/schedule/Schedule";
 import { ShopDetailPage } from "../pages/shop/ShopDetailPage";
+import { ShopPointHistoryPage } from "../pages/shop/ShopHistoryPage";
 import { ShopPage } from "../pages/shop/ShopPage";
 import { AuthGuard } from "./AuthGuard";
 import { AdminGuard } from "./AdminGuard";
@@ -332,6 +334,10 @@ export const router = createBrowserRouter([
                                                 element: <EditPasswordPage/>
                                             },
                                             {
+                                                path: "phone",
+                                                element: <PhoneSettingsPage/>
+                                            },
+                                            {
                                                 path: "delete-account",
                                                 element: <DeleteAccountPage/>
                                             }
@@ -359,6 +365,10 @@ export const router = createBrowserRouter([
                             {
                                 index: true,
                                 element: <ShopPage />,
+                            },
+                            {
+                                path: "history",
+                                element: <ShopPointHistoryPage />,
                             },
                             {
                                 path: ":productId",

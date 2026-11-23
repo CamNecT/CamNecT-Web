@@ -7,6 +7,7 @@ import { MainHeader } from '../../layouts/headers/MainHeader';
 import { usePointStore } from '../../store/usePointStore';
 import { useGifticonListQuery } from '../../hooks/useGifticonQuery';
 import PopUp from '../../components/Pop-up';
+import { ShopPointBalance } from './components/ShopPointBalance';
 import { useGifticonErrorPopup } from './hooks/useGifticonErrorPopup';
 
 const formatPoint = (value: number) => value.toLocaleString('ko-KR');
@@ -39,18 +40,10 @@ export const ShopPage = () => {
 
   return (
     <HeaderLayout
-      headerSlot={<MainHeader title='기프티콘 샵' leftAction={{ onClick: () => navigate('/home') }} />}
+      headerSlot={<MainHeader title='기프티콘 샵' className='border-b border-gray-150' leftAction={{ onClick: () => navigate('/home') }} />}
     >
-      <section className='flex flex-col gap-[40px] px-[25px] py-[15px]'>
-        <div className='w-full h-[100px] rounded-[20px] bg-[var(--ColorMain,#00C56C)] flex flex-col gap-[1px] px-[25px] py-[20px]'>
-          <span className='text-m-14 text-[var(--ColorGray1,#ECECEC)]'>보유 포인트</span>
-          <span
-            className='text-b-28 text-[var(--ColorWhite,#FFF)]'
-            style={{ fontSize: 'clamp(22px, 6.5vw, 28px)' }}
-          >
-            {formatPoint(point)} P
-          </span>
-        </div>
+      <section className='flex flex-col gap-[31px] px-[25px] py-[25px]'>
+        <ShopPointBalance point={gifticonList ? point : undefined} />
 
         <div className='flex flex-col gap-[25px]'>
           <h2 className='text-sb-20 text-[var(--ColorBlack,#202023)]'>상품 목록</h2>
@@ -61,7 +54,7 @@ export const ShopPage = () => {
           )}
           <div className='grid grid-cols-2 gap-x-[10px] gap-y-[35px]'>
             {shopItems.map((item) => (
-              <Link key={item.id} to={`/shop/${item.id}`} className='flex flex-col gap-[10px]'>
+              <Link key={item.id} to={`/shop/${item.id}`} className='flex min-w-0 flex-col gap-[10px]'>
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
@@ -71,13 +64,13 @@ export const ShopPage = () => {
                 ) : (
                   <div className='w-full aspect-square rounded-[5px] bg-[var(--ColorGray1,#ECECEC)]' />
                 )}
-                <div className='flex flex-col'>
-                  <span className='text-m-12 text-[var(--ColorGray2,#A1A1A1)]'>{item.company}</span>
-                  <span className='text-m-14 text-[var(--ColorGray3,#646464)]'>{item.name}</span>
+                <div className='flex flex-col px-[5px] [overflow-wrap:anywhere]'>
+                  <span className='text-m-12 text-gray-650'>{item.company}</span>
+                  <span className='text-m-14 text-gray-750'>{item.name}</span>
+                  <span className='mt-[10px] text-sb-18 text-gray-900'>
+                    {formatPoint(item.point)} Point
+                  </span>
                 </div>
-                <span className='text-sb-18 text-[var(--ColorBlack,#202023)]'>
-                  {formatPoint(item.point)} Point
-                </span>
               </Link>
             ))}
           </div>
