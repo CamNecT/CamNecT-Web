@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PressableMotion from '../../components/PressableMotion';
 import SortSelector from '../../components/SortSelector';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
@@ -43,6 +43,16 @@ const HistoryRow = ({ transaction }: { transaction: PointTransaction }) => {
 
 export const ShopPointHistoryPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  //마이페이지 사이드바에서 진입한 경우 뒤로가기 시 마이페이지로 다시 복귀
+  const isFromMypage = location.state?.from === 'mypage';
+  const handleBack = () => {
+    if (isFromMypage) {
+      navigate(-1);
+      return;
+    }
+    navigate('/shop');
+  };
   const [filter, setFilter] = useState<PointHistoryFilter>('ALL');
   const query = usePointHistoryQuery(filter);
   const transactions = query.data?.pages.flatMap((page) => page.items) ?? [];
@@ -51,7 +61,7 @@ export const ShopPointHistoryPage = () => {
 
   return (
     <HeaderLayout
-      headerSlot={<MainHeader title='포인트 내역 확인' className='border-b border-gray-150' leftAction={{ onClick: () => navigate('/shop') }} />}
+      headerSlot={<MainHeader title='포인트 내역 확인' className='border-b border-gray-150' leftAction={{ onClick: handleBack }} />}
     >
       <section className='flex flex-col gap-[20px] px-[25px] py-[25px]'>
         <SortSelector sortKey={filter} sortLabels={filterLabels} onChange={setFilter} />

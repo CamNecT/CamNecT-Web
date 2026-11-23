@@ -2,6 +2,7 @@ import { useState } from "react";
 import { IoMdPhonePortrait } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../../api/profileApi";
+import Icon from "../../../components/Icon";
 import PopUp from "../../../components/Pop-up";
 import { usePwaInstall } from "../../../hooks/usePwaInstall";
 import { useAuthStore } from "../../../store/useAuthStore";
@@ -83,10 +84,22 @@ export const SideBar = ({ isOpen, onClose, user }: SideBarProps) => {
                                     {user.name} 님
                                 </div>
                             </div>
-                            <div className="flex items-center gap-[7px]">
-                                <span className="text-m-16-hn text-gray-650">보유 포인트 : </span>
-                                <span className="text-sb-16-hn text-primary">{(user.point ?? 0).toLocaleString()} P</span>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    //내역 페이지의 뒤로가기가 마이페이지로 돌아오도록 진입 경로 전달
+                                    navigate("/shop/history", { state: { from: "mypage" } });
+                                    onClose();
+                                }}
+                                aria-label="포인트 내역 보기"
+                                className="flex w-full items-center justify-between"
+                            >
+                                <span className="flex items-center gap-[7px]">
+                                    <span className="text-m-16-hn text-gray-650">보유 포인트 : </span>
+                                    <span className="text-sb-16-hn text-primary">{(user.point ?? 0).toLocaleString()} P</span>
+                                </span>
+                                <Icon name="arrow_right" size={20} />
+                            </button>
                         </div>
 
                         {/* Menu Section */}
