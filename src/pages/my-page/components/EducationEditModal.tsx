@@ -122,6 +122,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPublic, setShowPublic] = useState(initialShowPublic);
     const [showWarning, setShowWarning] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showSchoolInvalid, setShowSchoolInvalid] = useState(false);
     const [saveErrorMessage, setSaveErrorMessage] = useState('');
 
@@ -560,7 +561,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                         />
                     }
                 >
-                    <div className="w-full h-full flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
+                    <div className="w-full h-full min-h-0 flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
                         <div className="flex flex-col gap-[15px]">
                             {/* 학교 이름 */}
                             <div className="flex flex-col gap-[10px] relative">
@@ -750,17 +751,21 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                 </div>
                             </div>
 
-                            {/* 삭제 버튼 (수정 모드일 때만) */}
-                            {currentView === 'edit' && (
-                                <button
-                                    onClick={handleDeleteEducation}
-                                    className="flex text-m-14 text-red mt-[20px]"
-                                >
-                                    삭제
-                                </button>
-                            )}
                         </div>
                     </div>
+
+                    {/* 삭제 버튼 (수정 모드일 때만) */}
+                    {currentView === 'edit' && (
+                        <div className="shrink-0 px-[25px] pt-[10px]">
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="w-full h-[50px] rounded-[10px] bg-[#FFEFEF] text-sb-16-hn text-red"
+                            >
+                                학력 삭제하기
+                            </button>
+                        </div>
+                    )}
                 </HeaderLayout>
             </div>
             <PopUp
@@ -782,6 +787,19 @@ export default function EducationModal({ userId, educations, visibility, onClose
                 content="원하는 학교의 입력이 불가하다면\n문의사항에 남겨주세요."
                 buttonText="확인"
                 onClick={() => setShowSchoolInvalid(false)}
+            />
+            <PopUp
+                isOpen={showDeleteConfirm}
+                type="warning"
+                title="해당 내용을 삭제하시겠습니까?"
+                content="삭제된 내용은 복구 불가능합니다."
+                leftButtonText="삭제하기"
+                rightButtonText="아니요"
+                onLeftClick={() => {
+                    setShowDeleteConfirm(false);
+                    handleDeleteEducation();
+                }}
+                onRightClick={() => setShowDeleteConfirm(false)}
             />
             <PopUp
                 isOpen={!!saveErrorMessage}
