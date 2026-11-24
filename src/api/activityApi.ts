@@ -29,6 +29,7 @@ import type {
   RecruitmentApplyRequest,
   RecruitmentApplyResponse,
   ActivityCommentListResponse,
+  ActivityCommentReplyListResponse,
   ActivityCommentCreateRequest,
   ActivityCommentCreateResponse,
   ActivityCommentUpdateRequest,
@@ -183,6 +184,20 @@ export const getActivityComments = async (
 ): Promise<ActivityCommentListResponse> => {
   const response = await axiosInstance.get<ActivityCommentListResponse>(
     `/api/activity/${activityId}/comments`,
+    { params },
+  );
+  return response.data;
+};
+
+// 동아리/스터디 답글 더보기 조회 [GET] (/api/activity/{activityId}/comments/{commentId}/replies)
+// 댓글 목록의 replyPages[].nextCursorId를 cursorId로 넘겨 이어서 조회
+export const getActivityCommentReplies = async (
+  activityId: number,
+  commentId: number,
+  params: { cursorId: number; size?: number },
+): Promise<ActivityCommentReplyListResponse> => {
+  const response = await axiosInstance.get<ActivityCommentReplyListResponse>(
+    `/api/activity/${activityId}/comments/${commentId}/replies`,
     { params },
   );
   return response.data;

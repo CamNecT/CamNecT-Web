@@ -255,7 +255,25 @@ export interface ActivityCommentItem {
   author: ActivityCommentAuthor | null;
 }
 
+// 루트 댓글별 답글 추가 조회 정보 (댓글 목록은 루트당 답글을 최대 20개까지만 포함)
+export interface ActivityCommentReplyPage {
+  parentCommentId: number;
+  nextCursorId: number | null;
+  hasNext: boolean;
+}
+
 export interface ActivityCommentListResponse {
+  status: number;
+  message: string;
+  data: {
+    items: ActivityCommentItem[];
+    nextCursorId: number | null;
+    hasNext: boolean;
+    replyPages: ActivityCommentReplyPage[];
+  };
+}
+
+export interface ActivityCommentReplyListResponse {
   status: number;
   message: string;
   data: {
