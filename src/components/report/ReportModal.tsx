@@ -195,8 +195,20 @@ const ReportModal = ({
                 setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.caseClosed });
                 return;
             }
+            if (status === 409 && errorCode === REPORT_ERROR_CODES.reportCreate.targetAuthorUnverifiable) {
+                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.targetAuthorUnverifiable });
+                return;
+            }
             if (status === 400 && errorCode === REPORT_ERROR_CODES.common.invalidRequest) {
                 setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.invalidRequest });
+                return;
+            }
+            if (status === 400 && errorCode === REPORT_ERROR_CODES.reportCreate.selfReport) {
+                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.selfReport });
+                return;
+            }
+            if (status === 400 && errorCode === REPORT_ERROR_CODES.reportCreate.invalidTarget) {
+                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.invalidTarget });
                 return;
             }
             if (status === 404 && errorCode === REPORT_ERROR_CODES.reportCreate.reportedUserNotFound) {
