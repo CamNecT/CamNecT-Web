@@ -47,6 +47,13 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
     const [showWarning, setShowWarning] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [saveErrorMessage, setSaveErrorMessage] = useState('');
+
+    //수정/추가 화면에서 목록으로 돌아갈 때 화면 전용 상태 초기화 (브라우저 뒤로가기로 나간 경우에도 이전 삭제 확인 팝업과 편집 대상이 남지 않도록)
+    const backToList = () => {
+        setShowDeleteConfirm(false);
+        setEditingId(null);
+        setCurrentView('list');
+    };
     
     const [formData, setFormData] = useState<Partial<CareerItem>>({
         organization: '',
@@ -207,6 +214,8 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         setOpenDropdown(null);
         setNewPosition('');
         setEditingPosition(null);
+        setEditingId(null);
+        setShowDeleteConfirm(false);
         setCurrentView('add');
     };
 
@@ -229,7 +238,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         }
         
         if (!hasFormChanges) {
-            setCurrentView('list');
+            backToList();
             return;
         }
 
@@ -246,14 +255,15 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         }
         setNewPosition('');
         setEditingPosition(null);
-        setCurrentView('list');
+        backToList();
     };
 
     const handleDeleteCareer = () => {
-        if (editingId !== null) {
-            setListCareers(listCareers.filter(c => c.id !== editingId));
-            setCurrentView('list');
-        }
+        //현재 수정 화면의 항목만 삭제
+        if (currentView !== 'edit' || editingId === null) return;
+
+        setListCareers(listCareers.filter(c => c.id !== editingId));
+        backToList();
     };
 
     const handleAddPosition = () => {
@@ -302,7 +312,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         textarea.style.height = `${textarea.scrollHeight}px`;
     };
 
-    //newPosition이 비워질 때 textarea 높이를 초기화하기 위해
+    //newPosition이 비워질 때 textarea 높이를 초기화
     useEffect(() => {
         if (newPosition === '') {
             const textarea = document.getElementById('positionTextarea');
@@ -312,20 +322,24 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         }
     }, [newPosition]);
 
-    const handleModalClose = currentView === 'list' ? onClose : () => setCurrentView('list');
+    const handleModalClose = currentView === 'list' ? onClose : backToList;
     const currentHasChanges = currentView === 'list' ? hasListChanges : hasFormChanges;
 
     useModalHistory(
         handleModalClose,
         currentHasChanges,
-        () => setShowWarning(true)
+        () => {
+            // 삭제 확인창이 열린 채 뒤로가기한 경우 변경사항 경고와 겹치지 않도록 닫음
+            setShowDeleteConfirm(false);
+            setShowWarning(true);
+        }
     )
 
     const handleFormClose = () => {
         if (hasFormChanges) {
             setShowWarning(true);
         } else {
-            setCurrentView('list');
+            backToList();
         }
     };
     
@@ -465,6 +479,14 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                         onClose();
                     }}
                     onRightClick={() => setShowWarning(false)}
+                />
+                <PopUp
+                    isOpen={!!saveErrorMessage}
+                    type="error"
+                    title="저장 실패"
+                    content={saveErrorMessage}
+                    buttonText="확인"
+                    onClick={() => setSaveErrorMessage('')}
                 />
             </div>
         );
@@ -816,7 +838,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                 leftButtonText="나가기"
                 onLeftClick={() => {
                     setShowWarning(false);
-                    setCurrentView('list');
+                    backToList();
                 }}
                 onRightClick={() => setShowWarning(false)}
             />
@@ -832,14 +854,6 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                     handleDeleteCareer();
                 }}
                 onRightClick={() => setShowDeleteConfirm(false)}
-            />
-            <PopUp
-                isOpen={!!saveErrorMessage}
-                type="error"
-                title="저장 실패"
-                content={saveErrorMessage}
-                buttonText="확인"
-                onClick={() => setSaveErrorMessage('')}
             />
         </div>
     );

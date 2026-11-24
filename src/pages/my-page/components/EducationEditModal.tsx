@@ -126,6 +126,13 @@ export default function EducationModal({ userId, educations, visibility, onClose
     const [showSchoolInvalid, setShowSchoolInvalid] = useState(false);
     const [saveErrorMessage, setSaveErrorMessage] = useState('');
 
+    // 수정/추가 화면에서 목록으로 돌아갈 때 화면 전용 상태 초기화 (브라우저 뒤로가기로 나간 경우에도 이전 삭제 확인창과 편집 대상이 남지 않도록)
+    const backToList = () => {
+        setShowDeleteConfirm(false);
+        setEditingId(null);
+        setCurrentView('list');
+    };
+
     const [formData, setFormData] = useState<Partial<EducationItem>>({
         school: '',
         status: 'ATTENDING',
@@ -325,6 +332,9 @@ export default function EducationModal({ userId, educations, visibility, onClose
         setEndYearMode('unselected');
         setOpenDropdown(null);
         setSchoolSearchQuery("");
+        setShowSchoolSuggestions(false);
+        setEditingId(null);
+        setShowDeleteConfirm(false);
         setCurrentView('add');
     };
 
@@ -338,6 +348,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
             setSchoolSearchQuery(
                 formatEducationSchoolName(edu.school, edu.campusName, edu.campusId)
             );
+            setShowSchoolSuggestions(false);
             setCurrentView('edit');
         }
     };
@@ -365,7 +376,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
         }
         
         if (!hasFormChanges) {
-            setCurrentView('list');
+            backToList();
             return;
         }
 
@@ -381,34 +392,39 @@ export default function EducationModal({ userId, educations, visibility, onClose
             ));
         }
         setShowSchoolSuggestions(false); 
-        setCurrentView('list');
+        backToList();
     };
 
     const handleDeleteEducation = () => {
-        if (editingId !== null) {
-            setListEducations(listEducations.filter(e => e.id !== editingId));
-            setCurrentView('list');
-        }
+        // 현재 수정 화면의 항목만 삭제
+        if (currentView !== 'edit' || editingId === null) return;
+
+        setListEducations(listEducations.filter(e => e.id !== editingId));
+        backToList();
     };
 
     const getStatusLabel = (status?: EducationStatus) => {
         return status ? EDUCATION_STATUS_KR[status] : "재학";
     };
 
-    const handleModalClose = currentView === 'list' ? onClose : () => setCurrentView('list');
+    const handleModalClose = currentView === 'list' ? onClose : backToList;
     const currentHasChanges = currentView === 'list' ? hasListChanges : hasFormChanges;
 
     useModalHistory(
         handleModalClose,
         currentHasChanges,
-        () => setShowWarning(true)
+        () => {
+            // 삭제 확인창이 열린 채 뒤로가기한 경우 변경사항 경고와 겹치지 않도록 닫음
+            setShowDeleteConfirm(false);
+            setShowWarning(true);
+        }
     )
 
     const handleFormClose = () => {
         if (hasFormChanges) {
             setShowWarning(true);
         } else {
-            setCurrentView('list');
+            backToList();
         }
     };
     
@@ -533,6 +549,14 @@ export default function EducationModal({ userId, educations, visibility, onClose
                         onClose();
                     }}
                     onRightClick={() => setShowWarning(false)}
+                />
+                <PopUp
+                    isOpen={!!saveErrorMessage}
+                    type="error"
+                    title="저장 실패"
+                    content={saveErrorMessage}
+                    buttonText="확인"
+                    onClick={() => setSaveErrorMessage('')}
                 />
             </div>
         );
@@ -776,7 +800,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                 leftButtonText="나가기"
                 onLeftClick={() => {
                     setShowWarning(false);
-                    setCurrentView('list');
+                    backToList();
                 }}
                 onRightClick={() => setShowWarning(false)}
             />
@@ -800,14 +824,6 @@ export default function EducationModal({ userId, educations, visibility, onClose
                     handleDeleteEducation();
                 }}
                 onRightClick={() => setShowDeleteConfirm(false)}
-            />
-            <PopUp
-                isOpen={!!saveErrorMessage}
-                type="error"
-                title="저장 실패"
-                content={saveErrorMessage}
-                buttonText="확인"
-                onClick={() => setSaveErrorMessage('')}
             />
         </div>
     );

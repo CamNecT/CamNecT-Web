@@ -46,6 +46,13 @@ export default function CertificateModal({ userId, certificates, visibility, onC
     const [showWarning, setShowWarning] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [saveErrorMessage, setSaveErrorMessage] = useState('');
+
+    // 수정/추가 화면에서 목록으로 돌아갈 때 화면 전용 상태 초기화 (브라우저 뒤로가기로 나간 경우에도 이전 삭제 확인창과 편집 대상이 남지 않도록)
+    const backToList = () => {
+        setShowDeleteConfirm(false);
+        setEditingId(null);
+        setCurrentView('list');
+    };
     
     const [formData, setFormData] = useState<Partial<CertificateItem>>({
         name: '',
@@ -179,6 +186,8 @@ export default function CertificateModal({ userId, certificates, visibility, onC
             acquiredMonth: currentMonth,
         });
         setOpenDropdown(null);
+        setEditingId(null);
+        setShowDeleteConfirm(false);
         setCurrentView('add');
     };
 
@@ -198,7 +207,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
         }
         
         if (!hasFormChanges) {
-            setCurrentView('list');
+            backToList();
             return;
         }
 
@@ -213,30 +222,35 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                 c.id === editingId ? { ...c, ...formData } : c
             ));
         }
-        setCurrentView('list');
+        backToList();
     };
 
     const handleDeleteCertificate = () => {
-        if (editingId !== null) {
-            setListCertificates(listCertificates.filter(c => c.id !== editingId));
-            setCurrentView('list');
-        }
+        // 현재 수정 화면의 항목만 삭제
+        if (currentView !== 'edit' || editingId === null) return;
+
+        setListCertificates(listCertificates.filter(c => c.id !== editingId));
+        backToList();
     };
 
-    const handleModalClose = currentView === 'list' ? onClose : () => setCurrentView('list');
+    const handleModalClose = currentView === 'list' ? onClose : backToList;
     const currentHasChanges = currentView === 'list' ? hasListChanges : hasFormChanges;
 
     useModalHistory(
         handleModalClose,
         currentHasChanges,
-        () => setShowWarning(true)
+        () => {
+            // 삭제 확인창이 열린 채 뒤로가기한 경우 변경사항 경고와 겹치지 않도록 닫음
+            setShowDeleteConfirm(false);
+            setShowWarning(true);
+        }
     )
 
     const handleFormClose = () => {
         if (hasFormChanges) {
             setShowWarning(true);
         } else {
-            setCurrentView('list');
+            backToList();
         }
     };
     
@@ -356,6 +370,14 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                         onClose();
                     }}
                     onRightClick={() => setShowWarning(false)}
+                />
+                <PopUp
+                    isOpen={!!saveErrorMessage}
+                    type="error"
+                    title="저장 실패"
+                    content={saveErrorMessage}
+                    buttonText="확인"
+                    onClick={() => setSaveErrorMessage('')}
                 />
             </div>
         );
@@ -498,7 +520,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                 leftButtonText="나가기"
                 onLeftClick={() => {
                     setShowWarning(false);
-                    setCurrentView('list');
+                    backToList();
                 }}
                 onRightClick={() => setShowWarning(false)}
             />
@@ -514,14 +536,6 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                     handleDeleteCertificate();
                 }}
                 onRightClick={() => setShowDeleteConfirm(false)}
-            />
-            <PopUp
-                isOpen={!!saveErrorMessage}
-                type="error"
-                title="저장 실패"
-                content={saveErrorMessage}
-                buttonText="확인"
-                onClick={() => setSaveErrorMessage('')}
             />
         </div>
     );
