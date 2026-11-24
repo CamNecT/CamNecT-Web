@@ -203,6 +203,9 @@ const ACTION_CODE_POPUP_MESSAGES: Partial<
   commentCreate: {
     [COMMUNITY_ERROR_CODES.postPermissionDenied]:
       COMMUNITY_ERROR_POPUP_MESSAGES.postAccessDenied,
+    // 실패 시 입력 내용은 useCommentActions에서 유지되므로 수동 재시도만 안내
+    [COMMUNITY_ERROR_CODES.commentCreateCooldown]:
+      COMMUNITY_ERROR_POPUP_MESSAGES.commentCreateCooldown,
   },
   commentAccept: {
     [COMMUNITY_ERROR_CODES.postPermissionDenied]:
