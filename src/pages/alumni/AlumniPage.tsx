@@ -1,5 +1,7 @@
+import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { AlumniApiResponse } from '../../api-types/alumniApiTypes';
 import { getAlumniList } from '../../api/alumni';
 import Button from '../../components/Button';
 import Category from '../../components/Category';
@@ -18,6 +20,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { getAlumniSearchError } from './utils/alumniSearchError';
 
 const profilePlaceholder = defaultImg;
+const ALUMNI_PAGE_SIZE = 20;
+type AlumniSearchPageData = AlumniApiResponse['data'];
 
 export const AlumniSearchPage = () => {
   const navigate = useNavigate();
@@ -30,65 +34,81 @@ export const AlumniSearchPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [alumniItems, setAlumniItems] = useState<ReturnType<typeof mapAlumniApiListToProfiles> | null>(null);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [searchError, setSearchError] = useState<ReturnType<typeof getAlumniSearchError>>(null);
-  const [isSearching, setIsSearching] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const abortRef = useRef<AbortController | null>(null);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const { filterCategories, filterTags, mapTagNamesToIds } = useTagList();
-  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const trimmedSearchTerm = searchTerm.trim();
+  const normalizedSearchTerm = trimmedSearchTerm.toLowerCase();
   const selectedTagIds = useMemo(
     () => mapTagNamesToIds(selectedTags),
     [mapTagNamesToIds, selectedTags],
   );
 
-  // 검색어/태그 변경 시 디바운스 + 이전 요청 취소로 중복 호출을 줄입니다.
   useEffect(() => {
-    const trimmedName = searchTerm.trim();
-    let isActive = true;
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const timer = window.setTimeout(async () => {
-      setIsSearching(true);
-      setSearchError(null);
-      try {
-        // 서버 필터 결과를 받아 클라이언트 모델로 변환합니다.
-        const response = await getAlumniList({
-          userId: meUserId ?? undefined,
-          // 검색어는 태그명 여부와 관계없이 항상 name 파라미터로 전달한다.
-          name: trimmedName || undefined,
-          tags: selectedTagIds,
-          signal: controller.signal,
-        });
-        if (isActive) {
-          setAlumniItems(mapAlumniApiListToProfiles(response.data.content));
-        }
-      } catch (error) {
-        // 이전 검색의 취소·늦은 실패는 현재 검색 결과를 덮어쓰거나 오류로 표시하지 않습니다.
-        if (isActive && !controller.signal.aborted) {
-          setSearchError(getAlumniSearchError(error));
-        }
-      } finally {
-        if (isActive) {
-          // 전체 화면 로딩 팝업은 첫 진입에만 닫고, 이후 검색·필터 요청에는 다시 표시하지 않습니다.
-          setIsInitialLoading(false);
-          setIsSearching(false);
-        }
-      }
-    }, 300);
+    const timer = window.setTimeout(() => setDebouncedSearchTerm(trimmedSearchTerm), 300);
+    return () => window.clearTimeout(timer);
+  }, [trimmedSearchTerm]);
 
-    return () => {
-      isActive = false;
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [meUserId, searchTerm, selectedTagIds, retryCount]);
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    isPending,
+    isPlaceholderData,
+    refetch,
+  } = useInfiniteQuery<AlumniSearchPageData, Error, InfiniteData<AlumniSearchPageData>, readonly unknown[], number>({
+    queryKey: ['alumniSearch', meUserId, debouncedSearchTerm, selectedTagIds],
+    initialPageParam: 0,
+    // 다른 계정의 결과를 새 세션에 표시하지 않고, 같은 계정의 검색 전환 중에는 기존 목록을 유지한다.
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[1] === meUserId ? previousData : undefined,
+    retry: false,
+    queryFn: async ({ pageParam, signal }) => {
+      const response = await getAlumniList({
+        userId: meUserId ?? undefined,
+        name: debouncedSearchTerm || undefined,
+        tags: selectedTagIds,
+        page: pageParam,
+        size: ALUMNI_PAGE_SIZE,
+        signal,
+      });
+      return response.data;
+    },
+    // 화면에서 걸러진 카드 수와 무관하게 서버가 반환한 페이지 번호와 마지막 페이지 여부를 따른다.
+    getNextPageParam: (lastPage, _pages, pageParam) =>
+      !lastPage.last && lastPage.number === pageParam ? pageParam + 1 : undefined,
+  });
+
+  const isDebouncing = trimmedSearchTerm !== debouncedSearchTerm;
+  const isSearching = isDebouncing || isPending || isPlaceholderData;
+  const searchError = !data && error && !isDebouncing ? getAlumniSearchError(error) : null;
+  const canLoadMore = !isSearching && hasNextPage;
+  const isInitialLoading = !isDebouncing && isPending && !data && !debouncedSearchTerm && selectedTags.length === 0;
+  const alumniItems = useMemo(() => {
+    if (!data) return [];
+    const itemsById = new Map(data.pages.flatMap((page) =>
+      page.content.map((item) => [item.userId, item] as const),
+    ));
+    return mapAlumniApiListToProfiles([...itemsById.values()]);
+  }, [data]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !canLoadMore || isFetching || isFetchNextPageError) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) void fetchNextPage({ cancelRefetch: false });
+    }, { rootMargin: '0px 0px 240px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [canLoadMore, fetchNextPage, isFetching, isFetchNextPageError]);
 
   // 선택된 태그만 만족하는 동문만 추립니다.
-  const filteredList = useMemo(() => {
-    if (!alumniItems) return [];
+  const visibleList = useMemo(() => {
     let nextList = alumniItems;
     if (selectedTags.length > 0) {
       nextList = nextList.filter((alumni) =>
@@ -111,8 +131,6 @@ export const AlumniSearchPage = () => {
       );
     });
   }, [alumniItems, normalizedSearchTerm, selectedTags]);
-
-  const visibleList = filteredList;
 
 
   return (
@@ -181,14 +199,11 @@ export const AlumniSearchPage = () => {
                 label={isSearching ? '검색 중' : '다시 시도'}
                 font='sb-14'
                 disabled={isSearching}
-                onClick={() => {
-                  setIsSearching(true);
-                  setRetryCount((count) => count + 1);
-                }}
+                onClick={() => void refetch()}
               />
             </div>
           )}
-          {!searchError && !isSearching && visibleList.length === 0 && (
+          {!searchError && !isSearching && !hasNextPage && visibleList.length === 0 && (
             <p className='py-[20px] text-center text-r-14'>검색 조건에 맞는 동문이 없습니다.</p>
           )}
           {!searchError && visibleList.map((alumni) => (
@@ -261,6 +276,22 @@ export const AlumniSearchPage = () => {
               )}
             </div>
           ))}
+          {canLoadMore && <div ref={loadMoreRef} className='h-px' aria-hidden />}
+          {isFetchingNextPage && (
+            <p role='status' className='py-[10px] text-center text-r-14'>동문을 더 불러오는 중이에요.</p>
+          )}
+          {isFetchNextPageError && canLoadMore && (
+            <div className='flex flex-col items-center gap-[10px] py-[10px]'>
+              <p role='alert' className='text-r-14'>다음 동문 목록을 불러오지 못했어요.</p>
+              <Button
+                type='button'
+                label='다시 시도'
+                font='sb-14'
+                disabled={isFetching}
+                onClick={() => void fetchNextPage({ cancelRefetch: false })}
+              />
+            </div>
+          )}
         </div>
       </div>
 
