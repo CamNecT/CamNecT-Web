@@ -443,6 +443,9 @@ export default function PortfolioEditModal({
         }
     }
 
+    // 입력칸 maxLength와 같은 기준으로 글자 수를 표시
+    const isTitleTooLong = title.length > MAX_TITLE_LENGTH;
+
     const handleSaveClick = () => {
         const missing = getMissingFields();
         if (missing.length > 0) {
@@ -450,11 +453,7 @@ export default function PortfolioEditModal({
             return;
         }
 
-        const isUnchangedLegacyTitle =
-            isEditMode &&
-            title === initialDataRef.current?.title &&
-            title.trim().length > MAX_TITLE_LENGTH;
-        if (title.trim().length > MAX_TITLE_LENGTH && !isUnchangedLegacyTitle) {
+        if (title.trim().length > MAX_TITLE_LENGTH) {
             setError({
                 title: '프로젝트 제목을 확인해주세요',
                 content: `프로젝트 제목은 ${MAX_TITLE_LENGTH}자 이하로 입력해주세요.`,
@@ -758,8 +757,19 @@ export default function PortfolioEditModal({
                                         maxLength={MAX_TITLE_LENGTH}
                                         onChange={(e) => setTitle(e.target.value)}
                                         placeholder="프로젝트 이름을 입력해 주세요 (20자 이내)"
-                                        className="w-full p-[15px] border border-gray-150 rounded-[5px] text-r-16-hn text-gray-750 placeholder:text-gray-650 focus:outline-none focus:border-primary"
+                                        className={`w-full p-[15px] border rounded-[5px] text-r-16-hn text-gray-750 placeholder:text-gray-650 focus:outline-none ${
+                                            isTitleTooLong ? 'border-red focus:border-red' : 'border-gray-150 focus:border-primary'
+                                        }`}
                                     />
+                                    {/* 기존에 20자를 넘겨 저장된 제목은 입력칸에 그대로 표시되므로 줄이도록 안내 */}
+                                    <div className="flex items-start justify-between gap-[10px]">
+                                        <span className="text-r-12-hn text-red">
+                                            {isTitleTooLong ? `제목을 ${MAX_TITLE_LENGTH}자 이내로 줄여 주세요.` : ''}
+                                        </span>
+                                        <span className={`shrink-0 text-r-12-hn ${isTitleTooLong ? 'text-red' : 'text-gray-650'}`}>
+                                            {title.length}/{MAX_TITLE_LENGTH}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* 포트폴리오 부제목 */}
