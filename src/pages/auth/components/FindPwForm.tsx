@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { z } from "zod";
 import { findPasswordEmailReqeust, findPasswordResetReqeust, findPasswordEmailVerifyRequest } from "../../../api/auth";
 import Button from "../../../components/Button";
 import SingleInput from "../../../components/common/SingleInput";
@@ -22,6 +21,7 @@ import {
     PASSWORD_RESET_VERIFY_POPUP_MESSAGES,
 } from "../../../constants/serverErrors/authErrors";
 import { getServerErrorCode } from "../../../utils/getServerErrorCode";
+import { z } from "../zod";
 
 interface FindPwFormProps {
     isPasswordResetStep: boolean;
