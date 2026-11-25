@@ -198,6 +198,7 @@ export const AlumniSearchPage = () => {
                 type='button'
                 label={isSearching ? '검색 중' : '다시 시도'}
                 font='sb-14'
+                className='self-center'
                 disabled={isSearching}
                 onClick={() => void refetch()}
               />
