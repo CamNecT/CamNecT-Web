@@ -45,7 +45,15 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPublic, setShowPublic] = useState(initialShowPublic);
     const [showWarning, setShowWarning] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [saveErrorMessage, setSaveErrorMessage] = useState('');
+
+    //수정/추가 화면에서 목록으로 돌아갈 때 화면 전용 상태 초기화 (브라우저 뒤로가기로 나간 경우에도 이전 삭제 확인 팝업과 편집 대상이 남지 않도록)
+    const backToList = () => {
+        setShowDeleteConfirm(false);
+        setEditingId(null);
+        setCurrentView('list');
+    };
     
     const [formData, setFormData] = useState<Partial<CareerItem>>({
         organization: '',
@@ -61,6 +69,8 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
     const periodDropdownRef = useRef<HTMLDivElement>(null);
     
     const [newPosition, setNewPosition] = useState('');
+    // 직위 및 담당 업무 목록 중 수정 중인 항목 (목록의 텍스트를 누르면 바로 수정)
+    const [editingPosition, setEditingPosition] = useState<{ index: number; value: string } | null>(null);
 
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
@@ -90,16 +100,22 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         return careersChanged || showPublicChanged;
     }, [listCareers, careers, showPublic, initialShowPublic]);
 
-    // 추가 버튼을 누르지 않은 마지막 입력도 완료 시 함께 저장한다.
+    // 추가 버튼을 누르지 않은 마지막 입력과 수정 중인 직위도 완료 시 함께 저장한다.
     const completedFormData: Partial<CareerItem> = useMemo(() => {
         const pendingPosition = newPosition.trim();
-        if (!pendingPosition) return formData;
+        if (!pendingPosition && !editingPosition) return formData;
+
+        const positions = (formData.positions || []).map((position, idx) => {
+            if (editingPosition?.index !== idx) return position;
+            // 수정 중 내용을 모두 지운 경우 기존 내용 유지 (삭제는 삭제 버튼으로)
+            return editingPosition.value.trim() || position;
+        });
 
         return {
             ...formData,
-            positions: [...(formData.positions || []), pendingPosition],
+            positions: pendingPosition ? [...positions, pendingPosition] : positions,
         };
-    }, [formData, newPosition]);
+    }, [formData, newPosition, editingPosition]);
 
     // 수정/추가 각각의 변경사항 추적
     const hasFormChanges: boolean = useMemo(() => {
@@ -197,6 +213,9 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         setEndDateMode('unselected');
         setOpenDropdown(null);
         setNewPosition('');
+        setEditingPosition(null);
+        setEditingId(null);
+        setShowDeleteConfirm(false);
         setCurrentView('add');
     };
 
@@ -208,6 +227,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
             setEndDateMode(career.endYear === undefined ? 'current' : 'date');
             setOpenDropdown(null);
             setNewPosition('');
+            setEditingPosition(null);
             setCurrentView('edit');
         }
     };
@@ -218,7 +238,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         }
         
         if (!hasFormChanges) {
-            setCurrentView('list');
+            backToList();
             return;
         }
 
@@ -234,14 +254,16 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
             ));
         }
         setNewPosition('');
-        setCurrentView('list');
+        setEditingPosition(null);
+        backToList();
     };
 
     const handleDeleteCareer = () => {
-        if (editingId !== null) {
-            setListCareers(listCareers.filter(c => c.id !== editingId));
-            setCurrentView('list');
-        }
+        //현재 수정 화면의 항목만 삭제
+        if (currentView !== 'edit' || editingId === null) return;
+
+        setListCareers(listCareers.filter(c => c.id !== editingId));
+        backToList();
     };
 
     const handleAddPosition = () => {
@@ -255,13 +277,42 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
     };
 
     const handleRemovePosition = (index: number) => {
+        setEditingPosition(null);
         setFormData({
             ...formData,
             positions: (formData.positions || []).filter((_, i) => i !== index)
         });
     };
 
-    //newPosition이 비워질 때 textarea 높이를 초기화하기 위해
+    // 직위 텍스트를 누르면 해당 항목 수정 시작
+    const handleStartEditPosition = (index: number) => {
+        setEditingPosition({ index, value: formData.positions?.[index] ?? '' });
+    };
+
+    // 포커스가 해제되면 수정 내용 반영 (모두 지운 경우 기존 내용 유지)
+    const handleCommitPosition = () => {
+        if (!editingPosition) return;
+
+        const editedPosition = editingPosition.value.trim();
+        if (editedPosition) {
+            setFormData({
+                ...formData,
+                positions: (formData.positions || []).map((position, i) =>
+                    i === editingPosition.index ? editedPosition : position
+                ),
+            });
+        }
+        setEditingPosition(null);
+    };
+
+    // 입력 내용에 맞춰 textarea 높이 조절
+    const resizeTextarea = (textarea: HTMLTextAreaElement | null) => {
+        if (!textarea) return;
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+    };
+
+    //newPosition이 비워질 때 textarea 높이를 초기화
     useEffect(() => {
         if (newPosition === '') {
             const textarea = document.getElementById('positionTextarea');
@@ -271,20 +322,24 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
         }
     }, [newPosition]);
 
-    const handleModalClose = currentView === 'list' ? onClose : () => setCurrentView('list');
+    const handleModalClose = currentView === 'list' ? onClose : backToList;
     const currentHasChanges = currentView === 'list' ? hasListChanges : hasFormChanges;
 
     useModalHistory(
         handleModalClose,
         currentHasChanges,
-        () => setShowWarning(true)
+        () => {
+            // 삭제 확인창이 열린 채 뒤로가기한 경우 변경사항 경고와 겹치지 않도록 닫음
+            setShowDeleteConfirm(false);
+            setShowWarning(true);
+        }
     )
 
     const handleFormClose = () => {
         if (hasFormChanges) {
             setShowWarning(true);
         } else {
-            setCurrentView('list');
+            backToList();
         }
     };
     
@@ -314,7 +369,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                         onClick={handleComplete}
                                         disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        {saveMutation.isPending ? '저장중..' : '완료'}
+                                        {saveMutation.isPending ? '저장중..' : '저장'}
                                     </button>
                                 }
                             />
@@ -365,21 +420,21 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                     .map((career, index) => (
                                     <div
                                         key={career.id}
-                                        className="w-full flex justify-between items-center px-[25px] py-[15px] border-b border-gray-150"
+                                        className="w-full flex justify-between items-center gap-[10px] px-[25px] py-[15px] border-b border-gray-150"
                                     >
-                                        <div className="flex items-center gap-[20px]">
-                                            <span className="text-m-16 text-gray-650 min-w-[24px] text-center">{index + 1}</span>
-                                            <div className="flex flex-col justify-center gap-[7px] max-w-[200px]">
+                                        <div className="flex min-w-0 flex-1 items-center gap-[20px]">
+                                            <span className="text-m-16 text-gray-650 min-w-[24px] shrink-0 text-center">{index + 1}</span>
+                                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-[7px]">
                                                 <span className="text-r-12-hn text-gray-650">
                                                     {career.startYear}.{String(career.startMonth).padStart(2, '0')}
                                                     {career.endYear && career.endMonth 
                                                         ? `~${career.endYear}.${String(career.endMonth).padStart(2, '0')}`
                                                         : '~현재'}
                                                 </span>
-                                                <span className="text-m-16 text-gray-900 pb-[3px]">{career.organization}</span>
+                                                <span className="break-words text-m-16 text-gray-900 pb-[3px]">{career.organization}</span>
                                                 <div className="flex flex-col gap-[2px]">
                                                     {career.positions.map((p, posIndex) => (
-                                                        <span key={posIndex} className="text-r-14 text-gray-750">
+                                                        <span key={posIndex} className="break-words text-r-14 text-gray-750">
                                                             - {p}
                                                         </span>
                                                     ))}
@@ -387,7 +442,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                             </div>
                                         </div>
                                         
-                                        <button className="min-w-[25px] text-sb-14-hn text-gray-650"
+                                        <button className="min-w-[25px] shrink-0 text-sb-14-hn text-gray-650"
                                             onClick={() => handleEditCareer(career.id)}>
                                             수정
                                         </button>
@@ -425,6 +480,14 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                     }}
                     onRightClick={() => setShowWarning(false)}
                 />
+                <PopUp
+                    isOpen={!!saveErrorMessage}
+                    type="error"
+                    title="저장 실패"
+                    content={saveErrorMessage}
+                    buttonText="확인"
+                    onClick={() => setSaveErrorMessage('')}
+                />
             </div>
         );
     }
@@ -454,7 +517,7 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                 >
 
                     {/* 수정/삭제 */}
-                    <div className="w-full h-full flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
+                    <div className="w-full h-full min-h-0 flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
                         <div className="flex flex-col gap-[15px]">
                             {/* 근무처 */}
                             <div className="flex flex-col gap-[10px]">
@@ -709,11 +772,38 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                 {formData.positions && formData.positions.length > 0 && (
                                     <div className="flex flex-col">
                                         {formData.positions.map((position, idx) => (
-                                            <div key={idx} className="flex items-center justify-between px-[15px] py-[10px] border-b border-gray-150">
-                                                <span className="flex-1 text-r-16-hn text-gray-750">{position}</span>
+                                            <div key={idx} className="flex items-center justify-between gap-[20px] px-[15px] py-[10px] border-b border-gray-150">
+                                                {editingPosition?.index === idx ? (
+                                                    <textarea
+                                                        ref={resizeTextarea}
+                                                        autoFocus
+                                                        rows={1}
+                                                        value={editingPosition.value}
+                                                        onChange={(e) => {
+                                                            setEditingPosition({ index: idx, value: e.target.value });
+                                                            resizeTextarea(e.target);
+                                                        }}
+                                                        onFocus={(e) => {
+                                                            // 커서를 텍스트 끝으로 이동
+                                                            const end = e.target.value.length;
+                                                            e.target.setSelectionRange(end, end);
+                                                        }}
+                                                        onBlur={handleCommitPosition}
+                                                        aria-label="직위 및 담당 업무 수정"
+                                                        className="flex-1 text-r-16-hn text-gray-750 resize-none overflow-hidden focus:outline-none"
+                                                    />
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStartEditPosition(idx)}
+                                                        className="flex-1 text-left text-r-16-hn text-gray-750 [overflow-wrap:anywhere]"
+                                                    >
+                                                        {position}
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => handleRemovePosition(idx)}
-                                                    className="text-red text-sb-14-hn"
+                                                    className="shrink-0 text-red text-sb-14-hn"
                                                 >
                                                     삭제
                                                 </button>
@@ -723,17 +813,21 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                                 )}
                             </div>
 
-                            {/* 삭제 버튼 (수정 모드일 때만) */}
-                            {currentView === 'edit' && (
-                                <button
-                                    onClick={handleDeleteCareer}
-                                    className="flex text-m-14 text-red mt-[20px]"
-                                >
-                                    경력 삭제
-                                </button>
-                            )}
                         </div>
                     </div>
+
+                    {/* 삭제 버튼 (수정 모드일 때만) */}
+                    {currentView === 'edit' && (
+                        <div className="shrink-0 px-[25px] pt-[10px]">
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="w-full h-[50px] rounded-[10px] bg-[#FFEFEF] text-sb-16-hn text-red"
+                            >
+                                경력 삭제하기
+                            </button>
+                        </div>
+                    )}
                 </HeaderLayout>
             </div>
             <PopUp
@@ -744,17 +838,22 @@ export default function CareerModal({ userId, careers, visibility, onClose }: Ca
                 leftButtonText="나가기"
                 onLeftClick={() => {
                     setShowWarning(false);
-                    setCurrentView('list');
+                    backToList();
                 }}
                 onRightClick={() => setShowWarning(false)}
             />
             <PopUp
-                isOpen={!!saveErrorMessage}
-                type="error"
-                title="저장 실패"
-                content={saveErrorMessage}
-                buttonText="확인"
-                onClick={() => setSaveErrorMessage('')}
+                isOpen={showDeleteConfirm}
+                type="warning"
+                title="해당 내용을 삭제하시겠습니까?"
+                content="삭제된 내용은 복구 불가능합니다."
+                leftButtonText="삭제하기"
+                rightButtonText="아니요"
+                onLeftClick={() => {
+                    setShowDeleteConfirm(false);
+                    handleDeleteCareer();
+                }}
+                onRightClick={() => setShowDeleteConfirm(false)}
             />
         </div>
     );
