@@ -188,6 +188,85 @@ export const router = createBrowserRouter([
                 ],
             },
 
+            {
+                // 비회원은 마이페이지 메인만 비회원 화면으로 열람 (나머지 하위 경로는 회원 전용)
+                path: "me",
+                children: [
+                    {
+                        index: true,
+                        element: <MypagePage />,
+                    },
+                    {
+                        element: <AuthGuard />,
+                        children: [
+                            {
+                                path: "edit",
+                                element: <MypageEditPage />
+                            },
+                            {
+                                path: "follower",
+                                element: <FollowerPage />
+                            },
+                            {
+                                path: "portfolio",
+                                children: [
+                                    {
+                                        index: true,
+                                        element: <PortfolioListPage />
+                                    },
+                                    {
+                                        path: ":portfolioId",
+                                        element: <PortfolioDetailPage />
+                                    },
+                                ]
+                            },
+                            {
+                                path: "posts",
+                                element: <MyPostsPage />
+                            },
+                            {
+                                path: "bookmarks",
+                                element: <MyBookmarksPage />
+                            },
+                            {
+                                path: "settings",
+                                children: [
+                                    {
+                                        index: true,
+                                        element: <MySettingsPage/>
+                                    },
+                                    {
+                                        path: "account",
+                                        children: [
+                                            {
+                                                index: true,
+                                                element: <AccountSettingsPage/>
+                                            },
+                                            {
+                                                path: "password",
+                                                element: <EditPasswordPage/>
+                                            },
+                                            {
+                                                path: "phone",
+                                                element: <PhoneSettingsPage/>
+                                            },
+                                            {
+                                                path: "delete-account",
+                                                element: <DeleteAccountPage/>
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        path: "terms",
+                                        element: <TermsPage/>
+                                    }
+                                ]
+                            },
+                        ],
+                    },
+                ],
+            },
+
             // 도메인 전체에 로그인이 필요한 경로
             {
                 element: <AuthGuard />,
@@ -322,78 +401,6 @@ export const router = createBrowserRouter([
                     {
                         path: "schedule",
                         element: <Schedule />,
-                    },
-                    {
-                        path: "me",
-                        children: [
-                            {
-                                index: true,
-                                element: <MypagePage />
-                            },
-                            {
-                                path: "edit",
-                                element: <MypageEditPage />
-                            },
-                            {
-                                path: "follower",
-                                element: <FollowerPage />
-                            },
-                            {
-                                path: "portfolio",
-                                children: [
-                                    {
-                                        index: true,
-                                        element: <PortfolioListPage />
-                                    },
-                                    {
-                                        path: ":portfolioId",
-                                        element: <PortfolioDetailPage />
-                                    },
-                                ]
-                            },
-                            {
-                                path: "posts",
-                                element: <MyPostsPage />
-                            },
-                            {
-                                path: "bookmarks",
-                                element: <MyBookmarksPage />
-                            },
-                            {
-                                path: "settings",
-                                children: [
-                                    {
-                                        index: true,
-                                        element: <MySettingsPage/>
-                                    },
-                                    {
-                                        path: "account",
-                                        children: [
-                                            {
-                                                index: true,
-                                                element: <AccountSettingsPage/>
-                                            },
-                                            {
-                                                path: "password",
-                                                element: <EditPasswordPage/>
-                                            },
-                                            {
-                                                path: "phone",
-                                                element: <PhoneSettingsPage/>
-                                            },
-                                            {
-                                                path: "delete-account",
-                                                element: <DeleteAccountPage/>
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        path: "terms",
-                                        element: <TermsPage/>
-                                    }
-                                ]
-                            },
-                        ]
                     },
                     {
                         path: "shop",
