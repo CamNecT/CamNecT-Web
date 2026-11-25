@@ -4,13 +4,13 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import z from "zod";
 import { findId } from "../../../api/auth";
 import Button from "../../../components/Button";
 import SingleInput from "../../../components/common/SingleInput";
 import PopUp from "../../../components/Pop-up";
 import type { AxiosError } from "axios";
 import type { PopUpType } from "../../../components/Pop-up";
+import { z } from "../zod";
 
 // [중요] 동명이인이 다른 유효한 이메일로 찾을때 불일치 필드 식별 불가 상황 -> 동명이인 발생 시 문제
 

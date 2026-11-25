@@ -2,12 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { checkIdDuplicate } from '../../api/auth';
 import Button from '../../components/Button';
 import SingleInput from '../../components/common/SingleInput';
 import { useSignupStore } from "../../store/useSignupStore";
+import { z } from './zod';
 
 interface UserInfoStepProps {
     onNext: () => void;
