@@ -30,6 +30,7 @@ export type AlumniUserProfile = {
 
 export type AlumniApiItem = {
   userId: number;
+  hasChat?: boolean;
   userName?: string | null;
   userProfile: AlumniUserProfile;
   tagList: AlumniTag[] | string[];
