@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -12,6 +11,7 @@ import {
 import { viewChatRoomList } from '../../api/chat';
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind, type RequestErrorPopupConfig } from '../../components/requestErrorPopup';
 import ReportModal from '../../components/report/ReportModal';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
@@ -64,6 +64,7 @@ export const AlumniProfilePage = ({
     data: profileResponse,
     isLoading,
     isError,
+    isFetching,
     error: profileError,
   } = useQuery({
     queryKey: ['alumniProfile', profileUserId, loginUserIdValue],
@@ -90,13 +91,16 @@ export const AlumniProfilePage = ({
   }
 
   if (isError) {
+    const requestError = getRequestErrorKind(profileError);
+    if (!profileResponse && isFetching && requestError) return <PopUp isOpen type="loading" />;
     // 전역 offline에만 로컬 UI를 양보하고, 그 외 프로필 오류는 이 화면의 문맥으로 안내한다.
     if (shouldSkipLocalErrorUI(profileError, navigator.onLine)) return null;
 
     // 네트워크/서버 오류 시 안내 팝업.
     return (
       <PopUp
-        httpStatus={axios.isAxiosError(profileError) ? profileError.response?.status : undefined}
+        requestError={!profileResponse ? requestError : undefined}
+        showInquiryLink={Boolean(profileResponse) && profileError instanceof AxiosError && profileError.response?.status === 500}
         isOpen={true}
         type="confirm"
         title="일시적 오류"
@@ -141,7 +145,7 @@ const AlumniProfileContent = ({
   const [isFollowing, setIsFollowing] = useState(profile.isFollowing);
   const [followerCount, setFollowerCount] = useState(profile.followerCount);
   const [isFollowPending, setIsFollowPending] = useState(false);
-  const [popUpConfig, setPopUpConfig] = useState<{ title: string; content: string } | null>(null);
+  const [popUpConfig, setPopUpConfig] = useState<(RequestErrorPopupConfig & { title?: string; content?: string }) | null>(null);
   // 쿼리 파라미터에 따라 커피챗 모달을 초기 상태로 열 수 있습니다.
   const isAdminProfile = isAdminUserId(profile.userId);
   const canRequestCoffeeChat = !hasChat && !isAdminProfile && profile.privacy.openToCoffeeChat;
@@ -194,7 +198,13 @@ const AlumniProfileContent = ({
           setPopUpConfig({ title: '채팅방을 찾을 수 없어요', content: '채팅방이 종료되었거나 상태가 변경되었습니다. 프로필을 새로고침해 주세요.' });
         }
       },
-      onError: () => setPopUpConfig({ title: '채팅방을 불러오지 못했어요', content: '네트워크 상태를 확인한 뒤 다시 시도해 주세요.' }),
+      onError: (error) => {
+        if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
+        const requestError = getRequestErrorKind(error);
+        setPopUpConfig(requestError
+          ? { requestError }
+          : { title: '채팅방을 불러오지 못했어요', content: '네트워크 상태를 확인한 뒤 다시 시도해 주세요.' });
+      },
       onSettled: () => { chatRoomLookupPendingRef.current = false; },
     });
   };
@@ -271,7 +281,8 @@ const AlumniProfileContent = ({
         await unfollowUser({ userId: loginUserIdValue, followingId });
       }
     } catch (error) {
-      console.error('Failed to update follow status:', error);
+      const requestError = getRequestErrorKind(error);
+      if (requestError && !shouldSkipLocalErrorUI(error, navigator.onLine)) setPopUpConfig({ requestError });
       setIsFollowing(prevFollow);
       setFollowerCount(prevCount);
     } finally {
@@ -295,6 +306,11 @@ const AlumniProfileContent = ({
     } catch (error) {
       if (shouldSkipLocalErrorUI(error, navigator.onLine)) return false;
 
+      const requestError = getRequestErrorKind(error);
+      if (requestError) {
+        setPopUpConfig({ requestError });
+        return false;
+      }
       const status = error instanceof AxiosError ? error.response?.status : undefined;
       const errorMessage = getErrorMessage(error);
       if (status === 400) {
@@ -423,6 +439,7 @@ const AlumniProfileContent = ({
         <PopUp
           isOpen={true}
           type="confirm"
+          requestError={popUpConfig.requestError}
           title={popUpConfig.title}
           content={popUpConfig.content}
           onClick={() => setPopUpConfig(null)}

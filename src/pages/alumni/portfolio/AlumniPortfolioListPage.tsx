@@ -1,9 +1,10 @@
-import axios from 'axios';
+import { AxiosError } from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getAlumniPortfolioList } from '../../../api/alumni';
 import PopUp from '../../../components/Pop-up';
+import { getRequestErrorKind } from '../../../components/requestErrorPopup';
 import { HeaderLayout } from '../../../layouts/HeaderLayout';
 import { EditHeader } from '../../../layouts/headers/EditHeader';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -44,6 +45,7 @@ export const AlumniPortfolioListPage = () => {
     data: portfolioResponse,
     isLoading,
     isError,
+    isFetching,
     error: portfolioError,
   } = useQuery({
     queryKey: ['alumniPortfolioList', portfolioUserId, loginUserIdValue],
@@ -83,12 +85,15 @@ export const AlumniPortfolioListPage = () => {
   }
 
   if (isError) {
+    const requestError = getRequestErrorKind(portfolioError);
+    if (!portfolioResponse && isFetching && requestError) return <PopUp isOpen type="loading" />;
     // 전역 offline 팝업과의 중복만 막고, 그 외 목록 오류는 기존 로컬 fallback을 유지한다.
     if (shouldSkipLocalErrorUI(portfolioError, navigator.onLine)) return null;
 
     return (
       <PopUp
-        httpStatus={axios.isAxiosError(portfolioError) ? portfolioError.response?.status : undefined}
+        requestError={!portfolioResponse ? requestError : undefined}
+        showInquiryLink={Boolean(portfolioResponse) && portfolioError instanceof AxiosError && portfolioError.response?.status === 500}
         type="error"
         title="일시적 오류"
         content="잠시 후 다시 시도해주세요."

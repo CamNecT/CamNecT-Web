@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getRequestErrorKind, type RequestErrorPopupConfig } from '../../../components/requestErrorPopup';
 import {
   NOTIFICATION_ERROR_CODES as CODES,
   NOTIFICATION_ERROR_MESSAGES as MESSAGES,
@@ -6,7 +7,11 @@ import {
 import { getServerErrorCode } from '../../../utils/getServerErrorCode';
 
 export type NotificationErrorAction = 'list' | 'unreadCount' | 'read' | 'readAll';
-export type NotificationErrorPopupConfig = { title: string; content: string; httpStatus?: number };
+export type NotificationErrorPopupConfig = RequestErrorPopupConfig & {
+  title?: string;
+  content?: string;
+  showInquiryLink?: boolean;
+};
 
 const FALLBACK_MESSAGES: Record<NotificationErrorAction, NotificationErrorPopupConfig> = {
   list: {
@@ -69,14 +74,18 @@ const resolveNotificationErrorPopupConfig = (
   return fallback;
 };
 
-// 서버 코드별 안내 문구를 유지하면서 실제 500 응답에만 문의 버튼을 노출한다.
+// 최초 조회와 직접 실행한 작업은 HTTP 상태를 우선하고, 백그라운드 갱신은 기존 안내를 유지한다.
 export const getNotificationErrorPopupConfig = (
   error: unknown,
   action: NotificationErrorAction,
+  foreground: boolean,
 ): NotificationErrorPopupConfig | null => {
+  const requestError = foreground ? getRequestErrorKind(error) : undefined;
+  if (requestError) return { requestError };
+
   const config = resolveNotificationErrorPopupConfig(error, action);
   return config ? {
     ...config,
-    httpStatus: axios.isAxiosError(error) ? error.response?.status : undefined,
+    showInquiryLink: axios.isAxiosError(error) && error.response?.status === 500,
   } : null;
 };

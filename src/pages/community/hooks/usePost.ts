@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { getCommunityPostDetail } from '../../../api/community';
 import { mapToCommunityPostDetail } from '../../../utils/communityMapper';
-import type { CommunityPostDetail } from '../../../types/community';
+import type { CommunityPostDetailResponse } from '../../../api-types/communityApiTypes';
 import { useTagList } from '../../../hooks/useTagList';
 
 type UsePostParams = {
@@ -14,7 +14,12 @@ type UsePostParams = {
 export const usePost = ({ postId, onError }: UsePostParams) => {
   const userId = useAuthStore((state) => state.user?.id);
   const { mapTagIdToName } = useTagList();
-  const [selectedPost, setSelectedPost] = useState<CommunityPostDetail | null>(null);
+  const [postData, setPostData] = useState<CommunityPostDetailResponse | null>(null);
+  // 태그 이름 갱신은 이미 받은 응답에만 반영해 상세 요청과 오류 안내를 반복하지 않는다.
+  const selectedPost = useMemo(
+    () => postData ? mapToCommunityPostDetail(postData, mapTagIdToName) : null,
+    [postData, mapTagIdToName],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadError, setHasLoadError] = useState(false);
   const [likedByMe, setLikedByMe] = useState(false);
@@ -22,30 +27,30 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
   const isFetchingRef = useRef(false);
 
   // 게시글 상세를 재조회하는 공용 함수
-  const refetchPost = useCallback(() => {
+  const refetchPost = useCallback((handleError = onError) => {
     if (!postId) {
-      setSelectedPost(null);
+      setPostData(null);
       setLikedByMe(false);
       setIsLoading(false);
       setHasLoadError(true);
-      onError?.(new Error('게시글 ID가 없습니다.'));
+      handleError?.(new Error('게시글 ID가 없습니다.'));
       return;
     }
     // 모든 ID는 1 이상의 정수라는 API 계약을 만족할 때만 요청한다.
     const numericUserId = Number(userId);
     if (!Number.isInteger(numericUserId) || numericUserId < 1) {
-      setSelectedPost(null);
+      setPostData(null);
       setLikedByMe(false);
       setIsLoading(false);
       return;
     }
     const numericPostId = Number(postId);
     if (!Number.isInteger(numericPostId) || numericPostId < 1) {
-      setSelectedPost(null);
+      setPostData(null);
       setLikedByMe(false);
       setIsLoading(false);
       setHasLoadError(true);
-      onError?.(new Error('게시글 ID 형식이 올바르지 않습니다.'));
+      handleError?.(new Error('게시글 ID 형식이 올바르지 않습니다.'));
       return;
     }
     if (isFetchingRef.current) return;
@@ -58,22 +63,22 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
       params: { userId: numericUserId },
     })
       .then((response) => {
-        setSelectedPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
+        setPostData(response.data);
         setLikedByMe(Boolean(response.data.likedByMe));
         setHasLoadError(false);
       })
       .catch((error: unknown) => {
-        setSelectedPost(null);
+        setPostData(null);
         setLikedByMe(false);
         setHasLoadError(true);
         // 상세 오류 UI는 API hook에서 결정하지 않고 Community Post 호출부의 도메인 오류 hook에 위임한다.
-        onError?.(error);
+        handleError?.(error);
       })
       .finally(() => {
         setIsLoading(false);
         isFetchingRef.current = false;
       });
-  }, [postId, userId, mapTagIdToName, onError]);
+  }, [postId, userId, onError]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

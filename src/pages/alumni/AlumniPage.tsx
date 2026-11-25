@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAlumniList } from '../../api/alumni';
 import Category from '../../components/Category';
 import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind, type RequestErrorKind } from '../../components/requestErrorPopup';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import TagsFilterModal from '../../components/TagsFilterModal';
 import { useTagList } from '../../hooks/useTagList';
 import { FullLayout } from '../../layouts/FullLayout';
@@ -29,20 +30,19 @@ export const AlumniSearchPage = () => {
   const [alumniItems, setAlumniItems] = useState<ReturnType<typeof mapAlumniApiListToProfiles> | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [searchError, setSearchError] = useState<ReturnType<typeof getAlumniSearchError>>(null);
-  const [isServerErrorPopupOpen, setIsServerErrorPopupOpen] = useState(false);
+  const [requestError, setRequestError] = useState<RequestErrorKind>();
   const [isSearching, setIsSearching] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const { filterCategories, filterTags, mapTagNamesToIds } = useTagList();
-  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-  const selectedTagIds = useMemo(
-    () => mapTagNamesToIds(selectedTags),
-    [mapTagNamesToIds, selectedTags],
-  );
+  const trimmedName = searchTerm.trim();
+  const normalizedSearchTerm = trimmedName.toLowerCase();
+  // 태그 목록이 백그라운드에서 갱신돼도 실제 검색 조건이 같으면 같은 조회를 반복하지 않는다.
+  const selectedTagIdsKey = mapTagNamesToIds(selectedTags).join(',');
 
   // 검색어/태그 변경 시 디바운스 + 이전 요청 취소로 중복 호출을 줄입니다.
   useEffect(() => {
-    const trimmedName = searchTerm.trim();
+    const selectedTagIds = selectedTagIdsKey ? selectedTagIdsKey.split(',').map(Number) : [];
     let isActive = true;
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -50,7 +50,7 @@ export const AlumniSearchPage = () => {
     const timer = window.setTimeout(async () => {
       setIsSearching(true);
       setSearchError(null);
-      setIsServerErrorPopupOpen(false);
+      setRequestError(undefined);
       try {
         // 서버 필터 결과를 받아 클라이언트 모델로 변환합니다.
         const response = await getAlumniList({
@@ -67,7 +67,7 @@ export const AlumniSearchPage = () => {
         // 이전 검색의 취소·늦은 실패는 현재 검색 결과를 덮어쓰거나 오류로 표시하지 않습니다.
         if (isActive && !controller.signal.aborted) {
           setSearchError(getAlumniSearchError(error));
-          setIsServerErrorPopupOpen(axios.isAxiosError(error) && error.response?.status === 500);
+          if (!shouldSkipLocalErrorUI(error, navigator.onLine)) setRequestError(getRequestErrorKind(error));
         }
       } finally {
         if (isActive) {
@@ -83,7 +83,7 @@ export const AlumniSearchPage = () => {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [meUserId, searchTerm, selectedTagIds, retryCount]);
+  }, [meUserId, trimmedName, selectedTagIdsKey, retryCount]);
 
   // 선택된 태그만 만족하는 동문만 추립니다.
   const filteredList = useMemo(() => {
@@ -281,14 +281,12 @@ export const AlumniSearchPage = () => {
       />
       <PopUp isOpen={isInitialLoading} type="loading" />
       {/* 팝업을 닫아도 목록의 오류 안내와 다시 시도 버튼은 남겨 둔다. */}
-      {searchError && isServerErrorPopupOpen && !isInitialLoading && (
+      {searchError && requestError && !isInitialLoading && (
         <PopUp
           isOpen
           type="error"
-          httpStatus={500}
-          title={searchError.title}
-          content={searchError.content}
-          onClick={() => setIsServerErrorPopupOpen(false)}
+          requestError={requestError}
+          onClick={() => setRequestError(undefined)}
         />
       )}
     </FullLayout>

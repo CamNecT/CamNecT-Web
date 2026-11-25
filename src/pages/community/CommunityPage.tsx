@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind, type RequestErrorKind } from '../../components/requestErrorPopup';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import { Tabs, type TabItem } from '../../components/Tabs';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
@@ -38,7 +40,8 @@ type CommunityListState = {
   isLoading: boolean;
   isLoadingMore: boolean;
   error: string | null;
-  httpStatus?: number;
+  requestError?: RequestErrorKind;
+  showInquiryLink?: boolean;
 };
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -145,7 +148,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
     waitingQuestions: CommunityPostItem[];
     isLoading: boolean;
     error: string | null;
-    httpStatus?: number;
+    requestError?: RequestErrorKind;
     hasFetched: boolean;
   }>({
     tagId: undefined,
@@ -235,7 +238,8 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
         isLoading: !isAppend,
         isLoadingMore: isAppend,
         error: null,
-        httpStatus: undefined,
+        requestError: undefined,
+        showInquiryLink: false,
         items: isAppend ? previous.items : [],
         nextCursorId: isAppend ? previous.nextCursorId : null,
         nextCursorValue: isAppend ? previous.nextCursorValue : null,
@@ -280,7 +284,8 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           isLoading: false,
           isLoadingMore: false,
           error: null,
-          httpStatus: undefined,
+          requestError: undefined,
+          showInquiryLink: false,
         }));
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -294,7 +299,11 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           hasNext: isAppend ? false : previous.hasNext,
           isLoading: false,
           isLoadingMore: false,
-          httpStatus: axiosError?.response?.status,
+          // 자동 페이지 추가는 기존 500 안내만 유지하고, 새 검색·탭·재시도는 공통 팝업을 쓴다.
+          requestError: isAppend || shouldSkipLocalErrorUI(error, navigator.onLine)
+            ? undefined
+            : getRequestErrorKind(error),
+          showInquiryLink: isAppend && axiosError?.response?.status === 500,
           error:
             code === COMMUNITY_ERROR_CODES.cursorExpired
               ? '목록 커서가 만료되어 새로고침이 필요해요.'
@@ -396,7 +405,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
             ...previous,
             isLoading: true,
             error: null,
-            httpStatus: undefined,
+            requestError: undefined,
           }));
           getCommunityHome({ userId: numericUserId })
             .then((response) => {
@@ -419,7 +428,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
                 ...previous,
                 isLoading: false,
                 error: '커뮤니티 메인 정보를 불러오지 못했어요.',
-                httpStatus: axios.isAxiosError(error) ? error.response?.status : undefined,
+                requestError: shouldSkipLocalErrorUI(error, navigator.onLine) ? undefined : getRequestErrorKind(error),
                 hasFetched: true,
               }));
             });
@@ -480,14 +489,17 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
     ? mainState
     : activeTab === 'info' ? infoState : questionState;
 
+  const showInquiryLink = activeTab !== 'all' && (activeTab === 'info' ? infoState : questionState).showInquiryLink;
+
   const dismissServerErrorPopup = () => {
     // 오류 안내는 남기고, 현재 탭에서 실패한 요청의 팝업만 닫는다.
     if (activeTab === 'all') {
-      setMainState((previous) => ({ ...previous, httpStatus: undefined }));
+      setMainState((previous) => ({ ...previous, requestError: undefined }));
     } else {
       setTabState(activeTab === 'info' ? 'INFO' : 'QUESTION', (previous) => ({
         ...previous,
-        httpStatus: undefined,
+        requestError: undefined,
+        showInquiryLink: false,
       }));
     }
   };
@@ -624,11 +636,12 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           <div ref={loadMoreRef} className='h-[24px]' aria-hidden='true' />
         ) : null}
       </div>
-      {activeListState.error && activeListState.httpStatus === 500 && (
+      {activeListState.error && (activeListState.requestError || showInquiryLink) && (
         <PopUp
           isOpen
           type='error'
-          httpStatus={activeListState.httpStatus}
+          requestError={activeListState.requestError}
+          showInquiryLink={showInquiryLink}
           title={activeListState.error}
           content='서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
           onClick={dismissServerErrorPopup}

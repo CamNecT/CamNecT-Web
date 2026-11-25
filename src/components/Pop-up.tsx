@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Button from './Button';
 import PressableMotion from './PressableMotion';
 import BoardTypeToggle from './BoardTypeToggle';
+import { isServerErrorStatus, type RequestErrorPopupConfig } from './requestErrorPopup';
 
 // 팝업 유형: 안내/경고/확인/로딩
 export type PopUpType = 'info' | 'warning' | 'confirm' | 'loading' | 'error';
@@ -13,10 +14,11 @@ type PopUpCheckbox = {
 };
 
 // 공통 팝업 props (유형별로 필요한 값만 사용)
-type PopUpProps = {
+type PopUpProps = RequestErrorPopupConfig & {
   isOpen: boolean;
   type: PopUpType;
   httpStatus?: number;
+  showInquiryLink?: boolean;
   // ReactNode type : React가 렌더링하는 거의 모든 타입 (tsx를 받기 위해) 
   // 목적 : title ~ content의 텍스트 부분 스타일링
   title?: ReactNode; 
@@ -36,6 +38,9 @@ const PopUp = ({
   isOpen,
   type,
   httpStatus,
+  showInquiryLink,
+  requestError,
+  guidance,
   title,
   titleSecondary,
   content,
@@ -53,7 +58,15 @@ const PopUp = ({
   const hasWarningCheckbox = type === 'warning' && Boolean(checkbox);
 
   // 서버 오류 여부는 문구가 아니라 실제 HTTP 응답으로 판단한다.
-  const hasInquiryLink = httpStatus === 500 && (type === 'error' || type === 'confirm');
+  const isErrorPopup = type === 'error' || type === 'confirm';
+  const errorKind = isErrorPopup
+    ? requestError ?? (isServerErrorStatus(httpStatus) ? 'server' : undefined)
+    : undefined;
+  const hasInquiryLink = isErrorPopup && (errorKind !== undefined || showInquiryLink);
+  const errorTitle = errorKind === 'server' ? '시스템 오류가 발생했습니다' : '서버에 연결하지 못했어요';
+  const errorContent = errorKind === 'server'
+    ? '서비스 이용에 불편을 드려 죄송합니다.\n잠시 후 다시 시도해 주세요.'
+    : '네트워크 상태를 확인한 뒤 다시 시도해 주세요.';
 
   // string 값에 들어온 "\n" 문자를 실제 줄바꿈으로 변환
   const normalizeEscapedNewlines = (value?: ReactNode): ReactNode => {
@@ -71,9 +84,9 @@ const PopUp = ({
 
   const renderContent = (): ReactNode => {
     // 문자열 기반 줄바꿈(\n) 처리
-    const normalizedTitle = normalizeEscapedNewlines(title);
-    const normalizedContent = normalizeEscapedNewlines(content);
-    const normalizedSecondaryTitle = normalizeEscapedNewlines(titleSecondary);
+    const normalizedTitle = normalizeEscapedNewlines(errorKind ? errorTitle : title);
+    const normalizedContent = normalizeEscapedNewlines(errorKind ? guidance ?? errorContent : content);
+    const normalizedSecondaryTitle = errorKind ? undefined : normalizeEscapedNewlines(titleSecondary);
 
     // 경고 타입일때 내용 앞에 '* ' 추가
     const contentWithWarningPrefix =
@@ -177,7 +190,7 @@ const PopUp = ({
           </a>
           <Button
             type='button'
-            label={buttonText ?? '확인'}
+            label={errorKind ? '확인' : buttonText ?? '확인'}
             font='b-14-hn'
             onClick={onClick}
             className='min-h-[45px] h-auto max-w-none rounded-[10px] text-center whitespace-pre-wrap'

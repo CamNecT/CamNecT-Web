@@ -1,4 +1,4 @@
-import type { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type {
@@ -12,6 +12,7 @@ import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal
 import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind } from '../../components/requestErrorPopup';
 import TagsFilterModal from '../../components/TagsFilterModal';
 import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 import { useFileUpload } from '../../hooks/useFileUpload';
@@ -77,7 +78,7 @@ export const WritePage = () => {
     const location = useLocation();
     const { postId } = useParams();
     const isEditMode = Boolean(postId);
-    const { filterCategories, filterTags, mapTagNamesToIds, mapTagIdToName, mapTagIdsToNames } = useTagList();
+    const { filterCategories, filterTags, mapTagNamesToIds, mapTagIdsToNames } = useTagList();
 
     const [editPost, setEditPost] = useState<CommunityPostDetail | null>(null);
     const [hasEditLoadError, setHasEditLoadError] = useState(false);
@@ -106,6 +107,7 @@ export const WritePage = () => {
     const isKeyboardUp = window.innerHeight - viewportHeight > 100;
     // 완료 확인 모달 상태
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const isSubmittingRef = useRef(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     // 작성 취소 경고 팝업 상태
     const [isCancelWarningOpen, setIsCancelWarningOpen] = useState(false);
@@ -282,11 +284,18 @@ export const WritePage = () => {
                     method: 'PUT',
                     headers,
                     body: attachment.file,
-                }).then((response) => {
-                    if (!response.ok) {
-                        throw new Error(`S3 업로드 실패: ${response.status}`);
-                    }
-                });
+                }).then(
+                    (response) => {
+                        if (!response.ok) throw response;
+                    },
+                    (error: unknown) => {
+                        // fetch는 응답 없는 연결 실패에 상태 코드를 제공하지 않는다.
+                        if (error instanceof TypeError) {
+                            throw new AxiosError('첨부파일 서버에 연결하지 못했습니다.', AxiosError.ERR_NETWORK);
+                        }
+                        throw error;
+                    },
+                );
             }),
         );
 
@@ -337,7 +346,8 @@ export const WritePage = () => {
         getCommunityPostDetail({ postId: numericPostId, params: { userId: numericUserId } })
             .then((response) => {
                 if (!isActive) return;
-                setEditPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
+                // 태그명은 아래 폼 초기화에서 변환하므로 태그 목록 갱신과 상세 조회를 분리한다.
+                setEditPost(mapToCommunityPostDetail(response.data));
             })
             .catch((error) => {
                 if (!isActive) return;
@@ -351,7 +361,7 @@ export const WritePage = () => {
         return () => {
             isActive = false;
         };
-    }, [isEditMode, postId, userId, mapTagIdToName, showCommunityError]);
+    }, [isEditMode, postId, userId, showCommunityError]);
 
     useEffect(() => {
         if (!isEditMode || !editPost || didInitEditRef.current) return;
@@ -463,7 +473,7 @@ export const WritePage = () => {
             console.warn('로그인 정보가 없습니다. 다시 로그인해 주세요.');
             return;
         }
-        if (isSubmitting) return;
+        if (isSubmittingRef.current) return;
         if (!validateForm()) {
             setIsConfirmOpen(false);
             return;
@@ -485,6 +495,7 @@ export const WritePage = () => {
             return;
         }
 
+        isSubmittingRef.current = true;
         setIsSubmitting(true);
         try {
             const uploadedAttachments = await uploadAttachments(
@@ -586,6 +597,11 @@ export const WritePage = () => {
             // 작성 후 뒤로가기로 글쓰기 페이지에 다시 돌아오지 않도록 히스토리를 교체한다.
             navigate(`/community/post/${nextPostId}`, { replace: true });
         } catch (error) {
+            const action = isEditMode ? 'postUpdate' : 'postCreate';
+            if (getRequestErrorKind(error)) {
+                showCommunityError(error, action);
+                return;
+            }
             if (error instanceof Error && error.name === 'UploadLimitError') {
                 setErrorPopUp({
                     title: '작성 오류',
@@ -624,8 +640,9 @@ export const WritePage = () => {
                 setFieldErrors({ attachments: '첨부파일 정보를 다시 확인해 주세요.' });
                 return;
             }
-            showCommunityError(error, isEditMode ? 'postUpdate' : 'postCreate');
+            showCommunityError(error, action);
         } finally {
+            isSubmittingRef.current = false;
             setIsSubmitting(false);
             setIsConfirmOpen(false);
         }
@@ -1017,6 +1034,7 @@ export const WritePage = () => {
                 type='info'
                 title={confirmTitle}
                 content={confirmContent}
+                isActionPending={isSubmitting}
                 onLeftClick={() => setIsConfirmOpen(false)}
                 onRightClick={handleConfirm}
             />
@@ -1033,7 +1051,7 @@ export const WritePage = () => {
                 <PopUp
                     isOpen={true}
                     type='error'
-                    httpStatus={communityErrorPopup?.httpStatus}
+                    requestError={communityErrorPopup?.requestError}
                     title={(communityErrorPopup ?? errorPopUp)?.title}
                     content={(communityErrorPopup ?? errorPopUp)?.content}
                     onClick={() => {
