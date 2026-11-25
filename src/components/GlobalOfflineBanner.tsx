@@ -21,12 +21,12 @@ const GlobalOfflineBanner = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: hiddenY, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeOut' }}
-            className="flex min-h-10 w-80 max-w-[calc(100%-32px)] items-center gap-1.5 rounded-[5px] bg-neutral-50 px-[15px] py-2 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)]"
+            className="flex min-h-10 w-[325px] max-w-[calc(100%-32px)] items-center gap-[7px] rounded-[5px] bg-[var(--Color_Red2,#FFEFEF)] px-[15px] py-2 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)]"
           >
             <span aria-hidden="true" className="flex shrink-0">
               <Icon name="error_circle" size={24} className="text-red" />
             </span>
-            <p className="min-w-0 break-words font-sans text-base font-normal leading-6 text-gray-750">
+            <p className="min-w-0 break-words font-sans text-r-16 tracking-[-0.4px] text-gray-750">
               {GLOBAL_OFFLINE_POPUP_MESSAGE}
             </p>
           </motion.div>
