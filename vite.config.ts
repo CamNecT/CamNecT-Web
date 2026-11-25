@@ -1,10 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer' 
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    visualizer({
+      filename: 'stats.html',
+      gzipSize: true,      // gzip 기준 크기도 같이 표시
+      template: 'treemap',
+      open: false,         // 빌드 후 자동으로 브라우저 열기 (true로 해도 됨)
+    }),
+  ],
 
   server: {
     port: 5173,
