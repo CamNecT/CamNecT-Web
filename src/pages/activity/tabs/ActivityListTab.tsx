@@ -9,6 +9,7 @@ import type { ActivityPostTab } from '../../../types/activityPage/activityPageTy
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../../store/useAuthStore';
+import GuestLoginModal from '../../../components/guest/GuestLoginModal';
 import { getActivityList, getTags } from '../../../api/activityApi';
 import { mapListItemToActivityPost, sortKeyToApiSortType, tabToCategory,mapApiTagCategoryToUiTagCategory } from '../utils/activityMapper';
 import PopUp from '../../../components/Pop-up';
@@ -47,7 +48,10 @@ const ActivityListTab = ({
 }: ActivityListTabProps) => {
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
-  const userId = authUser?.id ? parseInt(authUser.id) : null;
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  // 비회원은 userId 없이 공개 목록 조회
+  const userId = isAuthenticated && authUser?.id ? parseInt(authUser.id) : undefined;
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -138,7 +142,7 @@ const ActivityListTab = ({
     queryKey: ['activityList', tab, apiSortType, searchQuery, tagIds],
     queryFn: ({ pageParam = 0 }) =>
       getActivityList({
-        userId: userId!,
+        userId,
         category,
         sortType: apiSortType,
         title: searchQuery || undefined,
@@ -150,7 +154,6 @@ const ActivityListTab = ({
       if (lastPage.data.last) return undefined;
       return lastPage.data.number + 1;
     },
-    enabled: !!userId,
     initialPageParam: 0,
   });
 
@@ -212,7 +215,7 @@ const ActivityListTab = ({
     [hasNextPage, isFetchingNextPage, fetchNextPage],
   );
 
-  if (!userId || isError) {
+  if (isError) {
     return (
       <PopUp
         type="error"
@@ -292,7 +295,11 @@ const ActivityListTab = ({
 
       {isAdmin
       ? (isExternalTab ? <WriteButton onClick={() => navigate(writePath)}/> : null)
-      : (!isExternalTab ? <WriteButton /> : null)}
+      : (!isExternalTab
+          ? <WriteButton onClick={isAuthenticated ? undefined : () => setIsLoginModalOpen(true)} />
+          : null)}
+
+      <GuestLoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
     </div>
   );
