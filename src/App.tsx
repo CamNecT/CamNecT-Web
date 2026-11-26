@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import GlobalOfflineBanner from './components/GlobalOfflineBanner';
 import { ScrollToTop } from './components/ScrollToTop';
 import { useUnreadCountQuery } from './hooks/useChatQuery';
@@ -8,8 +8,62 @@ import { useSocketInitializer } from './hooks/useSocketInitializer';
 import { useAuthStore } from './store/useAuthStore';
 import './styles/global.css';
 
+const defaultTitle = 'CamNect - 건국대 학생·동문 커뮤니티';
+
+const activityTabTitles = new Map([
+  ['external', '대외활동'],
+  ['job', '취업정보'],
+  ['study', '건국대 스터디'],
+  ['club', '건국대 동아리'],
+]);
+
+const sectionTitles = {
+  '/home/notices': '알림',
+  '/community': '건국대 커뮤니티',
+  '/activity/internal': '건국대 동아리·스터디',
+  '/activity/write': '건국대 동아리·스터디',
+  '/activity/edit': '건국대 동아리·스터디',
+  '/activity/external': '대외활동·취업정보',
+  '/activity/recruit': '팀원 모집',
+  '/alumni': '건국대 동문 찾기',
+  '/chat': '건국대 동문과의 커피챗',
+  '/schedule': '일정',
+  '/me': '마이페이지',
+  '/shop': '기프티콘 샵',
+  '/login': '로그인',
+  '/signup': '회원가입',
+  '/find-account': '계정 찾기',
+  '/admin/post/external': '대외활동',
+  '/admin/post/job': '취업정보',
+  '/admin': '관리자',
+};
+
+const getPageTitle = (pathname: string, search: string) => {
+  const path = pathname.toLowerCase().replace(/\/+$/, '');
+
+  if (path === '/activity') {
+    const tab = new URLSearchParams(search).get('tab');
+    const label = activityTabTitles.get(tab ?? '') ?? '대외활동';
+    return `${label} | CamNect`;
+  }
+
+  if (matchPath('/activity/:activityId/recruit-write/*', path)) {
+    return '팀원 모집 | CamNect';
+  }
+
+  const section = Object.entries(sectionTitles).find(([prefix]) =>
+    path === prefix || path.startsWith(`${prefix}/`),
+  );
+  return section ? `${section[1]} | CamNect` : defaultTitle;
+};
+
 function App() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    document.title = getPageTitle(pathname, search);
+  }, [pathname, search]);
 
   // 앱이 켜질 때 로컬스토리지에 저장된 로그인 정보를 불러옵니다.
   useEffect(() => {
