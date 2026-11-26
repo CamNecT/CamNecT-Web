@@ -8,7 +8,7 @@ import { useSocketInitializer } from './hooks/useSocketInitializer';
 import { useAuthStore } from './store/useAuthStore';
 import './styles/global.css';
 
-const defaultTitle = 'CamNect - 건국대 학생·동문 커뮤니티';
+const defaultTitle = 'CamNect(캠넥트) | 건국대 학생·동문 커뮤니티';
 
 const activityTabTitles = new Map([
   ['external', '대외활동'],
