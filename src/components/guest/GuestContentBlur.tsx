@@ -22,13 +22,13 @@ export const GuestContentBlur = ({
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {/* 위쪽은 약하게, 아래로 갈수록 진하게 흐려지는 블러
-      내용 전체에 약한 블러를 적용, 그 위에 강한 블러 막을 겹치고, 위는 투명/아래는 불투명한 그라데이션 마스크로 점점 진해지게 처리 */}
+      내용 전체에 약한 블러를 적용, 그 위에 강한 블러 막을 겹치고, 그라데이션 마스크로 상단부터 일부 적용, 39% 지점부터 전부 적용 */}
       <div aria-hidden className='pointer-events-none select-none blur-[2px]'>
         {children}
       </div>
       <div
         aria-hidden
-        className='pointer-events-none absolute inset-0 backdrop-blur-[6px] [mask-image:linear-gradient(to_bottom,transparent,black_45%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_45%)]'
+        className='pointer-events-none absolute inset-0 backdrop-blur-[6px] [mask-image:linear-gradient(to_bottom,rgba(0,0,0,0.6),black_39%)] [-webkit-mask-image:linear-gradient(to_bottom,rgba(0,0,0,0.6),black_39%)]'
       />
       {/* 높이 제한으로 잘린 아래쪽 경계가 보이지 않도록 흰색으로 서서히 사라지게 처리 */}
       <div
@@ -36,7 +36,8 @@ export const GuestContentBlur = ({
         className='pointer-events-none absolute inset-x-0 bottom-0 h-[40%] [background:linear-gradient(to_bottom,rgba(255,255,255,0),#fff)]'
       />
 
-      <div className='absolute inset-0 flex flex-col items-center justify-center gap-[40px] bg-white/30 px-[40px] text-center'>
+      {/* 흰색 오버레이: 상단 60% -> 39% 지점에서 80%까지 진해지고 이후 80% 유지*/}
+      <div className='absolute inset-0 flex flex-col items-center justify-center gap-[40px] px-[40px] text-center [background:linear-gradient(to_bottom,rgba(255,255,255,0.6),rgba(255,255,255,0.8)_39%)]'>
         <div className='flex flex-col gap-[12px]'>
           <p className='whitespace-pre-line text-b-18-hn text-gray-900'>{title}</p>
           {description ? (
