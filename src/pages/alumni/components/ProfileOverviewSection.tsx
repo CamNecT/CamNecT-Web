@@ -89,7 +89,7 @@ const ProfileOverviewSection = ({
           <div aria-hidden className='h-full [grid-column:1/2] [grid-row:2/3]' />
         )}
 
-        <p className='line-clamp-3 whitespace-pre-line text-r-14 text-[color:var(--ColorGray2,#A1A1A1)] [padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]'>
+        <p className='line-clamp-3 whitespace-pre-line [overflow-wrap:anywhere] text-r-14 text-[color:var(--ColorGray2,#A1A1A1)] [padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]'>
           <LinkifiedText text={profile.intro} />
         </p>
       </div>
