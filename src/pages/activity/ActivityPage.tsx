@@ -11,10 +11,10 @@ import StudyTab from './tabs/StudyTab';
 import type { ActivityPostTab } from '../../types/activityPage/activityPageTypes';
 
 const tabItems: TabItem[] = [
-  { id: 'club', label: '동아리' },
-  { id: 'study', label: '스터디' },
   { id: 'external', label: '대외활동' },
   { id: 'job', label: '취업정보' },
+  { id: 'study', label: '스터디' },
+  { id: 'club', label: '동아리' },
 ];
 
 const isActivityPostTab = (tab: string | null): tab is ActivityPostTab =>
@@ -23,7 +23,7 @@ const isActivityPostTab = (tab: string | null): tab is ActivityPostTab =>
 export const ActivityPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab');
-  const activeTab: ActivityPostTab = isActivityPostTab(tab) ? tab : 'club';
+  const activeTab: ActivityPostTab = isActivityPostTab(tab) ? tab : 'external';
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
