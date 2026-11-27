@@ -23,7 +23,7 @@ export const GuestPostAuthor = ({ size = 32 }: GuestPostAuthorProps) => (
   </div>
 );
 
-export const GuestPostAuthorRow = () => {
+export const GuestPostAuthorRow = ({ isLocked = false }: { isLocked?: boolean }) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   return (
@@ -32,12 +32,13 @@ export const GuestPostAuthorRow = () => {
       {/* 기본 프로필에는 실제 작성자 ID가 없어 커피챗 대신 공통 로그인 안내를 연다. */}
       <button
         type='button'
+        disabled={isLocked}
         className='inline-flex shrink-0 items-center justify-center rounded-[10px] border border-primary px-[10px] py-[6px] text-[12px] font-normal text-primary'
         onClick={() => setIsLoginOpen(true)}
       >
         커피챗 보내기
       </button>
-      <CommunityGuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      {!isLocked && <CommunityGuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />}
     </div>
   );
 };

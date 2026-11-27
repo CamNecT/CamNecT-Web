@@ -41,15 +41,13 @@ export const GuestQuestionPreview = ({ summary }: { summary?: GuestQuestionSumma
             />
           </section>
         )}
-        <div className='px-[25px]'>
-          <GuestPostAuthorRow />
-        </div>
         <GuestContentBlur
-          className='min-h-[455px]'
-          overlayClassName='justify-start pt-[110px]'
+          className='min-h-[462px]'
+          overlayClassName='justify-start pt-[94px]'
         >
-          {/* 잠긴 질문의 본문과 댓글 영역에는 자리표시자만 보여준다. */}
-          <div className='flex flex-col gap-[30px] px-[25px] pt-[10px]'>
+          {/* 작성자 자리표시자부터 본문과 댓글까지 같은 블러 아래에 배치한다. */}
+          <div className='flex flex-col gap-[30px] px-[25px]'>
+            <GuestPostAuthorRow isLocked />
             <div className='flex flex-col gap-[12px]'>
               <span className='h-4 w-2/3 rounded bg-gray-150' />
               <span className='h-4 w-full rounded bg-gray-150' />
