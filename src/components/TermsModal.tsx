@@ -58,8 +58,9 @@ export const TermsModal = ({ isOpen, onClose, type }: TermsModalProps) => {
 
     const { title, subtitle, content } = modalContent[type];
 
+    // 비회원 화면에서도 활성화된 팝업이 하단 내비게이션(z-100)을 덮어야 한다.
     return (
-        <div className="flex items-center justify-center fixed inset-0 z-50 bg-white">
+        <div className="flex items-center justify-center fixed inset-0 z-[110] bg-white">
             <div className="w-full max-w-[var(--app-mobile-max-width)] h-full bg-white flex flex-col">
                 <HeaderLayout
                     headerSlot={
