@@ -129,6 +129,8 @@ export const BottomChat = ({
                 as='button'
                 intensity='strong'
                 type='submit'
+                // 버튼을 누르는 순간 입력창 포커스가 빠지면 키보드가 닫히며 입력창이 아래로 이동해 첫 탭이 버튼을 벗어나 무시되므로 포커스를 유지
+                onPointerDown={(event) => event.preventDefault()}
                 disabled={disabled}
                 className='flex h-[36px] w-[36px] items-center justify-center rounded-full disabled:cursor-not-allowed'
                 aria-label='댓글 작성'

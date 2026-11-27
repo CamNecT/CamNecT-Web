@@ -48,6 +48,9 @@ export const COMMUNITY_ERROR_CODES = {
   ownCommentAcceptUnavailable: '43929',
   anonymityImmutable: '43930',
 
+  // 작성 제한 (커뮤니티·대외활동 댓글을 합쳐 계정당 30초 간격, HTTP 429)
+  commentCreateCooldown: '42953',
+
   // 포인트
   insufficientPoints: '44101',
   pointWalletUnavailable: '44150',
@@ -70,6 +73,10 @@ export const COMMUNITY_ERROR_CODES = {
 // Community Post UI에서 반복 사용하는 사용자 안내 문구다.
 // 서버 메시지를 그대로 노출하지 않고 사용자가 다음 행동을 판단할 수 있는 문장만 관리한다.
 export const COMMUNITY_ERROR_POPUP_MESSAGES = {
+  commentCreateCooldown: {
+    title: '잠시 후 다시 작성해 주세요',
+    content: '댓글 작성은 30초에 한 번씩 가능합니다.',
+  },
   authenticationRequired: {
     title: '로그인이 필요합니다',
     content: '로그인 정보가 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요.',

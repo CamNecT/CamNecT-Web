@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { Fragment, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Category from '../../components/Category';
 import BottomSheetIcon from '../../components/BottomSheetModal/Icon';
@@ -15,6 +15,7 @@ import {
   createActivityComment,
   deleteActivity,
   deleteActivityComment,
+  getActivityCommentReplies,
   getActivityComments,
   getActivityDetail,
   getTags,
@@ -38,6 +39,14 @@ import GuestLoginModal from '../../components/guest/GuestLoginModal';
 import GuestContentBlur from '../../components/guest/GuestContentBlur';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
+const REPLY_PAGE_SIZE = 20;
+
+// '답글 더보기'로 추가 조회한 답글과 다음 조회 커서
+type LoadedReplyPage = {
+  items: ActivityCommentItem[];
+  nextCursorId: number | null;
+  hasNext: boolean;
+};
 
 type OptionId = 'copy-url' | 'report-post' | 'edit-post' | 'delete-post';
 
@@ -185,16 +194,83 @@ const ActivityPostContent = ({
     retry: false,
   });
 
+  // 루트 댓글별로 답글 더보기에서 추가 조회한 답글 (댓글 목록은 루트당 답글을 최대 20개까지만 포함)
+  const [loadedReplies, setLoadedReplies] = useState<Record<number, LoadedReplyPage>>({});
+  const [loadingReplyParentId, setLoadingReplyParentId] = useState<number | null>(null);
+
+  // 댓글 목록 응답의 루트별 답글 추가 조회 정보
+  const serverReplyPages = useMemo(() => {
+    const pages = new Map<number, LoadedReplyPage>();
+    (commentPages?.pages ?? []).forEach((page) => {
+      (page.data.replyPages ?? []).forEach((replyPage) => {
+        pages.set(replyPage.parentCommentId, {
+          items: [],
+          nextCursorId: replyPage.nextCursorId,
+          hasNext: replyPage.hasNext,
+        });
+      });
+    });
+    return pages;
+  }, [commentPages]);
+
+  // 추가 조회한 적이 있으면 그 결과를, 없으면 댓글 목록 응답 기준으로 다음 답글 조회 정보를 판단
+  const getReplyPage = (parentCommentId: number) =>
+    loadedReplies[parentCommentId] ?? serverReplyPages.get(parentCommentId);
+
+  const handleLoadMoreReplies = async (parentCommentId: number) => {
+    const replyPage = getReplyPage(parentCommentId);
+    if (!replyPage?.hasNext || replyPage.nextCursorId === null || loadingReplyParentId !== null) return;
+
+    setLoadingReplyParentId(parentCommentId);
+    try {
+      const response = await getActivityCommentReplies(activityId, parentCommentId, {
+        cursorId: replyPage.nextCursorId,
+        size: REPLY_PAGE_SIZE,
+      });
+      setLoadedReplies((prev) => ({
+        ...prev,
+        [parentCommentId]: {
+          items: [...(prev[parentCommentId]?.items ?? []), ...response.data.items],
+          nextCursorId: response.data.nextCursorId,
+          hasNext: response.data.hasNext,
+        },
+      }));
+    } catch (error) {
+      showCommunityError(error, 'commentList');
+    } finally {
+      setLoadingReplyParentId(null);
+    }
+  };
+
+  // 작성/수정/삭제 후 댓글 목록을 다시 불러오면 해당 스레드의 추가 조회 결과를 비우고 서버의 replyPages 기준으로 다시 제공
+  const resetLoadedRepliesOf = (commentId: number) => {
+    setLoadedReplies((prev) => {
+      const parentId = prev[commentId]
+        ? commentId
+        : Object.keys(prev)
+            .map(Number)
+            .find((id) => prev[id].items.some((reply) => reply.commentId === commentId));
+      if (parentId === undefined) return prev;
+
+      const next = { ...prev };
+      delete next[parentId];
+      return next;
+    });
+  };
+
   const commentItemsFromApi = useMemo(() => {
     const seen = new Set<number>();
-    return (commentPages?.pages ?? []).flatMap((page) =>
-      page.data.items.filter((comment) => {
-        if (seen.has(comment.commentId)) return false;
-        seen.add(comment.commentId);
-        return true;
-      }),
-    );
-  }, [commentPages]);
+    const isNew = (comment: ActivityCommentItem) => {
+      if (seen.has(comment.commentId)) return false;
+      seen.add(comment.commentId);
+      return true;
+    };
+    // 추가 조회한 답글은 미리보기 답글 뒤에 이어 붙여 트리에서 작성순을 유지
+    return [
+      ...(commentPages?.pages ?? []).flatMap((page) => page.data.items.filter(isNew)),
+      ...Object.values(loadedReplies).flatMap((replyPage) => replyPage.items.filter(isNew)),
+    ];
+  }, [commentPages, loadedReplies]);
 
   const commentTree = useMemo(
     () => mapFlatCommentsToTree(commentItemsFromApi as ActivityCommentItem[]),
@@ -230,14 +306,16 @@ const ActivityPostContent = ({
     onSubmitCommentApi: async ({ content, parentCommentId }) => {
       try {
         const numericParentId = parentCommentId ? Number(parentCommentId) : null;
+        const validParentId =
+          numericParentId !== null && Number.isInteger(numericParentId) && numericParentId > 0
+            ? numericParentId
+            : null;
         await createActivityComment(activityId, {
           content,
-          parentCommentId:
-            numericParentId !== null && Number.isInteger(numericParentId) && numericParentId > 0
-              ? numericParentId
-              : null,
+          parentCommentId: validParentId,
         });
         await refetchComments();
+        if (validParentId !== null) resetLoadedRepliesOf(validParentId);
         return true;
       } catch (error) {
         showCommunityError(error, 'commentCreate');
@@ -250,6 +328,7 @@ const ActivityPostContent = ({
       try {
         await deleteActivityComment(numericCommentId);
         await refetchComments();
+        resetLoadedRepliesOf(numericCommentId);
       } catch (error) {
         showCommunityError(error, 'commentDelete');
       }
@@ -260,6 +339,7 @@ const ActivityPostContent = ({
       try {
         await updateActivityComment(numericCommentId, { content });
         await refetchComments();
+        resetLoadedRepliesOf(numericCommentId);
       } catch (error) {
         showCommunityError(error, 'commentUpdate');
       }
@@ -377,26 +457,47 @@ const ActivityPostContent = ({
     }
   };
 
+  // 루트 댓글의 답글이 더 있으면 답글 목록 아래에 답글 더보기 표시
+  const renderReplyMoreButton = (comment: CommentItem) => {
+    const parentCommentId = Number(comment.id);
+    if (!getReplyPage(parentCommentId)?.hasNext) return null;
+
+    return (
+      <div className='border-b border-gray-150 bg-gray-100'>
+        <button
+          type='button'
+          disabled={loadingReplyParentId !== null}
+          onClick={() => void handleLoadMoreReplies(parentCommentId)}
+          className='w-full text-m-12-hn text-gray-750 disabled:opacity-50 py-[10px]'
+        >
+          {loadingReplyParentId === parentCommentId ? '답글을 불러오는 중...' : '답글 더보기'}
+        </button>
+      </div>
+    );
+  };
+
   const renderComment = (comment: CommentItem, isReply = false): React.ReactNode => (
-    <CommentListItem
-      key={comment.id}
-      comment={comment}
-      isReply={isReply}
-      isQuestionPost={false}
-      isAdopted={false}
-      showAdoptButton={false}
-      isHighlighted={highlightedCommentId === comment.id}
-      isEditing={editingCommentId === comment.id}
-      editingContent={editingCommentId === comment.id ? editingCommentContent : comment.content}
-      onEditingChange={setEditingCommentContent}
-      onSaveEdit={handleSaveEdit}
-      onCancelEdit={handleCancelEdit}
-      onOpenCommentOptions={handleOpenCommentOptions}
-      onOpenAdoptPopup={() => undefined}
-      onReplyClick={handleReplyClick}
-      formatDate={formatCommentDisplayDate}
-      renderReply={(reply) => renderComment(reply, true)}
-    />
+    <Fragment key={comment.id}>
+      <CommentListItem
+        comment={comment}
+        isReply={isReply}
+        isQuestionPost={false}
+        isAdopted={false}
+        showAdoptButton={false}
+        isHighlighted={highlightedCommentId === comment.id}
+        isEditing={editingCommentId === comment.id}
+        editingContent={editingCommentId === comment.id ? editingCommentContent : comment.content}
+        onEditingChange={setEditingCommentContent}
+        onSaveEdit={handleSaveEdit}
+        onCancelEdit={handleCancelEdit}
+        onOpenCommentOptions={handleOpenCommentOptions}
+        onOpenAdoptPopup={() => undefined}
+        onReplyClick={handleReplyClick}
+        formatDate={formatCommentDisplayDate}
+        renderReply={(reply) => renderComment(reply, true)}
+      />
+      {!isReply && renderReplyMoreButton(comment)}
+    </Fragment>
   );
 
 
