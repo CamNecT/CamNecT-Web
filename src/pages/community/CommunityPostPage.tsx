@@ -7,7 +7,7 @@ import BottomSheetModalPost, {
   type ActionItem,
 } from '../../components/BottomSheetModal/BottomSheetModal-post';
 import GuestContentBlur from '../../components/guest/GuestContentBlur';
-import { GuestPostAuthor } from './components/GuestPostAuthor';
+import { GuestPostAuthorRow } from './components/GuestPostAuthor';
 import { GuestQuestionPreview, type GuestQuestionSummary } from './components/GuestQuestionPreview';
 import { FullLayout } from '../../layouts/FullLayout';
 import { pointHistoryKey } from '../shop/hooks/useShopHistoryQuery';
@@ -933,7 +933,7 @@ const CommunityPostView = () => {
             </div>
 
             {!userId ? (
-              <GuestPostAuthor className='border-b border-gray-150 pb-[15px]' />
+              <GuestPostAuthorRow />
             ) : selectedPost.author.id !== 'unknown' ? (
               <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
                 <button

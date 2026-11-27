@@ -3,7 +3,7 @@ import GuestContentBlur from '../../../components/guest/GuestContentBlur';
 import { FullLayout } from '../../../layouts/FullLayout';
 import { MainHeader } from '../../../layouts/headers/MainHeader';
 import type { QuestionPost } from '../../../types/community';
-import { GuestPostAuthor } from './GuestPostAuthor';
+import { GuestPostAuthorRow } from './GuestPostAuthor';
 
 export type GuestQuestionSummary = Pick<QuestionPost, 'id' | 'title' | 'isAdopted'>;
 
@@ -35,7 +35,7 @@ export const GuestQuestionPreview = ({ summary }: { summary?: GuestQuestionSumma
           </section>
         )}
         <div className='px-[25px]'>
-          <GuestPostAuthor className='border-b border-gray-150 pb-[15px]' />
+          <GuestPostAuthorRow />
         </div>
         <GuestContentBlur
           className='min-h-[455px]'
