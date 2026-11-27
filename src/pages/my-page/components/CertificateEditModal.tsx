@@ -44,7 +44,15 @@ export default function CertificateModal({ userId, certificates, visibility, onC
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPublic, setShowPublic] = useState(initialShowPublic);
     const [showWarning, setShowWarning] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [saveErrorMessage, setSaveErrorMessage] = useState('');
+
+    // 수정/추가 화면에서 목록으로 돌아갈 때 화면 전용 상태 초기화 (브라우저 뒤로가기로 나간 경우에도 이전 삭제 확인창과 편집 대상이 남지 않도록)
+    const backToList = () => {
+        setShowDeleteConfirm(false);
+        setEditingId(null);
+        setCurrentView('list');
+    };
     
     const [formData, setFormData] = useState<Partial<CertificateItem>>({
         name: '',
@@ -178,6 +186,8 @@ export default function CertificateModal({ userId, certificates, visibility, onC
             acquiredMonth: currentMonth,
         });
         setOpenDropdown(null);
+        setEditingId(null);
+        setShowDeleteConfirm(false);
         setCurrentView('add');
     };
 
@@ -197,7 +207,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
         }
         
         if (!hasFormChanges) {
-            setCurrentView('list');
+            backToList();
             return;
         }
 
@@ -212,30 +222,35 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                 c.id === editingId ? { ...c, ...formData } : c
             ));
         }
-        setCurrentView('list');
+        backToList();
     };
 
     const handleDeleteCertificate = () => {
-        if (editingId !== null) {
-            setListCertificates(listCertificates.filter(c => c.id !== editingId));
-            setCurrentView('list');
-        }
+        // 현재 수정 화면의 항목만 삭제
+        if (currentView !== 'edit' || editingId === null) return;
+
+        setListCertificates(listCertificates.filter(c => c.id !== editingId));
+        backToList();
     };
 
-    const handleModalClose = currentView === 'list' ? onClose : () => setCurrentView('list');
+    const handleModalClose = currentView === 'list' ? onClose : backToList;
     const currentHasChanges = currentView === 'list' ? hasListChanges : hasFormChanges;
 
     useModalHistory(
         handleModalClose,
         currentHasChanges,
-        () => setShowWarning(true)
+        () => {
+            // 삭제 확인창이 열린 채 뒤로가기한 경우 변경사항 경고와 겹치지 않도록 닫음
+            setShowDeleteConfirm(false);
+            setShowWarning(true);
+        }
     )
 
     const handleFormClose = () => {
         if (hasFormChanges) {
             setShowWarning(true);
         } else {
-            setCurrentView('list');
+            backToList();
         }
     };
     
@@ -265,7 +280,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                                         onClick={handleComplete}
                                         disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        {saveMutation.isPending ? '저장중..' : '완료'}
+                                        {saveMutation.isPending ? '저장중..' : '저장'}
                                     </button>
                                 }
                             />
@@ -304,20 +319,20 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                                     .map((cert, index) => (
                                     <div
                                         key={cert.id}
-                                        className="flex items-center justify-between px-[25px] py-[15px] border-b border-gray-150"
+                                        className="w-full flex items-center justify-between gap-[10px] px-[25px] py-[15px] border-b border-gray-150"
                                     >
-                                        <div className="flex items-center gap-[20px]">
-                                            <span className="text-m-16 text-gray-650 min-w-[24px] text-center">{index + 1}</span>
-                                            <div className="flex flex-col gap-[7px]">
+                                        <div className="flex min-w-0 flex-1 items-center gap-[20px]">
+                                            <span className="text-m-16 text-gray-650 min-w-[24px] shrink-0 text-center">{index + 1}</span>
+                                            <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
                                                 <span className="text-r-12-hn text-gray-650">
                                                     {cert.acquiredYear}.{String(cert.acquiredMonth).padStart(2, '0')}
                                                 </span>
-                                                <span className="text-m-16 text-gray-900">{cert.name}</span>
+                                                <span className="break-words text-m-16 text-gray-900">{cert.name}</span>
                                             </div>
                                         </div>
                                         
                                         <button 
-                                            className="text-sb-14-hn text-gray-650"
+                                            className="min-w-[25px] shrink-0 text-sb-14-hn text-gray-650"
                                             onClick={() => handleEditCertificate(cert.id)}
                                         >
                                             수정
@@ -356,6 +371,14 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                     }}
                     onRightClick={() => setShowWarning(false)}
                 />
+                <PopUp
+                    isOpen={!!saveErrorMessage}
+                    type="error"
+                    title="저장 실패"
+                    content={saveErrorMessage}
+                    buttonText="확인"
+                    onClick={() => setSaveErrorMessage('')}
+                />
             </div>
         );
     }
@@ -384,7 +407,7 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                     }
                 >
                     {/* 수정/삭제 */}
-                    <div className="w-full h-full flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
+                    <div className="w-full h-full min-h-0 flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
                         <div className="flex flex-col gap-[17px]">
                             {/* 자격증 */}
                             <div className="flex flex-col gap-[10px]">
@@ -472,17 +495,21 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                                 </div>
                             </div>
 
-                            {/* 삭제 버튼 (수정 모드일 때만) */}
-                            {currentView === 'edit' && (
-                                <button
-                                    onClick={handleDeleteCertificate}
-                                    className="flex text-m-14 text-red mt-[20px]"
-                                >
-                                    자격증 삭제
-                                </button>
-                            )}
                         </div>
                     </div>
+
+                    {/* 삭제 버튼 (수정 모드일 때만) */}
+                    {currentView === 'edit' && (
+                        <div className="shrink-0 px-[25px] pt-[10px]">
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="w-full h-[50px] rounded-[10px] bg-[#FFEFEF] text-sb-16-hn text-red"
+                            >
+                                자격증 삭제하기
+                            </button>
+                        </div>
+                    )}
                 </HeaderLayout>
             </div>
             <PopUp
@@ -493,17 +520,22 @@ export default function CertificateModal({ userId, certificates, visibility, onC
                 leftButtonText="나가기"
                 onLeftClick={() => {
                     setShowWarning(false);
-                    setCurrentView('list');
+                    backToList();
                 }}
                 onRightClick={() => setShowWarning(false)}
             />
             <PopUp
-                isOpen={!!saveErrorMessage}
-                type="error"
-                title="저장 실패"
-                content={saveErrorMessage}
-                buttonText="확인"
-                onClick={() => setSaveErrorMessage('')}
+                isOpen={showDeleteConfirm}
+                type="warning"
+                title="해당 내용을 삭제하시겠습니까?"
+                content="삭제된 내용은 복구 불가능합니다."
+                leftButtonText="삭제하기"
+                rightButtonText="아니요"
+                onLeftClick={() => {
+                    setShowDeleteConfirm(false);
+                    handleDeleteCertificate();
+                }}
+                onRightClick={() => setShowDeleteConfirm(false)}
             />
         </div>
     );

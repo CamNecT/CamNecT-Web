@@ -10,14 +10,43 @@ import Category from '../../components/Category';
 import Icon from '../../components/Icon';
 import { LinkifiedText } from '../../components/LinkifiedText';
 import PopUp from '../../components/Pop-up';
+import GuestContentBlur from '../../components/guest/GuestContentBlur';
+import GuestLoginModal from '../../components/guest/GuestLoginModal';
 import { RecruitPost } from '../../components/posts/RecruitPost';
 import SaveToggle from '../../layouts/BottomChat/components/SaveToggle';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatOnlyDate } from '../../utils/formatDate';
 import { mapDetailToActivityPost, mapRecruitmentItemToTeamRecruitPost } from './utils/activityMapper';
+import type { TeamRecruitPost } from '../../types/activityPage/activityPageTypes';
 
 const REPLACE_IMAGE = replaceImg;
+
+// 비회원 팀원 모집 탭에 블러로 깔 mock data
+const GUEST_RECRUIT_PLACEHOLDERS: TeamRecruitPost[] = [
+  {
+    id: 'guest-placeholder-1',
+    title: '기획 포지션 한 분 구합니다. 같이 성장할 분!',
+    activityId: '',
+    authorId: '',
+    authorName: '우리 학교 동문',
+    activityName: '',
+    recruitNow: true,
+    bookmarkCount: 0,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'guest-placeholder-2',
+    title: '디자이너 팀원을 모집합니다',
+    activityId: '',
+    authorId: '',
+    authorName: '우리 학교 동문',
+    activityName: '',
+    recruitNow: true,
+    bookmarkCount: 0,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 type OptionId = 'copy-url' | 'edit-post' | 'close-post';
 
@@ -34,8 +63,12 @@ export const ExternalActivityPostPage = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const authUser = useAuthStore(state => state.user);
-    const userId = authUser?.id ? parseInt(authUser.id) : null;
+    const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+    // 비회원은 userId 없이 공개 상세 조회
+    const userId = isAuthenticated && authUser?.id ? parseInt(authUser.id) : null;
+    const isGuest = userId === null;
     const activityId = postId ? parseInt(postId) : null;
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const [activeTab, setActiveTab] = useState<TabType>('detail');
     const [isOptionOpen, setIsOptionOpen] = useState(false);
@@ -48,9 +81,10 @@ export const ExternalActivityPostPage = () => {
     isLoading,
     isError,
   } = useQuery<ActivityDetailResponse>({
-    queryKey: ['activityDetail', activityId],
-    queryFn: () => getActivityDetail(userId!, activityId!),
-    enabled: !!userId && !!activityId,
+    // 비회원 응답이 로그인 후 회원 화면에 남지 않도록 캐시를 분리
+    queryKey: isGuest ? ['activityDetail', activityId, 'guest'] : ['activityDetail', activityId],
+    queryFn: () => getActivityDetail(userId, activityId!),
+    enabled: !!activityId,
   });
 
   const { data: tagData } = useQuery({
@@ -201,6 +235,13 @@ export const ExternalActivityPostPage = () => {
     </div>
   );
 
+  // 비회원 : 팀원 모집은 회원 전용이므로 자리표시 카드를 블러 처리하고 로그인 안내 (모집하기 버튼 숨김)
+  const renderGuestTeamTab = () => (
+    <GuestContentBlur className='min-h-[320px]'>
+      {GUEST_RECRUIT_PLACEHOLDERS.map((recruit) => <RecruitPost key={recruit.id} {...recruit} />)}
+    </GuestContentBlur>
+  );
+
   const renderTeamTab = () => (
     <div className='flex flex-col justify-center'>
       {teamRecruits.length === 0 ? (
@@ -230,6 +271,10 @@ export const ExternalActivityPostPage = () => {
 
   //연타/중복 요청 막기
   const handleToggleBookmark = () => {
+    if (isGuest) {
+      setIsLoginModalOpen(true);
+      return;
+    }
     if (bookmarkMutation.isPending) return;
     bookmarkMutation.mutate();
   };
@@ -384,12 +429,17 @@ export const ExternalActivityPostPage = () => {
                         : 'border-transparent text-gray-650 text-r-16-hn'
                     }`}
                     >
-                    팀원 모집 ({recruitCount})
+                    {/* 비회원은 팀원 모집 목록을 받지 않으므로 개수 표시 x */}
+                    {isGuest ? '팀원 모집' : `팀원 모집 (${recruitCount})`}
                     </button>
                 </div>
 
             {/* 탭 컨텐츠 */}
-            {activeTab === 'detail' ? renderDetailTab() : renderTeamTab()}
+            {activeTab === 'detail'
+              ? renderDetailTab()
+              : isGuest
+                ? renderGuestTeamTab()
+                : renderTeamTab()}
             </div>
         </div>
 
@@ -425,6 +475,8 @@ export const ExternalActivityPostPage = () => {
               closeMutation.mutate();
             }}
         />
+
+        <GuestLoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
         <PopUp
             isOpen={isCloseAgainPopupOpen}

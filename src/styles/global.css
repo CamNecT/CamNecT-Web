@@ -1,15 +1,8 @@
 @import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 :root {
     --app-mobile-max-width: 480px;
-}
-
-@font-face {
-    font-family: "Pretendard";
-    src: url(/fonts/PretendardVariable.woff2) format("woff2-variations");
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
 }
 
 @theme {
@@ -49,7 +42,7 @@
 
     /*fonts*/
 
-    --font-sans: "Pretendard", sans-serif;
+    --font-sans: "Pretendard Variable", sans-serif;
 
     /*hn-> line-height: normal*/
  

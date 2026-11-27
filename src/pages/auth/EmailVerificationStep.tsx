@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { requestEmailCode, verifyEmailCode } from '../../api/auth';
 import Button from '../../components/Button';
@@ -11,6 +10,7 @@ import SingleInput from '../../components/common/SingleInput';
 import PopUp from '../../components/Pop-up';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSignupStore } from '../../store/useSignupStore';
+import { z } from './zod';
 
 interface EmailVerificationStepProps {
     onNext: () => void;

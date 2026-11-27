@@ -1,8 +1,8 @@
 import defaultImg from '../../../assets/image/defaultProfileImg.png';
-import Button from '../../../components/Button';
 import Category from '../../../components/Category';
 import { LinkifiedText } from '../../../components/LinkifiedText';
 import type { AlumniProfile } from '../../../types/alumni/alumniTypes';
+import AlumniCoffeeChatButton from './AlumniCoffeeChatButton';
 import FollowButton from './FollowButton';
 
 type ProfileOverviewSectionProps = {
@@ -97,12 +97,9 @@ const ProfileOverviewSection = ({
 
     {(hasChat || canRequestCoffeeChat) && (
       <section className='flex [padding:0_clamp(18px,7cqw,25px)_clamp(24px,8cqw,30px)]'>
-        <Button
-          label={hasChat ? (isChatPending ? '채팅방 확인 중' : '채팅방으로 이동') : '커피챗 요청하기'}
-          font='sb-14'
-          type='button'
-          className={`h-auto w-full max-w-none rounded-[clamp(8px,2.8cqw,10px)] py-[10px] ${hasChat ? 'border border-[var(--ColorMain,#00C56C)] bg-white text-[var(--ColorMain,#00C56C)]' : 'bg-[var(--ColorMain,#00C56C)]'}`}
-          disabled={hasChat && isChatPending}
+        <AlumniCoffeeChatButton
+          hasChat={hasChat}
+          isPending={isChatPending}
           onClick={hasChat ? onChatClick : onCoffeeChatClick}
         />
       </section>
