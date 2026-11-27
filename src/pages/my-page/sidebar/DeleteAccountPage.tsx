@@ -5,8 +5,8 @@ import { deleteAccount } from "../../../api/auth";
 import PopUp from "../../../components/Pop-up";
 import { HeaderLayout } from "../../../layouts/HeaderLayout";
 import { MainHeader } from "../../../layouts/headers/MainHeader";
+import { useLogout } from "../../../hooks/useLogout";
 import { useAuthStore } from "../../../store/useAuthStore";
-import { clearClientSession } from "../../../utils/clearClientSession";
 
 const EyeClosedIcon = () => {
     return (
@@ -26,6 +26,7 @@ const EyeOpenIcon = () => {
 
 export const DeleteAccountPage = () => {
     const navigate = useNavigate();
+    const { leaveSession } = useLogout();
     const authUser = useAuthStore((s) => s.user);
     const userId = authUser?.id ? parseInt(authUser.id) : null;
 
@@ -87,9 +88,9 @@ export const DeleteAccountPage = () => {
         }
     };
 
+    // 탈퇴 완료 : 온보딩 화면으로 먼저 이동한 뒤 세션 정리 (화면 깜빡임 방지)
     const handleFinalDelete = () => {
-        clearClientSession();
-        navigate("/", { replace: true });
+        void leaveSession("/");
     };
 
     return (
@@ -148,7 +149,7 @@ export const DeleteAccountPage = () => {
                     <button
                         onClick={handleSubmit}
                         disabled={!password || isSubmitting}
-                        className="w-full py-[12px] rounded-full bg-red disabled:bg-gray-300 flex items-center justify-center transition-colors mb-[20px]"
+                        className="w-full h-[50px] py-[12px] rounded-full bg-red disabled:bg-gray-300 flex items-center justify-center transition-colors mb-[20px]"
                     >
                         <span className="text-sb-16-hn text-white">
                             {isSubmitting ? "처리 중..." : "회원 탈퇴하기"}

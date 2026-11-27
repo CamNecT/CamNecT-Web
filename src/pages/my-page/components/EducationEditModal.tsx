@@ -102,7 +102,7 @@ function EducationSchoolWithStatus({
 
     return (
         <div ref={containerRef} className="flex w-full min-w-0 items-center gap-[10px]">
-            <span ref={schoolRef} className="min-w-0 break-keep text-m-16 text-gray-900">
+            <span ref={schoolRef} className="min-w-0 break-keep break-words text-m-16 text-gray-900">
                 {schoolName}
             </span>
             <span ref={statusRef} className="shrink-0 whitespace-nowrap text-r-14 text-gray-750">
@@ -122,8 +122,16 @@ export default function EducationModal({ userId, educations, visibility, onClose
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPublic, setShowPublic] = useState(initialShowPublic);
     const [showWarning, setShowWarning] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showSchoolInvalid, setShowSchoolInvalid] = useState(false);
     const [saveErrorMessage, setSaveErrorMessage] = useState('');
+
+    // 수정/추가 화면에서 목록으로 돌아갈 때 화면 전용 상태 초기화 (브라우저 뒤로가기로 나간 경우에도 이전 삭제 확인창과 편집 대상이 남지 않도록)
+    const backToList = () => {
+        setShowDeleteConfirm(false);
+        setEditingId(null);
+        setCurrentView('list');
+    };
 
     const [formData, setFormData] = useState<Partial<EducationItem>>({
         school: '',
@@ -324,6 +332,9 @@ export default function EducationModal({ userId, educations, visibility, onClose
         setEndYearMode('unselected');
         setOpenDropdown(null);
         setSchoolSearchQuery("");
+        setShowSchoolSuggestions(false);
+        setEditingId(null);
+        setShowDeleteConfirm(false);
         setCurrentView('add');
     };
 
@@ -337,6 +348,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
             setSchoolSearchQuery(
                 formatEducationSchoolName(edu.school, edu.campusName, edu.campusId)
             );
+            setShowSchoolSuggestions(false);
             setCurrentView('edit');
         }
     };
@@ -364,7 +376,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
         }
         
         if (!hasFormChanges) {
-            setCurrentView('list');
+            backToList();
             return;
         }
 
@@ -380,34 +392,39 @@ export default function EducationModal({ userId, educations, visibility, onClose
             ));
         }
         setShowSchoolSuggestions(false); 
-        setCurrentView('list');
+        backToList();
     };
 
     const handleDeleteEducation = () => {
-        if (editingId !== null) {
-            setListEducations(listEducations.filter(e => e.id !== editingId));
-            setCurrentView('list');
-        }
+        // 현재 수정 화면의 항목만 삭제
+        if (currentView !== 'edit' || editingId === null) return;
+
+        setListEducations(listEducations.filter(e => e.id !== editingId));
+        backToList();
     };
 
     const getStatusLabel = (status?: EducationStatus) => {
         return status ? EDUCATION_STATUS_KR[status] : "재학";
     };
 
-    const handleModalClose = currentView === 'list' ? onClose : () => setCurrentView('list');
+    const handleModalClose = currentView === 'list' ? onClose : backToList;
     const currentHasChanges = currentView === 'list' ? hasListChanges : hasFormChanges;
 
     useModalHistory(
         handleModalClose,
         currentHasChanges,
-        () => setShowWarning(true)
+        () => {
+            // 삭제 확인창이 열린 채 뒤로가기한 경우 변경사항 경고와 겹치지 않도록 닫음
+            setShowDeleteConfirm(false);
+            setShowWarning(true);
+        }
     )
 
     const handleFormClose = () => {
         if (hasFormChanges) {
             setShowWarning(true);
         } else {
-            setCurrentView('list');
+            backToList();
         }
     };
     
@@ -437,7 +454,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                         onClick={handleComplete}
                                         disabled={!hasListChanges || saveMutation.isPending}
                                     >
-                                        {saveMutation.isPending ? '저장중..' : '완료'}
+                                        {saveMutation.isPending ? '저장중..' : '저장'}
                                     </button>
                                 }
                             />
@@ -533,6 +550,14 @@ export default function EducationModal({ userId, educations, visibility, onClose
                     }}
                     onRightClick={() => setShowWarning(false)}
                 />
+                <PopUp
+                    isOpen={!!saveErrorMessage}
+                    type="error"
+                    title="저장 실패"
+                    content={saveErrorMessage}
+                    buttonText="확인"
+                    onClick={() => setSaveErrorMessage('')}
+                />
             </div>
         );
     }
@@ -560,7 +585,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                         />
                     }
                 >
-                    <div className="w-full h-full flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
+                    <div className="w-full h-full min-h-0 flex-1 overflow-y-auto px-[25px] py-[20px] border-t border-gray-150">
                         <div className="flex flex-col gap-[15px]">
                             {/* 학교 이름 */}
                             <div className="flex flex-col gap-[10px] relative">
@@ -750,17 +775,21 @@ export default function EducationModal({ userId, educations, visibility, onClose
                                 </div>
                             </div>
 
-                            {/* 삭제 버튼 (수정 모드일 때만) */}
-                            {currentView === 'edit' && (
-                                <button
-                                    onClick={handleDeleteEducation}
-                                    className="flex text-m-14 text-red mt-[20px]"
-                                >
-                                    삭제
-                                </button>
-                            )}
                         </div>
                     </div>
+
+                    {/* 삭제 버튼 (수정 모드일 때만) */}
+                    {currentView === 'edit' && (
+                        <div className="shrink-0 px-[25px] pt-[10px]">
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="w-full h-[50px] rounded-[10px] bg-[#FFEFEF] text-sb-16-hn text-red"
+                            >
+                                학력 삭제하기
+                            </button>
+                        </div>
+                    )}
                 </HeaderLayout>
             </div>
             <PopUp
@@ -771,7 +800,7 @@ export default function EducationModal({ userId, educations, visibility, onClose
                 leftButtonText="나가기"
                 onLeftClick={() => {
                     setShowWarning(false);
-                    setCurrentView('list');
+                    backToList();
                 }}
                 onRightClick={() => setShowWarning(false)}
             />
@@ -784,12 +813,17 @@ export default function EducationModal({ userId, educations, visibility, onClose
                 onClick={() => setShowSchoolInvalid(false)}
             />
             <PopUp
-                isOpen={!!saveErrorMessage}
-                type="error"
-                title="저장 실패"
-                content={saveErrorMessage}
-                buttonText="확인"
-                onClick={() => setSaveErrorMessage('')}
+                isOpen={showDeleteConfirm}
+                type="warning"
+                title="해당 내용을 삭제하시겠습니까?"
+                content="삭제된 내용은 복구 불가능합니다."
+                leftButtonText="삭제하기"
+                rightButtonText="아니요"
+                onLeftClick={() => {
+                    setShowDeleteConfirm(false);
+                    handleDeleteEducation();
+                }}
+                onRightClick={() => setShowDeleteConfirm(false)}
             />
         </div>
     );

@@ -5,6 +5,7 @@ import PortfolioEditModal from './components/PortfolioEditModal';
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
 import ModalIcon from '../../components/BottomSheetModal/Icon';
 import PopUp from '../../components/Pop-up';
+import { LinkifiedText } from '../../components/LinkifiedText';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -231,15 +232,15 @@ export const PortfolioDetailPage = ({
                             <div className="px-[25px] pb-[40px] flex flex-col gap-[20px]">
                                 {/* 제목 및 내용 */}
                                 <div className="flex flex-col gap-[15px]">
-                                    <div className="flex flex-col gap-[2px]">
-                                        <span className="text-sb-18 text-gray-900 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.title}</span>
+                                    <div className="flex flex-col gap-[6px]">
+                                        <span className="text-b-20-hn text-gray-900 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.title}</span>
                                         {portfolio.subtitle && (
-                                            <span className="text-r-14-hn text-gray-750 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.subtitle}</span>
+                                            <span className="text-m-16-hn text-gray-750 whitespace-pre-line break-keep [overflow-wrap:anywhere]">{portfolio.subtitle}</span>
                                         )}
-                                        <div className='mt-[5px] bg-gray-150 h-[1px] w-full'/>
                                     </div>
+                                    <div className='bg-gray-150 h-[1px] w-full'/>
                                     <div className="text-r-14 text-gray-750 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]">
-                                        {portfolio.description}
+                                        <LinkifiedText text={portfolio.description} />
                                     </div>
                                 </div>
 
@@ -325,7 +326,7 @@ export const PortfolioDetailPage = ({
                         <div className="px-[25px] flex flex-col gap-[8px]">
                             <span className="text-m-14-hn text-gray-750">Problem & Solution</span>
                             <div className="text-r-12 text-gray-650 whitespace-pre-wrap break-keep [overflow-wrap:anywhere]">
-                                {portfolio.review}
+                                <LinkifiedText text={portfolio.review} />
                             </div>
                         </div>
                     </div>

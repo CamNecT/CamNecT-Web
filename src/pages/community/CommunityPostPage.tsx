@@ -10,6 +10,7 @@ import Button from '../../components/Button';
 import Category from '../../components/Category';
 import Icon from '../../components/Icon';
 import ImagePopUp from '../../components/ImagePopUp';
+import { LinkifiedText } from '../../components/LinkifiedText';
 import PopUp from '../../components/Pop-up';
 import { getRequestErrorKind, type RequestErrorPopupConfig } from '../../components/requestErrorPopup';
 import ReportModal from '../../components/report/ReportModal';
@@ -431,6 +432,7 @@ const CommunityPostContent = ({ postId }: { postId?: string }) => {
         headerSlot={
           <MainHeader
             title='커뮤니티'
+            largeTouchTarget
             leftAction={{
               // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
               onClick: () => navigate(-1),
@@ -827,6 +829,7 @@ const CommunityPostContent = ({ postId }: { postId?: string }) => {
       headerSlot={
         <MainHeader
           title='커뮤니티'
+          largeTouchTarget
           leftAction={{
             // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
             onClick: () => navigate(-1),
@@ -977,7 +980,7 @@ const CommunityPostContent = ({ postId }: { postId?: string }) => {
               ) : (
                 <>
                   <div className='select-text whitespace-pre-wrap text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)]'>
-                    {selectedPost.content}
+                    <LinkifiedText text={selectedPost.content} />
                   </div>
                   {selectedPost.attachments && selectedPost.attachments.length > 0 ? (
                     <div className='mt-[30px] -mr-5 overflow-x-auto sm:-mr-[25px]'>

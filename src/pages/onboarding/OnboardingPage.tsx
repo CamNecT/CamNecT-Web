@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import graphic1 from '../../assets/image/onboarding1.png';
-import graphic2 from '../../assets/image/onboarding2.png';
-import graphic3 from '../../assets/image/onboarding3.png';
+import graphic1 from '../../assets/image/onboarding1.webp';
+import graphic2 from '../../assets/image/onboarding2.webp';
+import graphic3 from '../../assets/image/onboarding3.webp';
 import Button from '../../components/Button';
 import ButtonWhite from '../../components/ButtonWhite';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -108,8 +108,8 @@ export const OnboardingPage = () => {
           />
           <ButtonWhite
             className="!h-[50px] w-full max-w-[var(--app-mobile-max-width)]"
-            onClick={() => navigate("/signup")}
-            label="회원가입" 
+            onClick={() => navigate("/home")}
+            label="먼저 둘러보기" 
           />
         </div>
       </div>

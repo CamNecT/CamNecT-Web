@@ -14,6 +14,8 @@ export type AlumniSearchParams = {
   name?: string;
   tags?: number[];
   userId?: number;
+  page?: number;
+  size?: number;
   signal?: AbortSignal;
 };
 
@@ -25,6 +27,8 @@ export const getAlumniList = async (
       userId: params.userId,
       name: params.name,
       tags: params.tags,
+      page: params.page,
+      size: params.size,
     },
     paramsSerializer: (p) => {
       const searchParams = new URLSearchParams();

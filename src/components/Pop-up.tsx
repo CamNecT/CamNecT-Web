@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import Button from './Button';
 import PressableMotion from './PressableMotion';
 import BoardTypeToggle from './BoardTypeToggle';
@@ -55,6 +56,7 @@ const PopUp = ({
 }: PopUpProps) => {
   if (!isOpen) return null;
 
+  const isLoading = type === 'loading';
   const hasWarningCheckbox = type === 'warning' && Boolean(checkbox);
 
   // 서버 오류 여부는 문구가 아니라 실제 HTTP 응답으로 판단한다.
@@ -95,13 +97,15 @@ const PopUp = ({
         : normalizedContent;
 
     // 로딩 타입 전용 콘텐츠
-    if (type === 'loading') {
-      const loadingTitle = normalizeEscapedNewlines(title);
-
+    if (isLoading) {
       return (
-        <div className='flex flex-col items-center justify-center gap-[20px] pt-[10px]'>
+        <div
+          className='flex flex-col items-center justify-center gap-[20px] pt-[10px]'
+          role='status'
+        >
           <svg
             className='animate-spin'
+            aria-hidden='true'
             xmlns='http://www.w3.org/2000/svg'
             width='84'
             height='84'
@@ -114,7 +118,7 @@ const PopUp = ({
             />
           </svg>
           <div className='text-b-18 mt-auto pt-[20px] whitespace-pre-wrap text-center text-[var(--ColorBlack,#202023)]'>
-            {isRenderableNode(loadingTitle) ? loadingTitle : '잠시만 기다려 주세요...'}
+            {isRenderableNode(normalizedTitle) ? normalizedTitle : '잠시만 기다려 주세요...'}
           </div>
         </div>
       );
@@ -172,7 +176,7 @@ const PopUp = ({
   };
 
   const renderButtons = (): ReactNode => {
-    if (type === 'loading') {
+    if (isLoading) {
       return null;
     }
 
@@ -264,11 +268,12 @@ const PopUp = ({
     );
   };
 
-  return (
+  const popup = (
     <div
-      className='fixed inset-0 z-[1200] flex items-center justify-center bg-black/40 px-[20px] py-[20px]'
+      className={`fixed inset-0 z-[1200] flex items-center justify-center px-[20px] py-[20px] ${isLoading ? 'pointer-events-auto bg-white' : 'bg-black/40'}`}
       role='dialog'
       aria-modal='true'
+      aria-label={isLoading ? '로딩 중' : undefined}
     >
       {/* 모달 본체: clamp로 반응형 너비, 최소 높이 보장 */}
       <div className={`flex min-h-[200px] w-[clamp(260px,85vw,325px)] max-w-full flex-col rounded-[20px] bg-[var(--ColorWhite,#FFF)] px-[20px] py-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.16)] ${type === 'warning' ? 'justify-center' : ''}`}>
@@ -281,6 +286,9 @@ const PopUp = ({
       </div>
     </div>
   );
+
+  // 로딩 화면은 모달이나 레이아웃 내부에서도 헤더까지 덮습니다.
+  return isLoading ? createPortal(popup, document.body) : popup;
 };
 
 export default PopUp;
