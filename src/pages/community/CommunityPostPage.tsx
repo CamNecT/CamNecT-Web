@@ -85,6 +85,7 @@ const CommunityPostView = () => {
   const { postId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { key: locationKey } = useLocation();
   const authUser = useAuthStore((state) => state.isAuthenticated ? state.user : null);
   const queryClient = useQueryClient();
   // 인증 정보가 없을 때 가상 사용자로 소유권을 판단하거나 댓글 작성자를 만들지 않는다.
@@ -407,6 +408,19 @@ const CommunityPostView = () => {
     return () => window.cancelAnimationFrame(frameId);
   }, [highlightComment, searchParams, sortedComments.length]);
 
+  const handleBack = () => {
+    // 공유 링크로 앱의 첫 화면에 들어오면 이전 방문 대신 해당 게시판 목록을 연다.
+    const historyIndex = window.history.state?.idx;
+    const hasPreviousEntry = typeof historyIndex === 'number' ? historyIndex > 0 : locationKey !== 'default';
+    if (hasPreviousEntry) {
+      navigate(-1);
+      return;
+    }
+
+    const fallback = selectedPost ? `/community?tab=${isQuestionPost ? 'question' : 'info'}` : '/community';
+    navigate(fallback, { replace: true });
+  };
+
   const communityErrorPopUpConfig: PopUpConfig | null = errorPopup
     ? {
         type: 'error',
@@ -414,7 +428,7 @@ const CommunityPostView = () => {
         onClick: () => {
           closeCommunityError();
           // 상세 조회 자체가 실패한 경우 빈 상세 화면에 남지 않고 이전 진입 화면으로 복귀한다.
-          if (!selectedPost) navigate(-1);
+          if (!selectedPost) handleBack();
         },
       }
     : null;
@@ -442,8 +456,7 @@ const CommunityPostView = () => {
             title='커뮤니티'
             largeTouchTarget
             leftAction={{
-              // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
-              onClick: () => navigate(-1),
+              onClick: handleBack,
               ariaLabel: '이전 페이지로 이동',
             }}
 
@@ -837,8 +850,7 @@ const CommunityPostView = () => {
           title='커뮤니티'
           largeTouchTarget
           leftAction={{
-            // 상세 진입 경로를 유지하기 위해 고정 경로 대신 이전 페이지로 이동한다.
-            onClick: () => navigate(-1),
+            onClick: handleBack,
             ariaLabel: '이전 페이지로 이동',
           }}
           rightActions={userId && selectedPost.author.id !== 'unknown' ? [
