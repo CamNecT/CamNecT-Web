@@ -5,6 +5,7 @@ import PortfolioEditModal from './components/PortfolioEditModal';
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
 import ModalIcon from '../../components/BottomSheetModal/Icon';
 import PopUp from '../../components/Pop-up';
+import { isServerErrorStatus } from '../../components/requestErrorPopup';
 import { LinkifiedText } from '../../components/LinkifiedText';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
@@ -23,14 +24,14 @@ type PortfolioDetailPageProps = {
     ownerId?: string | number;
     isMine?: boolean;
     portfolioId?: string | number;
-    showServerErrorInquiry?: boolean;
+    onServerErrorConfirm?: () => void;
 };
 
 export const PortfolioDetailPage = ({
     ownerId: ownerIdProp,
     isMine: isMineProp,
     portfolioId: portfolioIdProp,
-    showServerErrorInquiry = false,
+    onServerErrorConfirm,
 }: PortfolioDetailPageProps) => {
     const authUser = useAuthStore(state => state.user);
     const meUserId = authUser?.id ? parseInt(authUser.id) : null;
@@ -144,10 +145,12 @@ export const PortfolioDetailPage = ({
 
     // 에러 발생
     if (isError) {
-        // 포트폴리오 상세를 공유하는 화면 중 문의 버튼을 요청한 곳에만 HTTP 상태를 전달한다.
-        const httpStatus = showServerErrorInquiry && axios.isAxiosError(error)
+        const httpStatus = onServerErrorConfirm && axios.isAxiosError(error)
             ? error.response?.status
             : undefined;
+        const onConfirm = onServerErrorConfirm && isServerErrorStatus(httpStatus)
+            ? onServerErrorConfirm
+            : () => window.location.reload();
         return (
             <PopUp
                 type="error"
@@ -156,7 +159,7 @@ export const PortfolioDetailPage = ({
                 content="잠시 후 다시 시도해주세요."
                 isOpen={true}
                 rightButtonText='확인'
-                onClick={() => window.location.reload()}
+                onClick={onConfirm}
             />
         );
     }
