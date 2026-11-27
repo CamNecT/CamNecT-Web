@@ -8,11 +8,13 @@ import Category from '../../components/Category';
 import FilterHeader from '../../components/FilterHeader';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind, type RequestErrorPopupConfig } from '../../components/requestErrorPopup';
 import TagsFilterModal from '../../components/TagsFilterModal';
 import { useTagList } from '../../hooks/useTagList';
 import { FullLayout } from '../../layouts/FullLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { mapAlumniApiListToProfiles } from '../../utils/alumniMapper';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import AlumniCoffeeChatButton from './components/AlumniCoffeeChatButton';
 import { GuestAlumniSearch } from './components/GuestAlumniSearch';
 import { useAlumniChatRoom } from './hooks/useAlumniChatRoom';
@@ -34,12 +36,13 @@ const MemberAlumniSearch = () => {
   const authUser = useAuthStore(state => state.user);
   const meUserId = authUser?.id ? parseInt(authUser.id) : null;
 
-  const [chatRoomError, setChatRoomError] = useState<{ title: string; content: string } | null>(null);
+  const [chatRoomError, setChatRoomError] = useState<(RequestErrorPopupConfig & { title?: string; content?: string }) | null>(null);
   const { openChatRoom, pendingOpponentId } = useAlumniChatRoom(setChatRoomError);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [dismissedSearchError, setDismissedSearchError] = useState<Error | null>(null);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { filterCategories, filterTags, mapTagNamesToIds } = useTagList();
@@ -92,6 +95,11 @@ const MemberAlumniSearch = () => {
   const isDebouncing = trimmedSearchTerm !== debouncedSearchTerm;
   const isSearching = isDebouncing || isPending || isPlaceholderData;
   const searchError = !data && error && !isDebouncing ? getAlumniSearchError(error) : null;
+  // 현재 검색의 실패만 팝업으로 표시하고, 닫은 뒤에도 목록의 다시 시도 버튼을 유지한다.
+  const requestError = searchError && error && !isFetching && error !== dismissedSearchError
+    && !shouldSkipLocalErrorUI(error, navigator.onLine)
+    ? getRequestErrorKind(error)
+    : undefined;
   const canLoadMore = !isSearching && hasNextPage;
   const isInitialLoading = !isDebouncing && isPending && !data && !debouncedSearchTerm && selectedTags.length === 0;
   const alumniItems = useMemo(() => {
@@ -202,11 +210,11 @@ const MemberAlumniSearch = () => {
               <p className='text-r-14 text-[var(--ColorGray3,#646464)]'>{searchError.content}</p>
               <Button
                 type='button'
-                label={isSearching ? '검색 중' : '다시 시도'}
+                label={isFetching ? '검색 중' : '다시 시도'}
                 font='sb-14'
                 className='self-center'
-                disabled={isSearching}
-                onClick={() => void refetch()}
+                disabled={isFetching}
+                onClick={() => void refetch({ cancelRefetch: false })}
               />
             </div>
           )}
@@ -321,7 +329,16 @@ const MemberAlumniSearch = () => {
           type='error'
           title={chatRoomError.title}
           content={chatRoomError.content}
+          requestError={chatRoomError.requestError}
           onClick={() => setChatRoomError(null)}
+        />
+      )}
+      {!chatRoomError && requestError && (
+        <PopUp
+          isOpen
+          type='error'
+          requestError={requestError}
+          onClick={() => setDismissedSearchError(error)}
         />
       )}
     </FullLayout>

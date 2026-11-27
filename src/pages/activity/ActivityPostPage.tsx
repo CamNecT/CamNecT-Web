@@ -150,6 +150,8 @@ const ActivityPostContent = ({
   const [selectedComment, setSelectedComment] = useState<CommentItem | null>(null);
   const [isCommentOptionOpen, setIsCommentOptionOpen] = useState(false);
   const [isCommentDeletePopupOpen, setIsCommentDeletePopupOpen] = useState(false);
+  // 신고할 댓글 (모달을 열 때마다 새로 마운트해 이전 입력이 남지 않도록 대상 단위로 관리)
+  const [reportComment, setReportComment] = useState<CommentItem | null>(null);
   const isAdminAuthor = isAdminUserId(selectedPost.author.id);
 
   // 비회원 - 상태/제목만 보여주고 작성자/본문/댓글은 블러 처리
@@ -349,8 +351,9 @@ const ActivityPostContent = ({
   const selectedCommentIsAdmin = selectedComment
     ? isAdminUserId(selectedComment.author.id)
     : false;
+  const canReportSelectedComment = !selectedCommentIsMine && !selectedCommentIsAdmin;
 
-  const handleCommentOptionClick = (action: 'profile' | 'edit' | 'delete') => {
+  const handleCommentOptionClick = (action: 'profile' | 'edit' | 'delete' | 'report') => {
     setIsCommentOptionOpen(false);
     if (!selectedComment) return;
 
@@ -363,6 +366,10 @@ const ActivityPostContent = ({
     }
     if (action === 'edit' && selectedCommentIsMine) {
       startEditingComment(selectedComment.id);
+      return;
+    }
+    if (action === 'report' && canReportSelectedComment) {
+      setReportComment(selectedComment);
       return;
     }
     if (action === 'delete' && (selectedCommentIsMine || isAdmin)) {
@@ -696,6 +703,18 @@ const ActivityPostContent = ({
                 </span>
               </button>
             ) : null}
+            {canReportSelectedComment ? (
+              <button
+                type='button'
+                onClick={() => handleCommentOptionClick('report')}
+                className='flex items-center gap-[15px] py-[15px] text-left'
+              >
+                <BottomSheetIcon name='report' />
+                <span className='text-[16px] font-medium text-[var(--ColorGray3,#646464)]'>
+                  댓글 신고
+                </span>
+              </button>
+            ) : null}
             {selectedCommentIsMine || isAdmin ? (
               <button
                 type='button'
@@ -760,6 +779,16 @@ const ActivityPostContent = ({
         />
       )}
 
+      {reportComment && (
+        <ReportModal
+          isOpen={true}
+          onClose={() => setReportComment(null)}
+          reportedUserId={Number(reportComment.author.id)}
+          reportedUserName={reportComment.author.name}
+          reportedPostId={Number(reportComment.id)}
+          postType="ACTIVITY_COMMENT"
+        />
+      )}
       <GuestLoginModal isOpen={isGuestModalOpen} onClose={() => setIsGuestModalOpen(false)} />
 
       <ImagePopUp

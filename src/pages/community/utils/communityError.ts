@@ -1,3 +1,4 @@
+import type { RequestErrorPopupConfig } from '../../../components/requestErrorPopup';
 import {
   COMMUNITY_ERROR_CODES,
   COMMUNITY_ERROR_POPUP_MESSAGES,
@@ -19,9 +20,9 @@ export type CommunityErrorAction =
   | 'like'
   | 'bookmark';
 
-export type CommunityErrorPopupConfig = {
-  title: string;
-  content: string;
+export type CommunityErrorPopupConfig = RequestErrorPopupConfig & {
+  title?: string;
+  content?: string;
 };
 
 const ACTION_FALLBACK_MESSAGES: Record<
@@ -252,13 +253,6 @@ export const getCommunityErrorPopupConfig = ({
     return {
       title: fallback.title,
       content: COMMUNITY_ERROR_POPUP_MESSAGES.network.content,
-    };
-  }
-
-  if (status === 500) {
-    return {
-      title: fallback.title,
-      content: COMMUNITY_ERROR_POPUP_MESSAGES.internal.content,
     };
   }
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getRequestErrorKind, type RequestErrorPopupConfig } from '../../../components/requestErrorPopup';
 import {
   NOTIFICATION_ERROR_CODES as CODES,
   NOTIFICATION_ERROR_MESSAGES as MESSAGES,
@@ -6,7 +7,11 @@ import {
 import { getServerErrorCode } from '../../../utils/getServerErrorCode';
 
 export type NotificationErrorAction = 'list' | 'unreadCount' | 'read' | 'readAll';
-export type NotificationErrorPopupConfig = { title: string; content: string };
+export type NotificationErrorPopupConfig = RequestErrorPopupConfig & {
+  title?: string;
+  content?: string;
+  showInquiryLink?: boolean;
+};
 
 const FALLBACK_MESSAGES: Record<NotificationErrorAction, NotificationErrorPopupConfig> = {
   list: {
@@ -37,7 +42,7 @@ const CODE_MESSAGES: Partial<Record<string, NotificationErrorPopupConfig>> = {
 
 // 커뮤니티와 동일하게 HTTP 상태보다 서버 코드를 우선하고, 수행하던 동작으로 안내를 결정한다.
 // 조회 오류도 호출부에서 계산하므로 별도 effect나 전역 팝업 상태가 필요하지 않다.
-export const getNotificationErrorPopupConfig = (
+const resolveNotificationErrorPopupConfig = (
   error: unknown,
   action: NotificationErrorAction,
 ): NotificationErrorPopupConfig | null => {
@@ -67,4 +72,20 @@ export const getNotificationErrorPopupConfig = (
   if (status === 404 && action === 'read') return MESSAGES.notificationNotFound;
   if (status && status >= 500) return { ...fallback, content: MESSAGES.internal };
   return fallback;
+};
+
+// 최초 조회와 직접 실행한 작업은 HTTP 상태를 우선하고, 백그라운드 갱신은 기존 안내를 유지한다.
+export const getNotificationErrorPopupConfig = (
+  error: unknown,
+  action: NotificationErrorAction,
+  foreground: boolean,
+): NotificationErrorPopupConfig | null => {
+  const requestError = foreground ? getRequestErrorKind(error) : undefined;
+  if (requestError) return { requestError };
+
+  const config = resolveNotificationErrorPopupConfig(error, action);
+  return config ? {
+    ...config,
+    showInquiryLink: axios.isAxiosError(error) && error.response?.status === 500,
+  } : null;
 };

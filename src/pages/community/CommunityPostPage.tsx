@@ -17,6 +17,7 @@ import Category from '../../components/Category';
 import ImagePopUp from '../../components/ImagePopUp';
 import { LinkifiedText } from '../../components/LinkifiedText';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind, type RequestErrorPopupConfig } from '../../components/requestErrorPopup';
 import ReportModal from '../../components/report/ReportModal';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
@@ -38,7 +39,7 @@ import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import { getFileName } from '../../utils/getFileName';
 import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
-import { useCommunityErrorPopup } from './hooks/useCommunityErrorPopup';
+import { useCommunityErrorPopup, type CommunityErrorOperation } from './hooks/useCommunityErrorPopup';
 import type {
   CommunityAccessStatus,
   CommunityErrorResponse,
@@ -47,9 +48,9 @@ import type {
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
-type PopUpConfig = {
+type PopUpConfig = RequestErrorPopupConfig & {
   type: 'info' | 'warning' | 'confirm' | 'error' | 'loading';
-  title: string;
+  title?: string;
   content?: string;
   titleSecondary?: string;
   leftButtonText?: string;
@@ -105,6 +106,8 @@ const CommunityPostView = () => {
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
   const { errorPopup, showCommunityError, closeCommunityError } =
     useCommunityErrorPopup();
+  const entryOperationRef = useRef<CommunityErrorOperation>({});
+  const nextCommentOperationRef = useRef<CommunityErrorOperation | null>(null);
   const handlePostDetailError = useCallback(
     (error: unknown) => {
       if (!userId && isAxiosError(error) && error.response?.status === 401 &&
@@ -112,7 +115,7 @@ const CommunityPostView = () => {
         setRequiresLogin(true);
         return;
       }
-      showCommunityError(error, 'postDetail');
+      showCommunityError(error, 'postDetail', entryOperationRef.current);
     },
     [showCommunityError, userId],
   );
@@ -185,7 +188,10 @@ const CommunityPostView = () => {
     onSuccess: (response) => {
       setMyPoints(response.data.remainingPoints);
       setAccessStatusOverride(response.data.accessStatus);
-      refetchPost();
+      // 구매로 잠금이 풀리면 아래 effect가 첫 댓글 목록을 별도로 불러온다.
+      const operation: CommunityErrorOperation = {};
+      nextCommentOperationRef.current = operation;
+      refetchPost((error) => showCommunityError(error, 'postDetail', operation));
       closePopUp();
       setToastMessage('구매 성공! 이제 질문글을 열람할 수 있어요');
       openToast();
@@ -216,7 +222,7 @@ const CommunityPostView = () => {
   }, [selectedPost, likedByMe]);
 
   const loadComments = useCallback(
-    async (append = false) => {
+    async (append = false, operation?: CommunityErrorOperation) => {
       // 댓글 권한은 게시글 상세의 accessStatus로 먼저 판단해 잠긴 질문글의 불필요한 403 요청을 막는다.
       if (!postId || !canLoadComments || (append && isLoadingComments)) return;
       const numericPostId = Number(postId);
@@ -259,10 +265,10 @@ const CommunityPostView = () => {
         const axiosError = error as AxiosError<CommunityErrorResponse>;
         // 숨김·삭제 게시글의 댓글 조회 차단(43925)은 일반 빈 댓글과 구분해 안내한다.
         const isPostAccessBlocked =
-          getServerErrorCode(axiosError) === COMMUNITY_ERROR_CODES.postUnavailable;
+          !getRequestErrorKind(error) && getServerErrorCode(axiosError) === COMMUNITY_ERROR_CODES.postUnavailable;
         setCommentAccessBlocked(isPostAccessBlocked);
         if (!isPostAccessBlocked) {
-          showCommunityError(error, 'commentList');
+          showCommunityError(error, 'commentList', operation);
         }
         if (!append) setCommentItemsFromApi([]);
       } finally {
@@ -280,7 +286,11 @@ const CommunityPostView = () => {
     // 상세 조회가 현재 게시글의 열람 권한을 확정한 뒤에만 댓글 첫 페이지를 요청한다.
     // 구매 성공으로 잠금이 해제되면 canLoadComments가 true로 바뀌어 댓글을 자동으로 불러온다.
     if (!canLoadComments) return;
-    const timer = window.setTimeout(() => void loadComments(false), 0);
+    const timer = window.setTimeout(() => {
+      const pendingOperation = nextCommentOperationRef.current;
+      nextCommentOperationRef.current = null;
+      void loadComments(false, pendingOperation ?? entryOperationRef.current);
+    }, 0);
     return () => window.clearTimeout(timer);
     // loadComments의 커서 상태 변경으로 첫 페이지가 반복 호출되지 않도록 실행 조건만 의존한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -291,8 +301,8 @@ const CommunityPostView = () => {
     [commentItemsFromApi],
   );
 
-  const refreshComments = useCallback(async () => {
-    await loadComments(false);
+  const refreshComments = useCallback(async (operation?: CommunityErrorOperation) => {
+    await loadComments(false, operation);
   }, [loadComments]);
 
   // 댓글 상태/액션 묶음
@@ -428,8 +438,8 @@ const CommunityPostView = () => {
         ...errorPopup,
         onClick: () => {
           closeCommunityError();
-          // 상세 조회 자체가 실패한 경우 빈 상세 화면에 남지 않고 이전 진입 화면으로 복귀한다.
-          if (!selectedPost) handleBack();
+          // 서버·연결 오류는 상세 화면에 남겨 사용자가 직접 다시 시도할 수 있게 한다.
+          if (!selectedPost && !errorPopup.requestError) handleBack();
         },
       }
     : null;
@@ -444,7 +454,9 @@ const CommunityPostView = () => {
 
   const handleRetryPostDetail = () => {
     closeCommunityError();
-    refetchPost();
+    const operation: CommunityErrorOperation = {};
+    nextCommentOperationRef.current = operation;
+    refetchPost((error) => showCommunityError(error, 'postDetail', operation));
   };
 
   if (requiresLogin) return <GuestQuestionPreview />;
@@ -489,6 +501,8 @@ const CommunityPostView = () => {
           <PopUp
             isOpen={true}
             type={activePopUpConfig.type}
+            requestError={activePopUpConfig.requestError}
+            guidance={activePopUpConfig.guidance}
             title={activePopUpConfig.title}
             titleSecondary={activePopUpConfig.titleSecondary}
             content={activePopUpConfig.content}
@@ -554,8 +568,9 @@ const CommunityPostView = () => {
           // 채택 성공 응답에는 지급 정보가 없으므로 서버의 포인트 내역만 갱신한다.
           void queryClient.invalidateQueries({ queryKey: [pointHistoryKey, userId] });
           void queryClient.invalidateQueries({ queryKey: ['home', numericUserId] });
-          refetchPost();
-          await refreshComments();
+          const operation: CommunityErrorOperation = {};
+          refetchPost((error) => showCommunityError(error, 'postDetail', operation));
+          await refreshComments(operation);
         } catch (error) {
           showCommunityError(error, 'commentAccept');
         } finally {
@@ -628,7 +643,7 @@ const CommunityPostView = () => {
     } catch (error) {
       const axiosError = error as AxiosError<{ code?: number; message?: string }>;
       const code = getServerErrorCode(axiosError);
-      if (code === COMMUNITY_ERROR_CODES.ownPostLikeUnavailable) {
+      if (!getRequestErrorKind(error) && code === COMMUNITY_ERROR_CODES.ownPostLikeUnavailable) {
         setToastMessage('본인의 글에 좋아요를 누를 수 없습니다.');
         openToast();
       } else {
@@ -1146,6 +1161,8 @@ const CommunityPostView = () => {
         <PopUp
           isOpen={true}
           type={activePopUpConfig.type}
+          requestError={activePopUpConfig.requestError}
+          guidance={activePopUpConfig.guidance}
           title={activePopUpConfig.title}
           titleSecondary={activePopUpConfig.titleSecondary}
           content={activePopUpConfig.content}

@@ -13,7 +13,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import BottomSheetModal from '../BottomSheetModal/BottomSheetModal';
 import PopUp from '../Pop-up';
-import type { PopUpType } from '../Pop-up';
+import { getRequestErrorKind, type RequestErrorPopupConfig } from '../requestErrorPopup';
 import Icon from '../Icon';
 
 // 마크다운 명세서 4번 섹션 기준: 파일당 최대 5 MiB(5,242,880 bytes). 실제 서버값 재확인 필요(이전엔 20MB로 안내받음)
@@ -68,7 +68,10 @@ const ReportModal = ({
     const [isSuccessPopupOpen, setIsSuccessPopupOpen] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [isDuplicateErrorOpen, setIsDuplicateErrorOpen] = useState(false);
-    const [errorPopupConfig, setErrorPopupConfig] = useState<{ type: PopUpType; title: string; content: string } | null>(null);
+    const [errorPopupConfig, setErrorPopupConfig] = useState<
+        (RequestErrorPopupConfig & { title?: string; content?: string }) | null
+    >(null);
+    const isSubmittingRef = useRef(false);
 
     const isSubmitEnabled =
         title.trim().length > 0 &&
@@ -84,6 +87,9 @@ const ReportModal = ({
     };
 
     const handleClose = () => {
+        // 신고 요청 처리 중에는 닫지 않음
+        // (닫으면 응답 안내가 사라지고, 다시 열어 같은 대상에 중복 요청을 보낼 수 있음)
+        if (submitMutation.isPending) return;
         resetForm();
         onClose();
     };
@@ -182,6 +188,13 @@ const ReportModal = ({
             setIsSuccessPopupOpen(true);
         },
         onError: (error: unknown) => {
+            // 첨부 업로드와 신고 제출은 하나의 mutation으로 처리해 최종 오류를 한 번만 표시한다.
+            const requestError = getRequestErrorKind(error);
+            if (requestError) {
+                setErrorPopupConfig({ requestError });
+                return;
+            }
+
             const axiosError = error as AxiosError;
             const status = axiosError.response?.status;
             const errorCode = getServerErrorCode(axiosError);
@@ -192,33 +205,50 @@ const ReportModal = ({
                 return;
             }
             if (status === 409 && errorCode === REPORT_ERROR_CODES.reportCreate.caseClosed) {
-                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.caseClosed });
+                setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.caseClosed);
+                return;
+            }
+            if (status === 409 && errorCode === REPORT_ERROR_CODES.reportCreate.targetAuthorUnverifiable) {
+                setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.targetAuthorUnverifiable);
                 return;
             }
             if (status === 400 && errorCode === REPORT_ERROR_CODES.common.invalidRequest) {
-                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.invalidRequest });
+                setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.invalidRequest);
+                return;
+            }
+            if (status === 400 && errorCode === REPORT_ERROR_CODES.reportCreate.selfReport) {
+                setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.selfReport);
+                return;
+            }
+            if (status === 400 && errorCode === REPORT_ERROR_CODES.reportCreate.invalidTarget) {
+                setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.invalidTarget);
                 return;
             }
             if (status === 404 && errorCode === REPORT_ERROR_CODES.reportCreate.reportedUserNotFound) {
-                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.reportedUserNotFound });
+                setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.reportedUserNotFound);
                 return;
             }
-            if (status === 500) {
-                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.internal });
-                return;
-            }
-            setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.fallback });
+            setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.fallback);
+        },
+        onSettled: () => {
+            isSubmittingRef.current = false;
         },
     });
 
     const handleSubmit = () => {
-        if (!isSubmitEnabled || submitMutation.isPending || !reporterId) return;
+        if (!isSubmitEnabled || isSubmittingRef.current || !reporterId) return;
+        isSubmittingRef.current = true;
         submitMutation.mutate();
     };
 
     return (
         <>
-            <BottomSheetModal isOpen={isOpen} onClose={handleClose} height="min(85dvh, 85vh)">
+            <BottomSheetModal
+                isOpen={isOpen}
+                onClose={handleClose}
+                height="min(85dvh, 85vh)"
+                closeDisabled={submitMutation.isPending}
+            >
                 <div className="flex h-full flex-col">
                     <h2 className="flex-none px-[25px] py-[20px] text-center text-b-20-hn text-gray-900">
                         신고하기
@@ -398,7 +428,8 @@ const ReportModal = ({
             {errorPopupConfig && (
                 <PopUp
                     isOpen={true}
-                    type={errorPopupConfig.type}
+                    type="error"
+                    requestError={errorPopupConfig.requestError}
                     title={errorPopupConfig.title}
                     content={errorPopupConfig.content}
                     rightButtonText="확인"
