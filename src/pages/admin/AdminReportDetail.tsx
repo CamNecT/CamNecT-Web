@@ -84,6 +84,8 @@ export const AdminReportDetail = () => {
 
             if (errorCode === REPORT_ERROR_CODES.adminCase.evidenceNotFound) {
                 setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.evidenceNotFound });
+                // 보관 기간이 지난 증거는 서버 응답에서 빠지므로 상세를 다시 불러와 목록에서 제거
+                queryClient.invalidateQueries({ queryKey: ['adminCaseDetail', parsedCaseId] });
                 return;
             }
             setErrorPopupConfig({ type: "error", ...ADMIN_CASE_FETCH_ERROR_MESSAGES.internal });
@@ -124,6 +126,11 @@ export const AdminReportDetail = () => {
             }
             if (status === 404 && errorCode === REPORT_ERROR_CODES.adminCase.caseNotFound) {
                 setErrorPopupConfig({ type: "error", ...ADMIN_CASE_STATUS_ERROR_MESSAGES.caseNotFound });
+                return;
+            }
+            // 과거 신고 건의 대상을 서버가 검증할 수 없는 경우 승인 실패
+            if (status === 409 && errorCode === REPORT_ERROR_CODES.adminCase.targetAuthorUnverifiable) {
+                setErrorPopupConfig({ type: "error", ...ADMIN_CASE_STATUS_ERROR_MESSAGES.targetAuthorUnverifiable });
                 return;
             }
             if (status === 500) {
