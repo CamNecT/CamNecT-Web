@@ -28,10 +28,15 @@ export const GuestContentBlur = ({
         {children}
       </div>
 
-      {/* 시안의 5px 블러에 흰색을 겹쳐 상단 60%에서 영역 높이의 39.235% 지점까지 80%로 높인다. */}
+      {/* CSS 블러 반경은 고정값이므로 마스크로 시안의 0 → 10px 전환을 근사한다. */}
       <div
         aria-hidden
-        className='pointer-events-none absolute inset-0 backdrop-blur-[5px] [background:linear-gradient(to_bottom,rgba(255,255,255,0.6),rgba(255,255,255,0.8)_39.235%)]'
+        className='pointer-events-none absolute inset-0 backdrop-blur-[10px] [mask-image:linear-gradient(to_bottom,transparent,black_17.762%)]'
+      />
+      {/* 흰색 오버레이는 블러와 별도로 상단 60%에서 39.235% 지점의 80%까지 진해진다. */}
+      <div
+        aria-hidden
+        className='pointer-events-none absolute inset-0 [background:linear-gradient(to_bottom,rgba(255,255,255,0.6),rgba(255,255,255,0.8)_39.235%)]'
       />
 
       <div className={twMerge(
