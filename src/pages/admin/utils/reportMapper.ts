@@ -15,8 +15,9 @@ export const REPORT_CATEGORY_LABEL: Record<ReportCategory, string> = {
 
 export const REPORT_TARGET_TYPE_LABEL: Record<TargetType, string> = {
   COMMUNITY: '커뮤니티',
-  COMMUNITY_COMMENT: '댓글',
+  COMMUNITY_COMMENT: '커뮤니티 댓글',
   ACTIVITY: '대외활동',
+  ACTIVITY_COMMENT: '대외활동 댓글',
   ACTIVITY_RECRUITMENT: '대외활동 모집',
   USER: '사용자 프로필',
   CHAT: '커피챗',

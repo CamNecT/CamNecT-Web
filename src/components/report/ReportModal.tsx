@@ -87,6 +87,9 @@ const ReportModal = ({
     };
 
     const handleClose = () => {
+        // 신고 요청 처리 중에는 닫지 않음
+        // (닫으면 응답 안내가 사라지고, 다시 열어 같은 대상에 중복 요청을 보낼 수 있음)
+        if (submitMutation.isPending) return;
         resetForm();
         onClose();
     };
@@ -205,8 +208,20 @@ const ReportModal = ({
                 setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.caseClosed);
                 return;
             }
+            if (status === 409 && errorCode === REPORT_ERROR_CODES.reportCreate.targetAuthorUnverifiable) {
+                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.targetAuthorUnverifiable });
+                return;
+            }
             if (status === 400 && errorCode === REPORT_ERROR_CODES.common.invalidRequest) {
                 setErrorPopupConfig(REPORT_CREATE_ERROR_MESSAGES.invalidRequest);
+                return;
+            }
+            if (status === 400 && errorCode === REPORT_ERROR_CODES.reportCreate.selfReport) {
+                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.selfReport });
+                return;
+            }
+            if (status === 400 && errorCode === REPORT_ERROR_CODES.reportCreate.invalidTarget) {
+                setErrorPopupConfig({ type: "error", ...REPORT_CREATE_ERROR_MESSAGES.invalidTarget });
                 return;
             }
             if (status === 404 && errorCode === REPORT_ERROR_CODES.reportCreate.reportedUserNotFound) {
@@ -228,7 +243,12 @@ const ReportModal = ({
 
     return (
         <>
-            <BottomSheetModal isOpen={isOpen} onClose={handleClose} height="min(85dvh, 85vh)">
+            <BottomSheetModal
+                isOpen={isOpen}
+                onClose={handleClose}
+                height="min(85dvh, 85vh)"
+                closeDisabled={submitMutation.isPending}
+            >
                 <div className="flex h-full flex-col">
                     <h2 className="flex-none px-[25px] py-[20px] text-center text-b-20-hn text-gray-900">
                         신고하기
