@@ -8,6 +8,7 @@ import Badge from '../../components/Badge';
 import Card from '../../components/Card';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind } from '../../components/requestErrorPopup';
 import PressableMotion from '../../components/PressableMotion';
 import { useFcmToken } from '../../hooks/useFcmNotification';
 import { FullLayout } from '../../layouts/FullLayout';
@@ -23,12 +24,7 @@ import PointBox from './components/PointBox';
 import RecommendBox from './components/RecommendBox';
 import { homeGreetingUser } from './homeData';
 import { mapHomeResponseToViewModel } from './homeMapper';
-import { getNotificationErrorPopupConfig } from './utils/notificationError';
-
-type PopUpConfig = {
-    title: string;
-    content: string;
-};
+import { getNotificationErrorPopupConfig, type NotificationErrorPopupConfig } from './utils/notificationError';
 
 const resolveUserIdParam = (value: string | number | null | undefined) => {
     if (value === null || value === undefined) return null;
@@ -46,7 +42,7 @@ const getErrorStatus = (error: unknown) => {
     return typeof response?.status === 'number' ? response.status : null;
 };
 
-const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
+const getErrorPopUpConfig = (status: number | null): NotificationErrorPopupConfig | null => {
     if (!status) return null;
     if (status === 403) {
         return {
@@ -64,6 +60,7 @@ const getErrorPopUpConfig = (status: number | null): PopUpConfig | null => {
     }
     if (status === 500) {
         return {
+            showInquiryLink: true,
             title: '시스템 오류가 발생했습니다',
             content:
                 '서비스 이용에 불편을 드려 죄송합니다.\\n잠시 후 다시 시도해 주세요.',
@@ -139,7 +136,7 @@ export const HomePage = () => {
         contests: [],
     };
 
-    const { data: homeResponse, error: homeError } = useQuery({
+    const { data: homeResponse, error: homeError, isPending, isLoadingError, isFetching } = useQuery({
         queryKey: ['home', userIdParam],
         queryFn: () => requestHome({ userId: userIdParam as string | number }),
         enabled: hasValidUserId,
@@ -179,14 +176,22 @@ export const HomePage = () => {
     const hasUnreadNotifications =
         typeof unreadCount === 'number' ? unreadCount > 0 : hasUnreadNotificationsFromStore;
 
-    const popUpConfig = useMemo(() => {
-        const homePopup = isErrorDismissed ? null : getErrorPopUpConfig(getErrorStatus(homeError));
-        if (homePopup) return homePopup;
-        if (dismissedUnreadErrorAt === unreadErrorUpdatedAt) return null;
-        // 오프라인 안내는 전역 배너에 맡겨 알림 오류 팝업이 함께 뜨지 않도록 한다.
-        if (shouldSkipLocalErrorUI(unreadCountError, navigator.onLine)) return null;
-        return getNotificationErrorPopupConfig(unreadCountError, 'unreadCount');
-    }, [homeError, unreadCountError, isErrorDismissed, dismissedUnreadErrorAt, unreadErrorUpdatedAt]);
+    const homePopup = useMemo((): NotificationErrorPopupConfig | null => {
+        if (isErrorDismissed) return null;
+        // 캐시된 데이터가 없고 조회 재시도가 끝난 경우에만 진입 오류를 공통 팝업으로 표시한다.
+        if (isLoadingError && !shouldSkipLocalErrorUI(homeError, navigator.onLine)) {
+            const requestError = getRequestErrorKind(homeError);
+            if (requestError) return isFetching ? null : { requestError };
+        }
+        return getErrorPopUpConfig(getErrorStatus(homeError));
+    }, [homeError, isErrorDismissed, isFetching, isLoadingError]);
+
+    const unreadPopup = dismissedUnreadErrorAt !== unreadErrorUpdatedAt
+        && !shouldSkipLocalErrorUI(unreadCountError, navigator.onLine)
+        ? getNotificationErrorPopupConfig(unreadCountError, 'unreadCount', false)
+        : null;
+    // 화면 진입에 필요한 조회가 진행 중일 때는 부가 요청의 오류가 먼저 가리지 않게 한다.
+    const popUpConfig = homePopup ?? (isPending && isFetching ? null : unreadPopup);
 
     // 숨겨진 추천 동문이 있으면 먼저 펼치고, 모두 보이는 상태에서는 동문찾기 페이지로 이동합니다.
     const handleRecommendMoreClick = () => {
@@ -339,7 +344,7 @@ export const HomePage = () => {
 
             {/* FCM 알림 권한 요청 팝업 (Soft Prompt) */}
             <PopUp
-                isOpen={isNotificationPopupOpen}
+                isOpen={isNotificationPopupOpen && !popUpConfig}
                 type="info"
                 title="실시간 채팅 알림"
                 content="새로운 메시지 알림을 받으시겠어요?\n언제든 설정에서 변경할 수 있습니다."
@@ -353,10 +358,12 @@ export const HomePage = () => {
                 <PopUp
                     isOpen={!!popUpConfig}
                     type="error"
+                    requestError={popUpConfig.requestError}
+                    showInquiryLink={popUpConfig.showInquiryLink}
                     title={popUpConfig.title}
                     content={popUpConfig.content}
                     onClick={() => {
-                        setIsErrorDismissed(true);
+                        if (homePopup) setIsErrorDismissed(true);
                         setDismissedUnreadErrorAt(unreadErrorUpdatedAt);
                     }}
                 />
