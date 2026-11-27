@@ -49,12 +49,13 @@ export const mapProfilePreviewToAuthor = (profile: ProfilePreview | null) => {
       studentId: profile.studentNo,
     };
   } else {
+    // 비회원 응답 위한 mock data
     return {
       id: "0",
-      name: "익명",
+      name: "우리 학교 동문",
       profileImageUrl: null,
-      major: "임시과",
-      studentId: "200000000",
+      major: "",
+      studentId: "",
     };
   }
 };

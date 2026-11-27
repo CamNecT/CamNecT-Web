@@ -34,6 +34,8 @@ import { mapFlatCommentsToTree } from '../../utils/communityMapper';
 import type { CommentItem } from '../../types/community';
 import type { ActivityCommentItem } from '../../api-types/activityApiTypes';
 import { useCommunityErrorPopup } from '../community/hooks/useCommunityErrorPopup';
+import GuestLoginModal from '../../components/guest/GuestLoginModal';
+import GuestContentBlur from '../../components/guest/GuestContentBlur';
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
 
@@ -49,15 +51,18 @@ const ActivityPostPage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const userRole = authUser?.role;
   const isAdmin = userRole === 'ADMIN';
-  const userId = authUser?.id ? parseInt(authUser.id) : null;
+  // 비회원은 userId 없이 공개 상세 조회 (작성자·북마크·내 글 여부는 서버가 제외)
+  const userId = isAuthenticated && authUser?.id ? parseInt(authUser.id) : null;
   const activityId = postId ? parseInt(postId) : null;
 
   const { data: detailResponse, isLoading, isError } = useQuery({
-    queryKey: ['activityDetail', activityId],
-    queryFn: () => getActivityDetail(userId!, activityId!),
-    enabled: !!userId && !!activityId,
+    // 비회원 응답(작성자·북마크 제외)이 로그인 후 회원 화면에 남지 않도록 캐시를 분리
+    queryKey: userId === null ? ['activityDetail', activityId, 'guest'] : ['activityDetail', activityId],
+    queryFn: () => getActivityDetail(userId, activityId!),
+    enabled: !!activityId,
   });
 
   const { data: tagData } = useQuery({
@@ -105,7 +110,7 @@ const ActivityPostPage = () => {
       isMine={detailResponse.data.isMine}
       isAdmin={isAdmin}
       activityId={activityId!}
-      userId={userId!}
+      userId={userId}
       initialIsBookmarked={detailResponse.data.isBookmarked}
       initialStatus={detailResponse.data.activity.status}
     />
@@ -117,7 +122,7 @@ type ActivityPostContentProps = {
   isMine: boolean;
   isAdmin: boolean;
   activityId: number;
-  userId: number;
+  userId: number | null; // 비회원은 null
   initialIsBookmarked: boolean;
   initialStatus: 'OPEN' | 'CLOSED';
 };
@@ -146,6 +151,10 @@ const ActivityPostContent = ({
   const [isCommentOptionOpen, setIsCommentOptionOpen] = useState(false);
   const [isCommentDeletePopupOpen, setIsCommentDeletePopupOpen] = useState(false);
   const isAdminAuthor = isAdminUserId(selectedPost.author.id);
+
+  // 비회원 - 상태/제목만 보여주고 작성자/본문/댓글은 블러 처리
+  const isGuest = userId === null;
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const { errorPopup, showCommunityError, closeCommunityError } = useCommunityErrorPopup();
 
   const {
@@ -257,7 +266,7 @@ const ActivityPostContent = ({
   
   //북마크 토글
   const bookmarkMutation = useMutation({
-    mutationFn: () => toggleActivityBookmark(userId, activityId),
+    mutationFn: () => toggleActivityBookmark(userId!, activityId),
     onMutate: () => {
       setIsBookmarked((prev) => !prev);
     },
@@ -271,7 +280,7 @@ const ActivityPostContent = ({
 
   //삭제 -> 동아리/스터디에서만 사용됨
   const deleteMutation = useMutation({
-    mutationFn: () => deleteActivity(userId, activityId),
+    mutationFn: () => deleteActivity(userId!, activityId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activityList'] });
       navigate(-1);
@@ -280,7 +289,7 @@ const ActivityPostContent = ({
 
   //모집 중지
   const closeMutation = useMutation({
-    mutationFn: () => closeActivity(userId, activityId),
+    mutationFn: () => closeActivity(userId!, activityId),
     onSuccess: () => {
       setStatus('CLOSED');
       queryClient.invalidateQueries({ queryKey: ['activityDetail', activityId] });
@@ -320,7 +329,10 @@ const ActivityPostContent = ({
         document.body.removeChild(textarea);
       }
     }
-    if (item.id === 'report-post') setIsReportModalOpen(true);
+    if (item.id === 'report-post') {
+      if (isGuest) setIsGuestModalOpen(true);
+      else setIsReportModalOpen(true);
+    }
     if (item.id === 'edit-post') navigate(`/activity/edit/${activityId}`, {replace:true});
     if (item.id === 'delete-post') setIsDeletePopupOpen(true);
     setIsOptionOpen(false);
@@ -381,6 +393,184 @@ const ActivityPostContent = ({
   );
 
 
+
+  // 상태 배지·제목·북마크 수·작성일
+  const titleBlock = (
+     <div className='flex flex-col items-start gap-[20px]'>
+       <div
+        className={`inline-flex min-w-[68px] items-center justify-center rounded-[30px] border px-[12px] py-[4px] text-r-16 ${
+          status === 'CLOSED'
+            ? 'border-[var(--ColorGray2,#A1A1A1)] text-[var(--ColorGray2,#A1A1A1)]'
+            : 'border-[var(--ColorMain,#00C56C)] text-[var(--ColorMain,#00C56C)]'
+        }`}
+      >
+        {statusLabel}
+      </div>
+      <div className='flex flex-col gap-[13px]'>
+        <div className='text-[24px] font-bold leading-[130%] text-black'>
+          {selectedPost.title}
+        </div>
+        <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
+          <div className='flex items-center gap-[3px]'>
+            <svg viewBox='0 0 11 12' fill='none' className='w-[11px] h-[12px]'>
+              <path 
+                d='M9.22867 0.697692C9.962 0.775908 10.5 1.3558 10.5 2.03286V11.5L5.5 9.20853L0.5 11.5V2.03286C0.5 1.3558 1.03733 0.775908 1.77133 0.697692C4.24879 0.434103 6.75121 0.434103 9.22867 0.697692Z' 
+                stroke='#646464' 
+                strokeLinecap='round' 
+                strokeLinejoin='round'
+              />
+            </svg>
+            <span>{selectedPost.saveCount}</span>
+          </div>
+          <span className='text-[var(--ColorGray2,#A1A1A1)]'>
+            {formatPostDisplayDate(selectedPost.createdAt)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 작성자 정보 (프로필/커피챗)
+  const authorBlock = (
+    <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
+      <button
+        type='button'
+        disabled={isMine || isAdminAuthor}
+        className='flex items-center text-left'
+        onClick={() =>
+          navigate(`/alumni/profile/${selectedPost.author.id}`, {
+            state: {
+              author: {
+                name: selectedPost.author.name,
+                major: selectedPost.author.major,
+                studentId: selectedPost.author.studentId,
+                profileImageUrl: selectedPost.author.profileImageUrl,
+              },
+            },
+          })
+        }
+      >
+        <div className='flex items-center gap-[10px]'>
+          <img
+            src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
+            alt={`${selectedPost.author.name} 프로필`}
+            onError={(e) => {
+              e.currentTarget.onerror = null; //이미지 깨짐 방지
+              e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+            }}
+            className='h-[32px] w-[32px] rounded-full object-cover'
+          />
+          <div className='flex flex-col gap-[4px]'>
+            <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
+              {selectedPost.author.name}
+            </div>
+            <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
+              {selectedPost.author.major
+                ? `${selectedPost.author.major} ${selectedPost.author.studentId.slice(2,4)}학번`
+                : '전공이 설정되지 않았어요'}
+            </div>
+          </div>
+        </div>
+      </button>
+      {!isMine && !isAdminAuthor && (<button
+        type='button'
+        className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
+        onClick={() =>
+          navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`, {
+            state: {
+              author: {
+                name: selectedPost.author.name,
+                major: selectedPost.author.major,
+                studentId: selectedPost.author.studentId,
+                profileImageUrl: selectedPost.author.profileImageUrl,
+              },
+            },
+          })
+        }
+      >
+        커피챗 보내기
+      </button>)}
+    </div>
+  );
+
+  // 본문/이미지/태그
+  const contentBlock = (
+    <div className='flex flex-col gap-[20px]'>
+      <div className='text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] whitespace-pre-wrap break-keep [overflow-wrap:anywhere]'>
+        <LinkifiedText text={selectedPost.content ?? ''} />
+      </div>
+      {selectedPost.postImages && selectedPost.postImages.length > 0 && (
+        <div className='mt-[30px] -mr-5 overflow-x-auto sm:-mr-[25px]'>
+          <div className='flex w-max gap-[5px] pr-[20px]'>
+            {selectedPost.postImages.map((imageUrl: string, index: number) => {
+              const imageKey = `${selectedPost.id}-image-${index + 1}`;
+              if (failedImages[imageKey]) {
+                return (
+                  <div
+                    key={imageKey}
+                    className='h-[150px] w-[150px] shrink-0 rounded-[5px] bg-[#D9D9D9]'
+                    aria-label='이미지 불러오기 실패'
+                  />
+                );
+              }
+              return (
+                <img
+                  key={imageKey}
+                  src={imageUrl}
+                  alt={`${selectedPost.title} 이미지 ${index + 1}`}
+                  className='h-[150px] w-[150px] shrink-0 rounded-[5px] object-cover'
+                  onClick={() => setSelectedImageUrl(imageUrl)}
+                  onError={() =>
+                    setFailedImages((prev) => ({ ...prev, [imageKey]: true }))
+                  }
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <div className='flex flex-wrap gap-[5px]'>
+        {selectedPost.categories.map((category: string) => (
+          <Category key={category} label={category} />
+        ))}
+      </div>
+    </div>
+  );
+
+  // 댓글 목록
+  const commentsSection = (
+    <section className='flex flex-col'>
+      <div className='px-[25px] pb-[15px] pt-[20px] text-[16px] font-semibold text-[var(--ColorBlack,#202023)]'>
+        댓글 ({commentCount})
+      </div>
+      {isLoadingComments ? (
+        <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
+          댓글을 불러오는 중...
+        </div>
+      ) : (
+        <div className='flex flex-col'>
+          {sortedComments.length === 0 ? (
+            <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
+              첫 댓글을 작성해 보세요
+            </div>
+          ) : (
+            sortedComments.map((comment) => renderComment(comment))
+          )}
+          {hasNextPage ? (
+            <button
+              type='button'
+              disabled={isFetchingNextPage}
+              onClick={() => void fetchNextPage()}
+              className='mx-[25px] my-[15px] rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] py-[10px] text-m-14 text-[var(--ColorGray3,#646464)] disabled:opacity-50'
+            >
+              {isFetchingNextPage ? '댓글을 불러오는 중...' : '댓글 더 보기'}
+            </button>
+          ) : null}
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <HeaderLayout
       headerSlot={
@@ -394,204 +584,67 @@ const ActivityPostContent = ({
       }
     >
       <div className='flex w-full justify-center bg-white'>
-         <div className='flex w-full max-w-[720px] flex-col pb-[90px] sm:px-[25px]'>
-           <section className='flex flex-col gap-[35px] border-b border-[#ECECEC] px-5 pb-[30px] pt-[22px] sm:px-[25px]'>
-             <div className='flex flex-col items-start gap-[20px]'>
-               <div
-                className={`inline-flex min-w-[68px] items-center justify-center rounded-[30px] border px-[12px] py-[4px] text-r-16 ${
-                  status === 'CLOSED'
-                    ? 'border-[var(--ColorGray2,#A1A1A1)] text-[var(--ColorGray2,#A1A1A1)]'
-                    : 'border-[var(--ColorMain,#00C56C)] text-[var(--ColorMain,#00C56C)]'
-                }`}
-              >
-                {statusLabel}
-              </div>
-              <div className='flex flex-col gap-[13px]'>
-                <div className='text-[24px] font-bold leading-[130%] text-black'>
-                  {selectedPost.title}
-                </div>
-                <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
-                  <div className='flex items-center gap-[3px]'>
-                    <svg viewBox='0 0 11 12' fill='none' className='w-[11px] h-[12px]'>
-                      <path 
-                        d='M9.22867 0.697692C9.962 0.775908 10.5 1.3558 10.5 2.03286V11.5L5.5 9.20853L0.5 11.5V2.03286C0.5 1.3558 1.03733 0.775908 1.77133 0.697692C4.24879 0.434103 6.75121 0.434103 9.22867 0.697692Z' 
-                        stroke='#646464' 
-                        strokeLinecap='round' 
-                        strokeLinejoin='round'
-                      />
-                    </svg>
-                    <span>{selectedPost.saveCount}</span>
-                  </div>
-                  <span className='text-[var(--ColorGray2,#A1A1A1)]'>
-                    {formatPostDisplayDate(selectedPost.createdAt)}
-                  </span>
-                </div>
-              </div>
-            </div>
+         <div className={`flex w-full max-w-[720px] flex-col sm:px-[25px] ${isGuest ? '' : 'pb-[90px]'}`}>
+           {isGuest ? (
+            <>
+              <section className='flex flex-col px-5 pb-[35px] pt-[22px] sm:px-[25px]'>
+                {titleBlock}
+              </section>
+              {/* 비회원 - 작성자/본문/댓글을 한 번에 블러 처리 */}
+              <GuestContentBlur className='min-h-[360px] max-h-[600px]'>
+                <section className='flex flex-col gap-[35px] border-b border-[#ECECEC] px-5 pb-[30px] sm:px-[25px]'>
+                  {authorBlock}
+                  {contentBlock}
+                </section>
+                {commentsSection}
+              </GuestContentBlur>
+            </>
+          ) : (
+            <>
+              <section className='flex flex-col gap-[35px] border-b border-[#ECECEC] px-5 pb-[30px] pt-[22px] sm:px-[25px]'>
+                {titleBlock}
+                {authorBlock}
+                {contentBlock}
+              </section>
 
-            <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
-              <button
-                type='button'
-                disabled={isMine || isAdminAuthor}
-                className='flex items-center text-left'
-                onClick={() =>
-                  navigate(`/alumni/profile/${selectedPost.author.id}`, {
-                    state: {
-                      author: {
-                        name: selectedPost.author.name,
-                        major: selectedPost.author.major,
-                        studentId: selectedPost.author.studentId,
-                        profileImageUrl: selectedPost.author.profileImageUrl,
-                      },
-                    },
-                  })
-                }
-              >
-                <div className='flex items-center gap-[10px]'>
-                  <img
-                    src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
-                    alt={`${selectedPost.author.name} 프로필`}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null; //이미지 깨짐 방지
-                      e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                    }}
-                    className='h-[32px] w-[32px] rounded-full object-cover'
-                  />
-                  <div className='flex flex-col gap-[4px]'>
-                    <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
-                      {selectedPost.author.name}
-                    </div>
-                    <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
-                      {selectedPost.author.major} {selectedPost.author.studentId.slice(2,4)}학번
-                    </div>
-                  </div>
-                </div>
-              </button>
-              {!isMine && !isAdminAuthor && (<button
-                type='button'
-                className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
-                onClick={() =>
-                  navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`, {
-                    state: {
-                      author: {
-                        name: selectedPost.author.name,
-                        major: selectedPost.author.major,
-                        studentId: selectedPost.author.studentId,
-                        profileImageUrl: selectedPost.author.profileImageUrl,
-                      },
-                    },
-                  })
-                }
-              >
-                커피챗 보내기
-              </button>)}
-            </div>
-
-            <div className='flex flex-col gap-[20px]'>
-              <div className='text-[16px] leading-[160%] text-[var(--ColorGray3,#646464)] whitespace-pre-wrap break-keep [overflow-wrap:anywhere]'>
-                <LinkifiedText text={selectedPost.content ?? ''} />
-              </div>
-              {selectedPost.postImages && selectedPost.postImages.length > 0 && (
-                <div className='mt-[30px] -mr-5 overflow-x-auto sm:-mr-[25px]'>
-                  <div className='flex w-max gap-[5px] pr-[20px]'>
-                    {selectedPost.postImages.map((imageUrl: string, index: number) => {
-                      const imageKey = `${selectedPost.id}-image-${index + 1}`;
-                      if (failedImages[imageKey]) {
-                        return (
-                          <div
-                            key={imageKey}
-                            className='h-[150px] w-[150px] shrink-0 rounded-[5px] bg-[#D9D9D9]'
-                            aria-label='이미지 불러오기 실패'
-                          />
-                        );
-                      }
-                      return (
-                        <img
-                          key={imageKey}
-                          src={imageUrl}
-                          alt={`${selectedPost.title} 이미지 ${index + 1}`}
-                          className='h-[150px] w-[150px] shrink-0 rounded-[5px] object-cover'
-                          onClick={() => setSelectedImageUrl(imageUrl)}
-                          onError={() =>
-                            setFailedImages((prev) => ({ ...prev, [imageKey]: true }))
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className='flex flex-wrap gap-[5px]'>
-                {selectedPost.categories.map((category: string) => (
-                  <Category key={category} label={category} />
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {isMine ? (
-            <div className='border-b border-[#ECECEC] px-[25px] py-[20px]'>
-              <button
-                type='button'
-                onClick={() => setIsCloseRecruitPopupOpen(true)}
-                disabled={status === 'CLOSED'}
-                className={`text-b-16-hn flex h-[44px] w-full items-center justify-center rounded-[10px] disabled:cursor-not-allowed ${
-                  status === 'CLOSED'
-                    ? 'bg-gray-300 text-white'
-                    : 'bg-[#FFEFEF] text-red'
-                }`}
-              >
-                {status === 'CLOSED' ? '모집 완료됨' : '모집 완료하기'}
-              </button>
-            </div>
-          ) : null}
-
-          <section className='flex flex-col'>
-            <div className='px-[25px] pb-[15px] pt-[20px] text-[16px] font-semibold text-[var(--ColorBlack,#202023)]'>
-              댓글 ({commentCount})
-            </div>
-            {isLoadingComments ? (
-              <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
-                댓글을 불러오는 중...
-              </div>
-            ) : (
-              <div className='flex flex-col'>
-                {sortedComments.length === 0 ? (
-                  <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
-                    첫 댓글을 작성해 보세요
-                  </div>
-                ) : (
-                  sortedComments.map((comment) => renderComment(comment))
-                )}
-                {hasNextPage ? (
+              {isMine ? (
+                <div className='border-b border-[#ECECEC] px-[25px] py-[20px]'>
                   <button
                     type='button'
-                    disabled={isFetchingNextPage}
-                    onClick={() => void fetchNextPage()}
-                    className='mx-[25px] my-[15px] rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] py-[10px] text-m-14 text-[var(--ColorGray3,#646464)] disabled:opacity-50'
+                    onClick={() => setIsCloseRecruitPopupOpen(true)}
+                    disabled={status === 'CLOSED'}
+                    className={`text-b-16-hn flex h-[44px] w-full items-center justify-center rounded-[10px] disabled:cursor-not-allowed ${
+                      status === 'CLOSED'
+                        ? 'bg-gray-300 text-white'
+                        : 'bg-[#FFEFEF] text-red'
+                    }`}
                   >
-                    {isFetchingNextPage ? '댓글을 불러오는 중...' : '댓글 더 보기'}
+                    {status === 'CLOSED' ? '모집 완료됨' : '모집 완료하기'}
                   </button>
-                ) : null}
-              </div>
-            )}
-          </section>
+                </div>
+              ) : null}
+
+              {commentsSection}
+            </>
+          )}
 
         </div>
       </div>
 
-      <BottomChat
-        content={commentContent}
-        onChange={setCommentContent}
-        onSubmit={handleSubmitComment}
-        disabled={isSubmittingComment}
-        replyTargetName={replyTarget?.name}
-        focusToken={replyFocusToken}
-        maxLength={5000}
-        showLike={false}
-        isSaved={isBookmarked}
-        onSaveChange={() => bookmarkMutation.mutate()}
-      />
+      {!isGuest && (
+        <BottomChat
+          content={commentContent}
+          onChange={setCommentContent}
+          onSubmit={handleSubmitComment}
+          disabled={isSubmittingComment}
+          replyTargetName={replyTarget?.name}
+          focusToken={replyFocusToken}
+          maxLength={5000}
+          showLike={false}
+          isSaved={isBookmarked}
+          onSaveChange={() => bookmarkMutation.mutate()}
+        />
+      )}
 
       <BottomSheetModal isOpen={isOptionOpen} onClose={() => setIsOptionOpen(false)} height='auto'>
         <div className='flex flex-col px-[clamp(16px,6vw,25px)] pt-[30px] pb-[max(50px,env(safe-area-inset-bottom,0px))]'>
@@ -706,6 +759,8 @@ const ActivityPostContent = ({
           postType="ACTIVITY"
         />
       )}
+
+      <GuestLoginModal isOpen={isGuestModalOpen} onClose={() => setIsGuestModalOpen(false)} />
 
       <ImagePopUp
         isOpen={Boolean(selectedImageUrl)}

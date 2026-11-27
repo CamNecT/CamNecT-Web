@@ -9,9 +9,12 @@ const REPLACE_IMAGE = replaceImg;
 export default function PortfolioSection({
     portfolios,
     isEdit = false,
+    onViewAll,
 }: {
     portfolios: Portfolio[];
     isEdit?: boolean;
+    // 전체보기 동작 변경 (기본: 내 포트폴리오 목록으로 이동)
+    onViewAll?: () => void;
 }) {
     const navigate = useNavigate();
     const handlePortfolioClick = (portfolioId: string) => {
@@ -25,7 +28,7 @@ export default function PortfolioSection({
         <BaseSection
             title="포트폴리오"
             right={
-                <button onClick={() => navigate("/me/portfolio")}
+                <button onClick={onViewAll ?? (() => navigate("/me/portfolio"))}
                     className="text-R-12-hn text-gray-650 flex items-center gap-[2px]"
                 >
                     전체보기

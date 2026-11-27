@@ -13,6 +13,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import InfoSection from "./components/InfoSection";
 import PortfolioSection from "./components/PortfolioSection";
 import { SideBar } from "./components/SideBar";
+import GuestMypageView from "./components/GuestMypageView";
 import { mapToCareers, mapToCertificates, mapToEducations, mapToPortfolios } from "./utils/profileMapper";
 
 const DEFAULT_PROFILE_IMAGE = defaultProfileImg;
@@ -21,6 +22,8 @@ export const MypagePage = () => {
   const navigate = useNavigate();
   const [isSideBarOpen, setIsSideBarOpen] = useState(false);
   const authUser = useAuthStore(state => state.user);
+  // 승인 대기 사용자처럼 user 정보만 있고 정식 세션이 없는 경우도 비회원으로 처리
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const userId = authUser?.id ? parseInt(authUser.id) : null;
 
   // 프로필 데이터 조회
@@ -31,7 +34,7 @@ export const MypagePage = () => {
   } = useQuery({
     queryKey: ["myProfile", userId],
     queryFn: () => getMyProfile({ loginUserId: userId! }),
-    enabled: !!userId,
+    enabled: isAuthenticated && !!userId,
   });
 
   const profileData = profileResponse?.data;
@@ -54,6 +57,11 @@ export const MypagePage = () => {
     }),
     enabled: !!profileData?.basics.institutionId && !!profileData?.basics.majorId,
   });
+
+  // 비회원이면 개인 데이터 조회 없이 비회원 마이페이지 표시
+  if (!isAuthenticated) {
+    return <GuestMypageView />;
+  }
 
   // 로딩 중
   if (isProfileLoading || isInstitutionLoading || isMajorLoading) {

@@ -90,12 +90,12 @@ export const createAdminActivity = async (
 
 // 대외활동 상세 조회 [GET] (/api/activity/{activityId})
 export const getActivityDetail = async (
-  userId: number,
+  userId: number | null, // 비회원은 null
   activityId: number,
 ): Promise<ActivityDetailResponse> => {
   const response = await axiosInstance.get<ActivityDetailResponse>(
     `/api/activity/${activityId}`,
-    { params: { userId } },
+    { params: { userId: userId ?? undefined } },
   );
   return response.data;
 };
