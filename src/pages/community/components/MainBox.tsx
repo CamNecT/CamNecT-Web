@@ -1,4 +1,6 @@
 import { CommunityPostLink } from './CommunityPostLink';
+import { GuestPostAuthor } from './GuestPostAuthor';
+import { useAuthStore } from '../../../store/useAuthStore';
 import Card from '../../../components/Card';
 import Category from '../../../components/Category';
 import Icon from '../../../components/Icon';
@@ -16,6 +18,7 @@ type MainBoxProps = {
 
 // 메인 캐러셀에서 사용하는 요약 카드
 const MainBox = ({ post }: MainBoxProps) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   // 보호된 본문과 썸네일은 GRANTED일 때만 카드에 노출한다.
   const isGranted = post.accessStatus === 'GRANTED';
   const postImageUrl = isGranted ? post.postImageUrl ?? post.imageUrl : undefined;
@@ -30,31 +33,35 @@ const MainBox = ({ post }: MainBoxProps) => {
       >
         <div className='flex flex-col' style={{ gap: '15px' }}>
           <div className='flex flex-col' style={{ gap: '10px' }}>
-            {post.author.id !== 'unknown' && (<div className='flex' style={{ gap: '15px' }}>
-              <img
-                // API 목록 매퍼가 작성자 정보와 프로필 이미지를 author 객체에 함께 보존한다.
-                src={post.author.profileImageUrl ?? defaultProfileImg}
-                alt={`${post.author.name} 프로필`}
-                className='h-[48px] w-[48px] rounded-full object-cover'
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = defaultProfileImg;
-                }}
-              />
-              <div className='flex flex-col justify-center' style={{ gap: '3px' }}>
-                <div className='text-sb-14' style={{ color: 'var(--ColorBlack, #202023)' }}>
-                  {post.author.name}
-                </div>
-                {post.author.major ? (
-                  <div className='text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
-                    {post.author.major}
-                    {post.author.studentId
-                      ? ` ${post.author.studentId}학번`
-                      : ''}
+            {!isAuthenticated ? (
+              <GuestPostAuthor size={48} />
+            ) : post.author.id !== 'unknown' ? (
+              <div className='flex' style={{ gap: '15px' }}>
+                <img
+                  // API 목록 매퍼가 작성자 정보와 프로필 이미지를 author 객체에 함께 보존한다.
+                  src={post.author.profileImageUrl ?? defaultProfileImg}
+                  alt={`${post.author.name} 프로필`}
+                  className='h-[48px] w-[48px] rounded-full object-cover'
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = defaultProfileImg;
+                  }}
+                />
+                <div className='flex flex-col justify-center' style={{ gap: '3px' }}>
+                  <div className='text-sb-14' style={{ color: 'var(--ColorBlack, #202023)' }}>
+                    {post.author.name}
                   </div>
-                ) : null}
+                  {post.author.major ? (
+                    <div className='text-r-12' style={{ color: 'var(--ColorGray3, #646464)' }}>
+                      {post.author.major}
+                      {post.author.studentId
+                        ? ` ${post.author.studentId}학번`
+                        : ''}
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>)}
+            ) : null}
 
             <div className='flex' style={{ gap: '15px' }}>
               <div className='flex flex-1 flex-col' style={{ gap: '7px' }}>

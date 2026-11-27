@@ -35,7 +35,7 @@ export const GuestQuestionPreview = ({ summary }: { summary?: GuestQuestionSumma
           </section>
         )}
         <div className='px-[25px]'>
-          <GuestPostAuthor />
+          <GuestPostAuthor className='border-b border-gray-150 pb-[15px]' />
         </div>
         <GuestContentBlur
           className='min-h-[455px]'

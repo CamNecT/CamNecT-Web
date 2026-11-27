@@ -933,7 +933,7 @@ const CommunityPostView = () => {
             </div>
 
             {!userId ? (
-              <GuestPostAuthor />
+              <GuestPostAuthor className='border-b border-gray-150 pb-[15px]' />
             ) : selectedPost.author.id !== 'unknown' ? (
               <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
                 <button
