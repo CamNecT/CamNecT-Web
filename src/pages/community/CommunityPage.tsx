@@ -488,7 +488,7 @@ const CommunityView = ({ isAdmin, userId }: CommunityPageProps & { userId?: stri
       );
     return (
       <MainTab
-        tagName={mainState.tagName}
+        tagName={userId ? mainState.tagName : '추천글'}
         recommendedPosts={recommendedPosts}
         unansweredQuestions={unansweredQuestions}
         onViewWaitingQuestions={() => {
