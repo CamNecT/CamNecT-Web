@@ -16,11 +16,11 @@ export const CommunityPostLink = ({ postId, accessStatus, children, questionSumm
 
   // 공개 목록에 포함된 값만 넘겨 잠긴 질문의 상세 API 없이 미리보기를 그린다.
   if (accessStatus === 'LOGIN_REQUIRED' && questionSummary) {
-    const { id, title, isAdopted, answers, saveCount, createdAt } = questionSummary;
+    const { id, title, isAdopted } = questionSummary;
     return (
       <Link
         to={`/community/post/${postId}`}
-        state={{ guestQuestion: { id, title, isAdopted, answers, saveCount, createdAt } }}
+        state={{ guestQuestion: { id, title, isAdopted } }}
         className='block'
       >
         {children}

@@ -6,7 +6,8 @@ import { acceptCommunityComment, createCommunityComment, deleteCommunityComment,
 import BottomSheetModalPost, {
   type ActionItem,
 } from '../../components/BottomSheetModal/BottomSheetModal-post';
-import { CommunityGuestLoginModal } from './components/CommunityGuestLoginModal';
+import GuestContentBlur from '../../components/guest/GuestContentBlur';
+import { GuestPostAuthor } from './components/GuestPostAuthor';
 import { GuestQuestionPreview, type GuestQuestionSummary } from './components/GuestQuestionPreview';
 import { FullLayout } from '../../layouts/FullLayout';
 import { pointHistoryKey } from '../shop/hooks/useShopHistoryQuery';
@@ -94,7 +95,6 @@ const CommunityPostView = () => {
     : null;
   const currentUserIdForOwnership = authUser?.id;
   const userId = authUser?.id;
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [requiresLogin, setRequiresLogin] = useState(false);
   // 옵션/팝업/이미지 실패 등 화면 단일 상태
   const [isOptionOpen, setIsOptionOpen] = useState(false);
@@ -170,7 +170,9 @@ const CommunityPostView = () => {
     (isPostMine ? 'GRANTED' : 'NEED_PURCHASE');
   const isLockedQuestion =
     isQuestionPost && !isPostMine && accessStatus !== 'GRANTED';
+  // 비회원 댓글 영역은 자리표시자만 그리므로 댓글 요청도 생략한다.
   const canLoadComments =
+    Boolean(userId) &&
     selectedPost != null &&
     String(selectedPost.id) === String(postId) &&
     !isLockedQuestion;
@@ -835,7 +837,7 @@ const CommunityPostView = () => {
       onCancelEdit={handleCancelEdit}
       onOpenCommentOptions={userId && comment.author.id !== 'unknown' ? handleOpenCommentOptions : undefined}
       onOpenAdoptPopup={handleOpenAdoptPopup}
-      onReplyClick={userId ? handleReplyClick : () => setIsLoginOpen(true)}
+      onReplyClick={handleReplyClick}
       formatDate={formatCommentDisplayDate}
       renderReply={(reply) => renderComment(reply, true)}
     />
@@ -892,57 +894,47 @@ const CommunityPostView = () => {
                 <div className='select-text text-[24px] font-bold leading-[130%] text-black'>
                   {selectedPost.title}
                 </div>
-                <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
-                  {!userId ? (
-                    <div className='-my-2 flex items-center'>
-                      <button type='button' aria-label='좋아요' onClick={() => setIsLoginOpen(true)} className='flex min-h-10 items-center gap-[3px] pr-2'>
-                        <Icon name='thumbs_up_stroke' size={14} />{likeCount}
-                      </button>
-                      <a href='#guest-post-comments' aria-label='댓글 보기' className='flex min-h-10 items-center gap-[3px] px-2'>
-                        <Icon name='comment' size={14} />{commentCount}
-                      </a>
-                      <button type='button' aria-label='북마크' onClick={() => setIsLoginOpen(true)} className='flex min-h-10 items-center gap-[3px] pl-2'>
-                        <Icon name='bookmark_stroke' size={14} />{bookmarkCount}
-                      </button>
+                {userId && (
+                  <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
+                    <div className='flex items-center gap-[5px]'>
+                      <div className='flex items-center gap-[3px]'>
+                        <Icon name='thumbs_up_stroke' className='h-[14px] w-[14px]' />
+                        <span>{likeCount}</span>
+                      </div>
+
+                      <div className='flex items-center gap-[3px]'>
+                        <Icon name='comment' className='h-[14px] w-[14px]' />
+                        <span>{commentCount}</span>
+                      </div>
+                      <div className='flex items-center gap-[3px]'>
+                        <svg
+                          xmlns='http://www.w3.org/2000/svg'
+                          width='11'
+                          height='12'
+                          viewBox='0 0 11 12'
+                          fill='none'
+                        >
+                          <path
+                            d='M9.22867 0.697692C9.962 0.775908 10.5 1.3558 10.5 2.03286V11.5L5.5 9.20853L0.5 11.5V2.03286C0.5 1.3558 1.03733 0.775908 1.77133 0.697692C4.24879 0.434103 6.75121 0.434103 9.22867 0.697692Z'
+                            stroke='#646464'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
+                        <span>{bookmarkCount}</span>
+                      </div>
                     </div>
-                  ) : (
-                  <div className='flex items-center gap-[5px]'>
-                    <div className='flex items-center gap-[3px]'>
-                      <Icon name='thumbs_up_stroke' className='h-[14px] w-[14px]' />
-                      <span>{likeCount}</span>
-                    </div>
-                    
-                    <div className='flex items-center gap-[3px]'>
-                      <Icon name='comment' className='h-[14px] w-[14px]' />
-                      <span>{commentCount}</span>
-                    </div>
-                    <div className='flex items-center gap-[3px]'>
-                      <svg
-                        xmlns='http://www.w3.org/2000/svg'
-                        width='11'
-                        height='12'
-                        viewBox='0 0 11 12'
-                        fill='none'
-                      >
-                        <path
-                          d='M9.22867 0.697692C9.962 0.775908 10.5 1.3558 10.5 2.03286V11.5L5.5 9.20853L0.5 11.5V2.03286C0.5 1.3558 1.03733 0.775908 1.77133 0.697692C4.24879 0.434103 6.75121 0.434103 9.22867 0.697692Z'
-                          stroke='#646464'
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                        />
-                      </svg>
-                      <span>{bookmarkCount}</span>
-                    </div>
+                    <span className='text-[var(--ColorGray2,#A1A1A1)]'>
+                      {formatPostDisplayDate(selectedPost.createdAt)}
+                    </span>
                   </div>
-                  )}
-                  <span className='text-[var(--ColorGray2,#A1A1A1)]'>
-                    {formatPostDisplayDate(selectedPost.createdAt)}
-                  </span>
-                </div>
+                )}
               </div>
             </div>
 
-            {userId && selectedPost.author.id !== 'unknown' ? (
+            {!userId ? (
+              <GuestPostAuthor />
+            ) : selectedPost.author.id !== 'unknown' ? (
               <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
                 <button
                   type='button'
@@ -992,9 +984,8 @@ const CommunityPostView = () => {
                   >
                     커피챗 보내기
                   </button>
-              ) : null}
-            </div>
-
+                ) : null}
+              </div>
             ) : null}
 
             <div className='flex flex-col gap-[20px]'>
@@ -1083,41 +1074,55 @@ const CommunityPostView = () => {
             </div>
           </section>
 
-          <section id={userId ? undefined : 'guest-post-comments'} className='flex flex-col'>
-            <div className='flex min-h-[56px] items-center justify-between gap-3 px-[25px] text-[16px] font-semibold text-gray-900'>
-              댓글 ({commentCount})
-              {!userId && (
-                <button type='button' onClick={() => setIsLoginOpen(true)} className='min-h-11 text-m-14 text-gray-750'>
-                  댓글 작성
-                </button>
+          {userId ? (
+            <section className='flex flex-col'>
+              <div className='flex min-h-[56px] items-center px-[25px] text-[16px] font-semibold text-gray-900'>
+                댓글 ({commentCount})
+              </div>
+              {isLockedQuestion ? (
+                <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
+                  {accessStatus === 'LOGIN_REQUIRED'
+                    ? '로그인 후 댓글을 볼 수 있습니다'
+                    : '열람 권한 획득 후 댓글을 볼 수 있습니다'}
+                </div>
+              ) : commentAccessBlocked ? (
+                <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
+                  공개 상태가 아닌 게시글의 댓글은 볼 수 없습니다
+                </div>
+              ) : (
+                <div className='flex flex-col'>
+                  {sortedComments.map((comment) => renderComment(comment))}
+                  {hasNextComments ? (
+                    <button
+                      type='button'
+                      disabled={isLoadingComments}
+                      onClick={() => void loadComments(true)}
+                      className='mx-[25px] my-[15px] rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] py-[10px] text-m-14 text-[var(--ColorGray3,#646464)] disabled:opacity-50'
+                    >
+                      {isLoadingComments ? '댓글을 불러오는 중...' : '댓글 더 보기'}
+                    </button>
+                  ) : null}
+                </div>
               )}
-            </div>
-            {isLockedQuestion ? (
-              <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
-                {accessStatus === 'LOGIN_REQUIRED'
-                  ? '로그인 후 댓글을 볼 수 있습니다'
-                  : '열람 권한 획득 후 댓글을 볼 수 있습니다'}
-              </div>
-            ) : commentAccessBlocked ? (
-              <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
-                공개 상태가 아닌 게시글의 댓글은 볼 수 없습니다
-              </div>
-            ) : (
-              <div className='flex flex-col'>
-                {sortedComments.map((comment) => renderComment(comment))}
-                {hasNextComments ? (
-                  <button
-                    type='button'
-                    disabled={isLoadingComments}
-                    onClick={() => void loadComments(true)}
-                    className='mx-[25px] my-[15px] rounded-[10px] border border-[var(--ColorGray1,#ECECEC)] py-[10px] text-m-14 text-[var(--ColorGray3,#646464)] disabled:opacity-50'
-                  >
-                    {isLoadingComments ? '댓글을 불러오는 중...' : '댓글 더 보기'}
-                  </button>
-                ) : null}
-              </div>
-            )}
+
             </section>
+          ) : (
+            <section>
+              <h2 className='flex min-h-[56px] items-center px-[25px] text-sb-16-hn text-gray-900'>댓글</h2>
+              <GuestContentBlur className='min-h-[240px]' title='로그인 후 댓글을 볼 수 있어요' description=''>
+                <div className='flex flex-col gap-[20px] px-[25px] py-[15px]'>
+                  <div className='flex flex-col gap-[10px] border-b border-gray-150 pb-[20px]'>
+                    <span className='h-4 w-[75px] rounded bg-gray-150' />
+                    <span className='h-4 w-4/5 rounded bg-gray-150' />
+                  </div>
+                  <div className='flex flex-col gap-[10px]'>
+                    <span className='h-4 w-[75px] rounded bg-gray-150' />
+                    <span className='h-4 w-3/5 rounded bg-gray-150' />
+                  </div>
+                </div>
+              </GuestContentBlur>
+            </section>
+          )}
           </div>
         </div>
       ) : null}
@@ -1144,7 +1149,6 @@ const CommunityPostView = () => {
           maxLength={5000}
         />
       ) : null}
-      <CommunityGuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
       <ImagePopUp
         isOpen={Boolean(selectedImageUrl)}
         imageUrl={selectedImageUrl}
