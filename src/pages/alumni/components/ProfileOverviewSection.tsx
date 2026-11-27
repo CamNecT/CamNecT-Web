@@ -1,6 +1,6 @@
 import defaultImg from '../../../assets/image/defaultProfileImg.png';
 import Category from '../../../components/Category';
-import { LinkifiedText } from '../../../components/LinkifiedText';
+import { ExpandableIntroduction } from '../../../components/ExpandableIntroduction';
 import type { AlumniProfile } from '../../../types/alumni/alumniTypes';
 import AlumniCoffeeChatButton from './AlumniCoffeeChatButton';
 import FollowButton from './FollowButton';
@@ -89,9 +89,11 @@ const ProfileOverviewSection = ({
           <div aria-hidden className='h-full [grid-column:1/2] [grid-row:2/3]' />
         )}
 
-        <p className='line-clamp-3 whitespace-pre-line [overflow-wrap:anywhere] text-r-14 text-[color:var(--ColorGray2,#A1A1A1)] [padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]'>
-          <LinkifiedText text={profile.intro} />
-        </p>
+        <ExpandableIntroduction
+          text={profile.intro}
+          className='[padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]'
+          textClassName='text-r-14 text-[color:var(--ColorGray2,#A1A1A1)]'
+        />
       </div>
     </section>
 

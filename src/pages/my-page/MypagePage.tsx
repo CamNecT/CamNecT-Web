@@ -5,7 +5,7 @@ import { getInstitution, getMajor } from "../../api/institutionApi";
 import { getMyProfile } from "../../api/profileApi";
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png";
 import Button from "../../components/Button";
-import { LinkifiedText } from "../../components/LinkifiedText";
+import { ExpandableIntroduction } from "../../components/ExpandableIntroduction";
 import PopUp from "../../components/Pop-up";
 import { FullLayout } from "../../layouts/FullLayout";
 import { MainHeader } from "../../layouts/headers/MainHeader";
@@ -172,9 +172,11 @@ export const MypagePage = () => {
                 </div>
               </button>
 
-              <p className="line-clamp-3 leading-[1.5] break-keep whitespace-pre-line text-R-14 text-gray-750 [overflow-wrap:anywhere] [padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]">
-                <LinkifiedText text={user.introduction} />
-              </p>
+              <ExpandableIntroduction
+                text={user.introduction}
+                className="[padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]"
+                textClassName="leading-[1.5] break-keep text-R-14 text-gray-750"
+              />
             </div>
 
             <Button
