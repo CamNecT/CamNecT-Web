@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { requestHome } from '../../api/home';
 import { requestNotificationUnreadCount } from '../../api/notifications';
 import Badge from '../../components/Badge';
-import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Icon from '../../components/Icon';
 import PopUp from '../../components/Pop-up';
@@ -21,6 +20,7 @@ import CoffeeChatBox from './components/CoffeeChatBox';
 import CommunityBox from './components/CommunityBox';
 import ContestBox from './components/ContestBox';
 import PointBox from './components/PointBox';
+import { GuestHomeView } from './components/GuestHomeView';
 import RecommendBox from './components/RecommendBox';
 import { homeGreetingUser } from './homeData';
 import { mapHomeResponseToViewModel } from './homeMapper';
@@ -203,47 +203,43 @@ export const HomePage = () => {
         // 홈 1번 영역: 인사말, 커피챗 요청, 포인트/커뮤니티 카드 틀 구성
         <FullLayout>
             <div className="mx-auto w-full max-w-[var(--app-mobile-max-width)] bg-white">
-                <section className="bg-primary px-[25px] pt-[22px] pb-[62px]">
-                    <div className="flex items-center justify-between">
-                        <span
-                            role="img"
-                            aria-label="캠넥트 로고"
-                            className="text-white [&_svg]:h-[27px] [&_svg]:w-[138px] [&_path]:fill-white"
-                        >
-                            <Logo />
-                        </span>
-                        {isAuthenticated ? (
-                            <PressableMotion
-                                as="button"
-                                intensity="soft"
-                                type="button"
-                                aria-label="알림"
-                                className="-my-3 -mr-3 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3 active:bg-white/15"
-                                onClick={() => navigate('/home/notices')}
-                            >
-                                <span className="relative inline-flex h-6 w-6">
-                                    <Icon name="bell_notification" size={24} style={{ color: 'var(--ColorWhite,#FFF)' }} />
-                                    {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
-                                </span>
-                            </PressableMotion>
-                        ) : (
-                            <Button type="button" label="로그인" className="h-10 max-w-[85px] bg-white text-primary" onClick={() => navigate('/login')} />
-                        )}
-                    </div>
-
-                    {/* 1-1: 사용자 인사 메시지 */}
-                    <div className="mt-[36px] flex flex-col gap-[4px] px-[5px]">
-                        <p className="text-b-20 text-white">
-                            {isAuthenticated ? `안녕하세요, ${userName}님!` : '동문과 함께하는 캠퍼스 라이프'}
-                        </p>
-                        <p className="text-r-16 text-[#F0F0F0]">
-                            {isAuthenticated ? '오늘도 성공적인 캠퍼스 라이프를 응원합니다!' : '캠넥트의 커뮤니티와 공모전을 둘러보세요.'}
-                        </p>
-                    </div>
-                </section>
-
                 {isAuthenticated ? (
                     <>
+                        <section className="bg-primary px-[25px] pt-[22px] pb-[62px]">
+                            <div className="flex items-center justify-between">
+                                <span
+                                    role="img"
+                                    aria-label="캠넥트 로고"
+                                    className="text-white [&_svg]:h-[27px] [&_svg]:w-[138px] [&_path]:fill-white"
+                                >
+                                    <Logo />
+                                </span>
+                                <PressableMotion
+                                    as="button"
+                                    intensity="soft"
+                                    type="button"
+                                    aria-label="알림"
+                                    className="-my-3 -mr-3 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3 active:bg-white/15"
+                                    onClick={() => navigate('/home/notices')}
+                                >
+                                    <span className="relative inline-flex h-6 w-6">
+                                        <Icon name="bell_notification" size={24} style={{ color: 'var(--ColorWhite,#FFF)' }} />
+                                        {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
+                                    </span>
+                                </PressableMotion>
+                            </div>
+
+                            {/* 1-1: 사용자 인사 메시지 */}
+                            <div className="mt-[36px] flex flex-col gap-[4px] px-[5px]">
+                                <p className="text-b-20 text-white">
+                                    안녕하세요, {userName}님!
+                                </p>
+                                <p className="text-r-16 text-[#F0F0F0]">
+                                    오늘도 성공적인 캠퍼스 라이프를 응원합니다!
+                                </p>
+                            </div>
+                        </section>
+
                         <section className="-mt-[32px] flex w-full flex-col gap-[20px] px-[25px] pb-[40px]">
                             <CoffeeChatBox
                                 coffeeChatCount={homeViewModel.coffeeChatTotalCount}
@@ -331,22 +327,17 @@ export const HomePage = () => {
                                 </div>
                             </div>
                         </section>
+                        {/* 홈 3번 영역: 주목받은 공모전 리스트 */}
+                        <section className="flex w-full flex-col gap-[10px] bg-white px-[25px] pt-[25px] pb-[60px]">
+                            <ContestBox
+                                contests={homeViewModel.contests}
+                                onTitleClick={() => navigate('/activity?tab=external')}
+                                onItemClick={(contest) => navigate(`/activity/external/${contest.id}`)}
+                                onMoreClick={() => navigate('/activity?tab=external')}
+                            />
+                        </section>
                     </>
-                ) : (
-                    <section className="-mt-[32px] px-[25px] pb-[20px]">
-                        <CommunityBox />
-                    </section>
-                )}
-
-                {/* 홈 3번 영역: 주목받은 공모전 리스트 */}
-                <section className="flex w-full flex-col gap-[10px] bg-white px-[25px] pt-[25px] pb-[60px]">
-                    <ContestBox
-                        contests={homeViewModel.contests}
-                        onTitleClick={() => navigate('/activity?tab=external')}
-                        onItemClick={(contest) => navigate(`/activity/external/${contest.id}`)}
-                        onMoreClick={() => navigate('/activity?tab=external')}
-                    />
-                </section>
+                ) : <GuestHomeView contests={homeViewModel.contests} />}
             </div>
 
             {/* FCM 알림 권한 요청 팝업 (Soft Prompt) */}

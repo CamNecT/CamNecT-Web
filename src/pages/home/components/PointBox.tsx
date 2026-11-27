@@ -2,13 +2,14 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/Card';
 
 type PointBoxProps = {
-    points?: number;
+    points?: number | null;
+    onClick?: () => void;
 };
 
 // 홈 1/2-2: 포인트 박스 UI
-const PointBox = ({ points = 0 }: PointBoxProps) => {
+const PointBox = ({ points = 0, onClick }: PointBoxProps) => {
     const navigate = useNavigate();
-    const formattedPoints = points.toLocaleString();
+    const formattedPoints = points == null ? '포인트' : `${points.toLocaleString()} P`;
 
     return (
         //TODO: 쿠폰교환 페이지 라우터 연결
@@ -16,12 +17,12 @@ const PointBox = ({ points = 0 }: PointBoxProps) => {
                 width="100%"
                 height="135px"
                 className="relative flex flex-[181_181_0] flex-col justify-between cursor-pointer rounded-[15px] border-none bg-gray-900! px-[16px] py-[13px] overflow-hidden [container-type:inline-size]"
-                onClick={() => navigate('/shop')}
+                onClick={onClick ?? (() => navigate('/shop'))}
             >
                 {/* 포인트/CTA 텍스트 */}
                 <div className="flex flex-col gap-[8px]">
                     <span className="text-sb-18 text-primary tracking-[-0.04em]">
-                        {formattedPoints} P
+                        {formattedPoints}
                     </span>
                     <span className="text-m-14 tracking-[-0.04em] text-[var(--color-gray-150)]">
                         쿠폰 교환하기
