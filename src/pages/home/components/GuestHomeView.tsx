@@ -39,7 +39,7 @@ export const GuestHomeView = ({ contests }: { contests: Contest[] }) => {
                         <Logo />
                     </span>
                     <button type="button" aria-label="알림" onClick={openLogin} className="-my-3 -mr-3 grid size-12 place-items-center rounded-[5px] text-white active:bg-white/15">
-                        <Icon name="bell_notification" size={24} />
+                        <Icon name="bell_notification" size={24} color="var(--ColorWhite,#FFF)" />
                     </button>
                 </div>
                 <div className="mt-[36px] flex flex-col gap-1 px-[5px]">
