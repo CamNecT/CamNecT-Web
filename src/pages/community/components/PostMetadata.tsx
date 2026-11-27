@@ -19,7 +19,7 @@ export const PostMetadata = ({ likes, comments, bookmarks, createdAt }: PostMeta
       <span className='flex items-center gap-[3px]'>
         <Icon name='comment' size={14} color='currentColor' />
         <span className='sr-only'>댓글 </span>
-        {comments}
+        {comments ?? 0}
       </span>
       <span className='flex items-center gap-[3px]'>
         <Icon name='bookmark_stroke' size={14} color='currentColor' />
