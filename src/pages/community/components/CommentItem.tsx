@@ -16,7 +16,7 @@ type CommentItemProps = {
   onEditingChange: (value: string) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
-  onOpenCommentOptions: (comment: CommentItemType) => void;
+  onOpenCommentOptions?: (comment: CommentItemType) => void;
   onOpenAdoptPopup: (comment: CommentItemType) => void;
   onReplyClick: (comment: CommentItemType) => void;
   formatDate: (value: string) => string;
@@ -127,16 +127,18 @@ const CommentItem = ({
           {isReply ? <Icon name='reply' className='h-6 w-6 shrink-0' /> : null}
           <div className={`flex w-full flex-col ${isReply ? 'pt-1' : ''}`}>
             <div className='flex items-start justify-between gap-[12px]'>
-              <div>
-                <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
-                  {comment.author.name}
+              {comment.author.id !== 'unknown' ? (
+                <div>
+                  <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
+                    {comment.author.name}
+                  </div>
+                  <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
+                    {comment.author.major}
+                    {comment.author.studentId ? ` · ${comment.author.studentId}학번` : ''}
+                  </div>
                 </div>
-                <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
-                  {comment.author.major}
-                  {comment.author.studentId ? ` · ${comment.author.studentId}학번` : ''}
-                </div>
-              </div>
-              {comment.content !== '삭제된 댓글입니다.' ? (
+              ) : null}
+              {onOpenCommentOptions && comment.content !== '삭제된 댓글입니다.' ? (
                 <button
                   type='button'
                   className='shrink-0'

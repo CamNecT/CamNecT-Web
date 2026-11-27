@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { AlumniApiResponse } from '../../api-types/alumniApiTypes';
 import { getAlumniList } from '../../api/alumni';
+import GuestContentBlur from '../../components/guest/GuestContentBlur';
 import Button from '../../components/Button';
 import Category from '../../components/Category';
 import FilterHeader from '../../components/FilterHeader';
@@ -24,6 +25,35 @@ const ALUMNI_PAGE_SIZE = 20;
 type AlumniSearchPageData = AlumniApiResponse['data'];
 
 export const AlumniSearchPage = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  if (isAuthenticated) return <MemberAlumniSearch />;
+
+  return (
+    <FullLayout headerSlot={<MainHeader title='동문 찾기' leftIcon='empty' />}>
+      <GuestContentBlur
+        className='mx-auto min-h-[400px] w-full max-w-[720px]'
+        title='로그인하고 동문을 찾아보세요'
+        description='관심 분야가 비슷한 동문을 찾고 커피챗을 요청할 수 있어요.'
+      >
+        {/* 비회원에게는 동문 목록을 조회하지 않고 카드 형태만 미리 보여준다. */}
+        <div className='flex flex-col gap-[15px] p-[25px]'>
+          <div className='h-10 rounded-full bg-gray-100' />
+          {[1, 2, 3].map((item) => (
+            <div key={item} className='flex h-[110px] items-center gap-4 rounded-[10px] border border-gray-200 p-4'>
+              <div className='size-12 rounded-full bg-gray-200' />
+              <div className='flex flex-1 flex-col gap-3'>
+                <div className='h-3 w-1/3 rounded bg-gray-200' />
+                <div className='h-3 w-2/3 rounded bg-gray-100' />
+              </div>
+            </div>
+          ))}
+        </div>
+      </GuestContentBlur>
+    </FullLayout>
+  );
+};
+
+const MemberAlumniSearch = () => {
   const navigate = useNavigate();
   const authUser = useAuthStore(state => state.user);
   const meUserId = authUser?.id ? parseInt(authUser.id) : null;

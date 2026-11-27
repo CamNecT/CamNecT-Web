@@ -22,7 +22,7 @@ export type CommunityPostItem = {
   postId: number;
   boardCode: "INFO" | "QUESTION";
   title: string;
-  preview: string;
+  preview: string | null;
   createdAt: string;
   likeCount: number;
   answerCount: number;
@@ -32,7 +32,7 @@ export type CommunityPostItem = {
   acceptedBadge?: boolean;
   tags: string[];
   thumbnailUrl?: string | null;
-  author: CommunityAuthor;
+  author: CommunityAuthor | null;
   accessType?: "FREE" | "POINT_REQUIRED";
   accessStatus?: CommunityAccessStatus;
   requiredPoints?: number;
@@ -53,8 +53,7 @@ export type ApiResponse<T> = {
 };
 
 export type GetCommunityPostsParams = {
-  // 운영 Swagger 기준 목록 조회에도 현재 사용자 ID가 필요하다.
-  userId: number | string;
+  userId?: number | string;
   tab?: Tab;
   sort?: Sort;
   tagId?: number;
@@ -65,8 +64,8 @@ export type GetCommunityPostsParams = {
 };
 
 export type CommunityHomeData = {
-  tagId?: number;
-  tagName?: string;
+  tagId?: number | null;
+  tagName?: string | null;
   recommendedByTag?: CommunityPostItem[];
   interestTagId?: number;
   recommendedByInterest?: CommunityPostItem[];
@@ -74,7 +73,7 @@ export type CommunityHomeData = {
 };
 
 export type GetCommunityHomeParams = {
-  userId: number | string;
+  userId?: number | string;
 };
 
 export type CommunityAttachment = {
@@ -161,7 +160,7 @@ export type CommunityPostDetailResponse = {
   boardCode: "INFO" | "QUESTION";
   title: string;
   content: string;
-  authorId: number;
+  authorId: number | null;
   createdAt: string;
   bookmarked?: boolean;
   attachments?: {
@@ -173,7 +172,7 @@ export type CommunityPostDetailResponse = {
     height: number;
     fileSize: number;
   }[];
-  author: CommunityAuthor;
+  author: CommunityAuthor | null;
   viewCount: number;
   bookmarkCount: number;
   likeCount: number;
@@ -186,18 +185,18 @@ export type CommunityPostDetailResponse = {
 };
 
 export type GetCommunityPostDetailParams = {
-  userId: number | string;
+  userId?: number | string;
 };
 
 export type CommunityPostCommentResponse = {
   commentId: number;
-  userId: number;
+  userId?: number | null;
   parentCommentId: number | null;
   content: string;
   likeCount: number;
   createdAt: string;
   // 삭제 댓글은 신고·운영 이력을 위해 userId가 남아도 author는 null일 수 있다.
-  author: {
+  author?: {
     userId: number;
     name: string;
     profileImageUrl?: string | null;

@@ -12,14 +12,14 @@ type UsePostParams = {
 
 // 게시글 선택 및 파생 상태 계산을 캡슐화
 export const usePost = ({ postId, onError }: UsePostParams) => {
-  const userId = useAuthStore((state) => state.user?.id);
+  const userId = useAuthStore((state) => state.isAuthenticated ? state.user?.id : undefined);
   const { mapTagIdToName } = useTagList();
   const [selectedPost, setSelectedPost] = useState<CommunityPostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadError, setHasLoadError] = useState(false);
   const [likedByMe, setLikedByMe] = useState(false);
   // 동일 마운트 사이클에서 중복 호출을 방지하기 위한 플래그
-  const isFetchingRef = useRef(false);
+  const requestRef = useRef<AbortController | null>(null);
 
   // 게시글 상세를 재조회하는 공용 함수
   const refetchPost = useCallback(() => {
@@ -31,14 +31,6 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
       onError?.(new Error('게시글 ID가 없습니다.'));
       return;
     }
-    // 모든 ID는 1 이상의 정수라는 API 계약을 만족할 때만 요청한다.
-    const numericUserId = Number(userId);
-    if (!Number.isInteger(numericUserId) || numericUserId < 1) {
-      setSelectedPost(null);
-      setLikedByMe(false);
-      setIsLoading(false);
-      return;
-    }
     const numericPostId = Number(postId);
     if (!Number.isInteger(numericPostId) || numericPostId < 1) {
       setSelectedPost(null);
@@ -48,21 +40,25 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
       onError?.(new Error('게시글 ID 형식이 올바르지 않습니다.'));
       return;
     }
-    if (isFetchingRef.current) return;
+    if (requestRef.current) return;
 
     setIsLoading(true);
     setHasLoadError(false);
-    isFetchingRef.current = true;
+    const controller = new AbortController();
+    requestRef.current = controller;
     getCommunityPostDetail({
       postId: numericPostId,
-      params: { userId: numericUserId },
+      params: { userId },
+      signal: controller.signal,
     })
       .then((response) => {
+        if (controller.signal.aborted) return;
         setSelectedPost(mapToCommunityPostDetail(response.data, mapTagIdToName));
         setLikedByMe(Boolean(response.data.likedByMe));
         setHasLoadError(false);
       })
       .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
         setSelectedPost(null);
         setLikedByMe(false);
         setHasLoadError(true);
@@ -70,8 +66,9 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
         onError?.(error);
       })
       .finally(() => {
+        if (controller.signal.aborted) return;
         setIsLoading(false);
-        isFetchingRef.current = false;
+        requestRef.current = null;
       });
   }, [postId, userId, mapTagIdToName, onError]);
 
@@ -79,7 +76,11 @@ export const usePost = ({ postId, onError }: UsePostParams) => {
     const timer = window.setTimeout(() => {
       refetchPost();
     }, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      requestRef.current?.abort();
+      requestRef.current = null;
+    };
   }, [refetchPost]);
 
   if (!selectedPost) {

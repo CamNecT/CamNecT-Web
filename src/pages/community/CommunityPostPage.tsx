@@ -1,11 +1,15 @@
-import type { AxiosError } from 'axios';
-import { useMutation } from '@tanstack/react-query';
+import { isAxiosError, type AxiosError } from 'axios';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { acceptCommunityComment, createCommunityComment, deleteCommunityComment, deleteCommunityPost, getCommunityPostComments, postCommunityBookmark, postCommunityLike, purchaseCommunityPostAccess, updateCommunityComment } from '../../api/community';
 import BottomSheetModalPost, {
   type ActionItem,
 } from '../../components/BottomSheetModal/BottomSheetModal-post';
+import GuestLoginModal from '../../components/guest/GuestLoginModal';
+import GuestContentBlur from '../../components/guest/GuestContentBlur';
+import { pointHistoryKey } from '../shop/hooks/useShopHistoryQuery';
+import { GuestPostAttachment } from './components/GuestPostAttachment';
 import Button from '../../components/Button';
 import Category from '../../components/Category';
 import Icon from '../../components/Icon';
@@ -64,15 +68,25 @@ type ReportTarget = {
 
 const CommunityPostPage = () => {
   const { postId } = useParams();
+  const userId = useAuthStore((state) => state.isAuthenticated ? state.user?.id : undefined);
+  // 같은 상세 URL에서도 접근 권한이 바뀌면 본문·댓글·첨부 상태를 새로 조회한다.
+  return <CommunityPostView key={JSON.stringify([postId, userId])} />;
+};
+
+const CommunityPostView = () => {
+  const { postId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const authUser = useAuthStore((state) => state.user);
+  const authUser = useAuthStore((state) => state.isAuthenticated ? state.user : null);
+  const queryClient = useQueryClient();
   // 인증 정보가 없을 때 가상 사용자로 소유권을 판단하거나 댓글 작성자를 만들지 않는다.
   const currentUser = authUser
     ? { id: authUser.id, name: authUser.name ?? '', major: '', studentId: '' }
     : null;
   const currentUserIdForOwnership = authUser?.id;
   const userId = authUser?.id;
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [requiresLogin, setRequiresLogin] = useState(false);
   // 옵션/팝업/이미지 실패 등 화면 단일 상태
   const [isOptionOpen, setIsOptionOpen] = useState(false);
   const [selectedIsMine, setSelectedIsMine] = useState(false);
@@ -84,8 +98,15 @@ const CommunityPostPage = () => {
   const { errorPopup, showCommunityError, closeCommunityError } =
     useCommunityErrorPopup();
   const handlePostDetailError = useCallback(
-    (error: unknown) => showCommunityError(error, 'postDetail'),
-    [showCommunityError],
+    (error: unknown) => {
+      if (!userId && isAxiosError(error) && error.response?.status === 401 &&
+          getServerErrorCode(error) === COMMUNITY_ERROR_CODES.missingTokenType) {
+        setRequiresLogin(true);
+        return;
+      }
+      showCommunityError(error, 'postDetail');
+    },
+    [showCommunityError, userId],
   );
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
@@ -117,6 +138,7 @@ const CommunityPostPage = () => {
   const {
     selectedPost,
     isQuestionPost,
+    isInfoPost,
     isPostMine,
     isAdopted,
     showAdoptButton,
@@ -395,15 +417,7 @@ const CommunityPostPage = () => {
         type: 'loading',
         title: '게시글을 불러오는 중입니다',
       }
-    : !userId
-      ? {
-          type: 'confirm',
-          title: '로그인이 필요합니다',
-          content: '서비스를 이용하시려면 로그인을 해주세요.',
-          buttonText: '로그인하러 가기',
-          onClick: () => navigate('/login', { replace: true }),
-        }
-      : communityErrorPopUpConfig ?? popUpConfig;
+    : communityErrorPopUpConfig ?? popUpConfig;
 
   const handleRetryPostDetail = () => {
     closeCommunityError();
@@ -422,18 +436,15 @@ const CommunityPostPage = () => {
               onClick: () => navigate(-1),
               ariaLabel: '이전 페이지로 이동',
             }}
-            rightActions={[
-              {
-                icon: 'more_menu',
-                onClick: () => {},
-                ariaLabel: '게시글 옵션 열기',
-                style: { color: 'var(--ColorBlack,#202023)' },
-              },
-            ]}
+
           />
         }
       >
-        {hasDetailLoadError && !isDetailLoading ? (
+        {requiresLogin ? (
+          <GuestContentBlur className='min-h-[320px]' title='로그인 후 질문을 볼 수 있어요'>
+            <div className='m-[25px] h-[220px] rounded-[10px] bg-gray-100' />
+          </GuestContentBlur>
+        ) : hasDetailLoadError && !isDetailLoading ? (
           <section
             role='alert'
             className='flex flex-1 flex-col items-center justify-center px-[25px] text-center'
@@ -520,6 +531,9 @@ const CommunityPostPage = () => {
             commentId: numericCommentId,
             params: { userId: numericUserId },
           });
+          // 채택 성공 응답에는 지급 정보가 없으므로 서버의 포인트 내역만 갱신한다.
+          void queryClient.invalidateQueries({ queryKey: [pointHistoryKey, userId] });
+          void queryClient.invalidateQueries({ queryKey: ['home', numericUserId] });
           refetchPost();
           await refreshComments();
         } catch (error) {
@@ -533,7 +547,7 @@ const CommunityPostPage = () => {
 
   // 구매 확인 및 포인트 검증 플로우
   const handleOpenPurchasePopup = () => {
-    if (accessStatus !== 'NEED_PURCHASE') return;
+    if (!userId || accessStatus !== 'NEED_PURCHASE') return;
     // 구매 처리 중에는 구매 팝업을 다시 열거나 동일 요청을 시작하지 않습니다.
     if (purchasePostAccessPendingRef.current || purchasePostAccessMutation.isPending) return;
     setMyPoints(selectedPost.myPoints ?? 0);
@@ -588,6 +602,9 @@ const CommunityPostPage = () => {
       const response = await postCommunityLike(selectedPost.id, { userId });
       setIsLiked(response.data.liked);
       setLikeCount(response.data.likeCount);
+      if (isInfoPost) {
+        void queryClient.invalidateQueries({ queryKey: [pointHistoryKey, userId] });
+      }
     } catch (error) {
       const axiosError = error as AxiosError<{ code?: number; message?: string }>;
       const code = getServerErrorCode(axiosError);
@@ -797,9 +814,9 @@ const CommunityPostPage = () => {
       onEditingChange={setEditingCommentContent}
       onSaveEdit={handleSaveEdit}
       onCancelEdit={handleCancelEdit}
-      onOpenCommentOptions={handleOpenCommentOptions}
+      onOpenCommentOptions={userId && comment.author.id !== 'unknown' ? handleOpenCommentOptions : undefined}
       onOpenAdoptPopup={handleOpenAdoptPopup}
-      onReplyClick={handleReplyClick}
+      onReplyClick={userId ? handleReplyClick : () => setIsLoginOpen(true)}
       formatDate={formatCommentDisplayDate}
       renderReply={(reply) => renderComment(reply, true)}
     />
@@ -816,14 +833,14 @@ const CommunityPostPage = () => {
             onClick: () => navigate(-1),
             ariaLabel: '이전 페이지로 이동',
           }}
-          rightActions={[
+          rightActions={userId && selectedPost.author.id !== 'unknown' ? [
             {
               icon: 'more_menu',
               onClick: handleOpenPostOptions,
               ariaLabel: '게시글 옵션 열기',
               style: { color: 'var(--ColorBlack,#202023)' },
             },
-          ]}
+          ] : []}
         />
       }
     >
@@ -891,57 +908,60 @@ const CommunityPostPage = () => {
               </div>
             </div>
 
-            <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
-              <button
-                type='button'
-                disabled={isPostMine || isAdminUserId(selectedPost.author.id)}
-                className='flex items-center gap-[10px] text-left'
-                onClick={() =>
-                  navigate(`/alumni/profile/${selectedPost.author.id}`, {
-                    state: {
-                      author: {
-                        name: selectedPost.author.name,
-                        major: selectedPost.author.major,
-                        studentId: selectedPost.author.studentId,
-                        profileImageUrl: selectedPost.author.profileImageUrl,
-                      },
-                    },
-                  })
-                }
-              >
-                <img
-                  src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
-                  alt={`${selectedPost.author.name} 프로필`}
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
-                  }}
-                  className='h-[32px] w-[32px] rounded-full object-cover'
-                />
-                <div className='flex flex-col gap-[4px]'>
-                  <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
-                    {selectedPost.author.name}
-                  </div>
-                  <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
-                    {selectedPost.author.major}
-                    {selectedPost.author.studentId
-                      ? ` ${selectedPost.author.studentId}학번`
-                      : ''}
-                  </div>
-                </div>
-              </button>
-              {!isPostMine && !isAdminUserId(selectedPost.author.id) ? (
+            {userId && selectedPost.author.id !== 'unknown' ? (
+              <div className='flex justify-between gap-[12px] border-b border-[#ECECEC] pb-[15px] sm:flex-row sm:items-center '>
                 <button
                   type='button'
-                  className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
+                  disabled={isPostMine || isAdminUserId(selectedPost.author.id)}
+                  className='flex items-center gap-[10px] text-left'
                   onClick={() =>
-                    navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`)
+                    navigate(`/alumni/profile/${selectedPost.author.id}`, {
+                      state: {
+                        author: {
+                          name: selectedPost.author.name,
+                          major: selectedPost.author.major,
+                          studentId: selectedPost.author.studentId,
+                          profileImageUrl: selectedPost.author.profileImageUrl,
+                        },
+                      },
+                    })
                   }
                 >
-                  커피챗 보내기
+                  <img
+                    src={selectedPost.author.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
+                    alt={`${selectedPost.author.name} 프로필`}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                    }}
+                    className='h-[32px] w-[32px] rounded-full object-cover'
+                  />
+                  <div className='flex flex-col gap-[4px]'>
+                    <div className='text-[14px] font-semibold text-[var(--ColorBlack,#202023)]'>
+                      {selectedPost.author.name}
+                    </div>
+                    <div className='text-[12px] text-[var(--ColorGray3,#646464)]'>
+                      {selectedPost.author.major}
+                      {selectedPost.author.studentId
+                        ? ` ${selectedPost.author.studentId}학번`
+                        : ''}
+                    </div>
+                  </div>
                 </button>
+                {!isPostMine && !isAdminUserId(selectedPost.author.id) ? (
+                  <button
+                    type='button'
+                    className='inline-flex items-center justify-center rounded-[10px] border border-[var(--ColorMain,#00C56C)] px-[10px] py-[6px] text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'
+                    onClick={() =>
+                      navigate(`/alumni/profile/${selectedPost.author.id}?coffeeChat=1`)
+                    }
+                  >
+                    커피챗 보내기
+                  </button>
               ) : null}
             </div>
+
+            ) : null}
 
             <div className='flex flex-col gap-[20px]'>
               {isLockedQuestion && accessStatus === 'NEED_PURCHASE' ? (
@@ -971,6 +991,18 @@ const CommunityPostPage = () => {
                           .sort((a, b) => a.sortOrder - b.sortOrder)
                           .map((attachment, index) => {
                             const itemKey = `${selectedPost.id}-attachment-${index + 1}`;
+                            if (!userId) {
+                              return (
+                                <GuestPostAttachment
+                                  key={attachment.attachmentId}
+                                  postId={selectedPost.id}
+                                  attachmentId={attachment.attachmentId}
+                                  fileKey={attachment.fileKey}
+                                  onOpenImage={setSelectedImageUrl}
+                                  onError={(error) => showCommunityError(error, 'attachment')}
+                                />
+                              );
+                            }
                             if (attachment.fileKey.endsWith('.pdf')) {
                               return (
                                 <a
@@ -1050,7 +1082,7 @@ const CommunityPostPage = () => {
           </div>
         </main>
       ) : null}
-      {selectedPost ? (
+      {userId ? (
         <BottomChat
           likeCount={likeCount}
           isLiked={isLiked}
@@ -1072,7 +1104,23 @@ const CommunityPostPage = () => {
           focusToken={replyFocusToken}
           maxLength={5000}
         />
-      ) : null}
+      ) : (
+        <div
+          className='fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-[var(--app-mobile-max-width)] items-center gap-3 bg-white px-5 pt-2'
+          style={{ paddingBottom: 'calc(15px + env(safe-area-inset-bottom))' }}
+        >
+          <button type='button' onClick={() => setIsLoginOpen(true)} className='min-h-[44px] flex-1 rounded-full border border-gray-200 px-3 text-left text-r-14 text-gray-650'>
+            로그인 후 댓글 작성
+          </button>
+          <button type='button' aria-label='좋아요' onClick={() => setIsLoginOpen(true)} className='grid size-11 place-items-center'>
+            <Icon name='thumbs_up_stroke' size={24} />
+          </button>
+          <button type='button' aria-label='북마크' onClick={() => setIsLoginOpen(true)} className='grid size-11 place-items-center'>
+            <Icon name='bookmark_stroke' size={24} />
+          </button>
+        </div>
+      )}
+      <GuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
       <ImagePopUp
         isOpen={Boolean(selectedImageUrl)}
         imageUrl={selectedImageUrl}

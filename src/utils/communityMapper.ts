@@ -23,7 +23,7 @@ const mapCommentAuthorFromApi = (comment: CommunityPostCommentResponse) => {
   const fallback = buildAuthor();
   if (!comment.author) {
     // 삭제 댓글은 프로필을 숨기되 운영 식별용 userId는 화면 모델에 보존한다.
-    return { ...fallback, id: String(comment.userId) };
+    return { ...fallback, id: comment.userId == null ? fallback.id : String(comment.userId) };
   }
   return {
     ...fallback,
@@ -36,7 +36,8 @@ const mapCommentAuthorFromApi = (comment: CommunityPostCommentResponse) => {
   };
 };
 
-const mapAuthorFromApi = (post: CommunityPostItem) => {
+const mapAuthorFromApi = (post: CommunityPostItem | CommunityPostDetailResponse) => {
+  if (!post.author) return buildAuthor();
   return {
     id: String(post.author.userId),
     name: post.author.name,
@@ -55,7 +56,7 @@ export const mapToInfoPost = (post: CommunityPostItem): InfoPost => ({
   },
   categories: post.tags,
   title: post.title,
-  content: post.preview,
+  content: post.preview ?? "",
   thumbnailUrl: post.thumbnailUrl ?? null,
   likes: post.likeCount,
   saveCount: post.bookmarkCount,
@@ -70,7 +71,7 @@ export const mapToQuestionPost = (post: CommunityPostItem): QuestionPost => ({
   author: mapAuthorFromApi(post),
   categories: post.tags,
   title: post.title,
-  content: post.preview,
+  content: post.preview ?? "",
   thumbnailUrl: post.thumbnailUrl ?? null,
   likes: post.likeCount,
   saveCount: post.bookmarkCount,
@@ -101,14 +102,7 @@ export const mapToCommunityPostDetail = (
   requiredPoints: post.requiredPoints,
   myPoints: post.myPoints,
   tagIds: post.tagIds,
-  author: {
-    id: String(post.author.userId),
-    name: post.author.name,
-    major: post.author.majorName,
-    studentId: sliceStudentNo(post.author.studentNo),
-    yearLevel: post.author.yearLevel,
-    profileImageUrl: post.author.profileImageUrl,
-  },
+  author: mapAuthorFromApi(post),
   content: post.content,
   categories: mapTagIdToName
     ? post.tagIds
@@ -144,7 +138,8 @@ export const mapFlatCommentsToTree = (
       author: mapCommentAuthorFromApi(comment),
       content: comment.content,
       createdAt: comment.createdAt,
-      isDeleted: comment.author === null,
+      // 비회원에게 작성자가 가려진 댓글은 본문을 그대로 보여준다.
+      isDeleted: comment.author === null && comment.userId != null,
       replies: [],
     });
   });

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { CommunityPostLink } from './CommunityPostLink';
 import Card from '../../../components/Card';
 import Category from '../../../components/Category';
 import Icon from '../../../components/Icon';
@@ -21,7 +21,7 @@ const MainBox = ({ post }: MainBoxProps) => {
   const postImageUrl = isGranted ? post.postImageUrl ?? post.imageUrl : undefined;
 
   return (
-    <Link to={`/community/post/${post.id}`} className='block'>
+    <CommunityPostLink postId={post.id} accessStatus={post.accessStatus}>
       <Card
         width="100%"
         height="260px"
@@ -30,7 +30,7 @@ const MainBox = ({ post }: MainBoxProps) => {
       >
         <div className='flex flex-col' style={{ gap: '15px' }}>
           <div className='flex flex-col' style={{ gap: '10px' }}>
-            <div className='flex' style={{ gap: '15px' }}>
+            {post.author.id !== 'unknown' && (<div className='flex' style={{ gap: '15px' }}>
               <img
                 // API 목록 매퍼가 작성자 정보와 프로필 이미지를 author 객체에 함께 보존한다.
                 src={post.author.profileImageUrl ?? defaultProfileImg}
@@ -54,7 +54,7 @@ const MainBox = ({ post }: MainBoxProps) => {
                   </div>
                 ) : null}
               </div>
-            </div>
+            </div>)}
 
             <div className='flex' style={{ gap: '15px' }}>
               <div className='flex flex-1 flex-col' style={{ gap: '7px' }}>
@@ -116,7 +116,7 @@ const MainBox = ({ post }: MainBoxProps) => {
           <span>{formatTimeAgo(post.createdAt)}</span>
         </div>
       </Card>
-    </Link>
+    </CommunityPostLink>
   );
 };
 

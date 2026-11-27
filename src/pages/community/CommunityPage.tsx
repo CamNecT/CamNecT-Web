@@ -86,9 +86,15 @@ const mapSortKeyToApiSort = (sortKey: SortKey): Sort => {
 };
 
 
-export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
+export const CommunityPage = ({ isAdmin = false }: CommunityPageProps) => {
+  const userId = useAuthStore((state) => state.isAuthenticated ? state.user?.id : undefined);
+
+  // 인증 상태가 바뀌면 이전 사용자의 목록·커서와 아직 진행 중인 요청을 폐기한다.
+  return <CommunityView key={userId ?? 'guest'} userId={userId} isAdmin={isAdmin} />;
+};
+
+const CommunityView = ({ isAdmin, userId }: CommunityPageProps & { userId?: string }) => {
   const navigate = useNavigate();
-  const userId = useAuthStore((state) => state.user?.id);
   const { mapTagNamesToIds } = useTagList();
   // 탭 선택 및 검색 UI 상태
   // 선택한 탭을 URL에 남겨 글쓰기 등에서 뒤로 돌아올 때 유지하고, 파라미터 없는 새 진입은 전체 탭에서 시작한다.
@@ -205,9 +211,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
       const isAppend = options.append ?? false;
       const state = getTabState(tab);
       const query = isAppend ? lastRequestRef.current[tab] : options.query;
-      const numericUserId = Number(userId);
-
-      if (!query || !Number.isInteger(numericUserId) || numericUserId < 1) return;
+      if (!query) return;
 
       if (isAppend && (!state.hasNext || state.isLoadingMore || state.isLoading)) {
         return;
@@ -248,7 +252,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
               }
           : {};
         const response = await getCommunityPosts({
-          userId: numericUserId,
+          userId,
           tab,
           keyword: query.keyword || undefined,
           sort: query.sort,
@@ -257,7 +261,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           ...cursorParams,
         }, { signal: controller.signal });
 
-        if (requestId !== requestSeq.current[tab]) return;
+        if (controller.signal.aborted || requestId !== requestSeq.current[tab]) return;
 
         const page = response.data;
 
@@ -332,7 +336,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
   const recommendedPosts = useMemo(() => recommendedPostsFromApi, [recommendedPostsFromApi]);
 
   const unansweredQuestions = useMemo(
-    () => waitingQuestionsFromApi.filter((post) => post.answers === 0),
+    () => waitingQuestionsFromApi.filter((post) => post.answers === 0 || post.accessStatus === 'LOGIN_REQUIRED'),
     [waitingQuestionsFromApi],
   );
 
@@ -378,22 +382,20 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
         }
       }
       if (activeTab === 'all') {
-        const numericUserId = Number(userId);
-        if (!Number.isInteger(numericUserId) || numericUserId < 1) return;
         if (
           !mainState.isLoading &&
           !mainState.hasFetched &&
           !mainState.error
         ) {
           setMainState((previous) => ({ ...previous, isLoading: true, error: null }));
-          getCommunityHome({ userId: numericUserId })
+          getCommunityHome({ userId })
             .then((response) => {
               const recommendedByTag = response.data.recommendedByTag ?? [];
               const recommendedByInterest = response.data.recommendedByInterest ?? [];
               const waitingQuestions = response.data.waitingQuestions ?? [];
               setMainState({
-                tagId: response.data.tagId,
-                tagName: response.data.tagName,
+                tagId: response.data.tagId ?? undefined,
+                tagName: response.data.tagName ?? undefined,
                 recommendedByTag,
                 recommendedByInterest,
                 waitingQuestions,
@@ -524,7 +526,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
                   onChange={(event) =>
                     setSearchQuery(sanitizeSearchKeyword(event.target.value))
                   }
-                  placeholder='제목, 내용 검색'
+                  placeholder={!userId && activeTab === 'question' ? '제목 검색' : '제목, 내용 검색'}
                   className='w-0 min-w-0 flex-1 bg-transparent text-r-16 text-[var(--ColorBlack,#202023)] placeholder:text-[var(--ColorGray2,#A1A1A1)] focus:outline-none'
                 />
                 <button
@@ -578,7 +580,18 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
       }
     >
       <div className='min-h-0 flex-1 overflow-y-auto'>
-        {renderTab()}
+        {activeTab === 'all' && mainState.error ? (
+          <div role='alert' className='flex flex-col items-center gap-3 px-[25px] py-[30px] text-center text-r-14'>
+            <span>{mainState.error}</span>
+            <button
+              type='button'
+              className='text-primary'
+              onClick={() => setMainState((previous) => ({ ...previous, error: null, hasFetched: false }))}
+            >
+              다시 불러오기
+            </button>
+          </div>
+        ) : renderTab()}
         {activeTab === 'info' && infoState.error ? (
           <div className='flex flex-col items-center gap-[8px] px-[25px] py-[15px] text-center text-r-14 text-[var(--Color_Red,#FF3838)]'>
             <span>{infoState.error}</span>
