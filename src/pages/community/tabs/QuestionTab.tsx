@@ -80,7 +80,7 @@ const QuestionTab = ({
           const isLocked = post.accessStatus !== 'GRANTED';
           const requiredPoints = post.requiredPoints;
           return (
-            <CommunityPostLink key={post.id} postId={post.id} accessStatus={post.accessStatus}>
+            <CommunityPostLink key={post.id} postId={post.id} accessStatus={post.accessStatus} questionSummary={post}>
             <article
               className='flex flex-col'
               style={{

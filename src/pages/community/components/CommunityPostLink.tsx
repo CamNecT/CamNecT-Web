@@ -1,25 +1,40 @@
 import { type ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
-import GuestLoginModal from '../../../components/guest/GuestLoginModal';
+import { CommunityGuestLoginModal } from './CommunityGuestLoginModal';
+import type { GuestQuestionSummary } from './GuestQuestionPreview';
 import type { CommunityAccessStatus } from '../../../api-types/communityApiTypes';
 
 type Props = {
   postId: string;
   accessStatus?: CommunityAccessStatus;
   children: ReactNode;
+  questionSummary?: GuestQuestionSummary;
 };
 
-export const CommunityPostLink = ({ postId, accessStatus, children }: Props) => {
+export const CommunityPostLink = ({ postId, accessStatus, children, questionSummary }: Props) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
-  // 잠긴 카드는 상세로 진입시키지 않아 질문 상세와 댓글에 대한 요청이 발생하지 않는다.
+  // 공개 목록에 포함된 값만 넘겨 잠긴 질문의 상세 API 없이 미리보기를 그린다.
+  if (accessStatus === 'LOGIN_REQUIRED' && questionSummary) {
+    const { id, title, isAdopted, answers, saveCount, createdAt } = questionSummary;
+    return (
+      <Link
+        to={`/community/post/${postId}`}
+        state={{ guestQuestion: { id, title, isAdopted, answers, saveCount, createdAt } }}
+        className='block'
+      >
+        {children}
+      </Link>
+    );
+  }
+
   if (accessStatus === 'LOGIN_REQUIRED') {
     return (
       <>
         <button type='button' className='block w-full text-left' onClick={() => setIsLoginOpen(true)}>
           {children}
         </button>
-        <GuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+        <CommunityGuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
       </>
     );
   }

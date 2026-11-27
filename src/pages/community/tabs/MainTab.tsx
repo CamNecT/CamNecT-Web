@@ -85,7 +85,7 @@ const MainTab = ({
                 height="flex"
                 className="flex flex-col"
               >
-                <CommunityPostLink postId={question.id} accessStatus={question.accessStatus}>
+                <CommunityPostLink postId={question.id} accessStatus={question.accessStatus} questionSummary={question}>
                   <div
                     className='flex flex-col'
                     style={{

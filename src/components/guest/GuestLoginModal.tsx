@@ -28,13 +28,13 @@ export const GuestLoginModal = ({
       onClick={onClose}
     >
       <div
-        className='flex w-[clamp(260px,85vw,325px)] flex-col gap-[40px] rounded-[20px] bg-white px-[20px] pb-[20px] pt-[60px] shadow-[0_12px_30px_rgba(0,0,0,0.16)]'
+        className={`flex min-h-[200px] w-full max-w-[325px] flex-col justify-between rounded-[20px] bg-white px-[20px] pb-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.16)] ${content ? 'gap-[30px] pt-[40px]' : 'gap-[40px] pt-[69px]'}`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className='flex flex-col items-center gap-[10px] text-center'>
-          <p className='whitespace-pre-line text-b-16-hn text-gray-900'>{title}</p>
+        <div className='flex flex-col items-center gap-[20px] text-center'>
+          <p className='whitespace-pre-line text-b-18-hn text-gray-900'>{title}</p>
           {content ? (
-            <p className='whitespace-pre-line text-r-12-hn text-gray-750'>{content}</p>
+            <p className='whitespace-pre-line text-r-14 text-gray-750'>{content}</p>
           ) : null}
         </div>
         <Button

@@ -1,13 +1,14 @@
 import { isAxiosError, type AxiosError } from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { acceptCommunityComment, createCommunityComment, deleteCommunityComment, deleteCommunityPost, getCommunityPostComments, postCommunityBookmark, postCommunityLike, purchaseCommunityPostAccess, updateCommunityComment } from '../../api/community';
 import BottomSheetModalPost, {
   type ActionItem,
 } from '../../components/BottomSheetModal/BottomSheetModal-post';
-import GuestLoginModal from '../../components/guest/GuestLoginModal';
-import GuestContentBlur from '../../components/guest/GuestContentBlur';
+import { CommunityGuestLoginModal } from './components/CommunityGuestLoginModal';
+import { GuestQuestionPreview, type GuestQuestionSummary } from './components/GuestQuestionPreview';
+import { FullLayout } from '../../layouts/FullLayout';
 import { pointHistoryKey } from '../shop/hooks/useShopHistoryQuery';
 import { GuestPostAttachment } from './components/GuestPostAttachment';
 import Button from '../../components/Button';
@@ -69,6 +70,13 @@ type ReportTarget = {
 const CommunityPostPage = () => {
   const { postId } = useParams();
   const userId = useAuthStore((state) => state.isAuthenticated ? state.user?.id : undefined);
+  const { state } = useLocation();
+  const summary = (state as { guestQuestion?: GuestQuestionSummary } | null)?.guestQuestion;
+
+  if (!userId && summary && summary.id === postId) {
+    return <GuestQuestionPreview summary={summary} />;
+  }
+
   // 같은 상세 URL에서도 접근 권한이 바뀌면 본문·댓글·첨부 상태를 새로 조회한다.
   return <CommunityPostView key={JSON.stringify([postId, userId])} />;
 };
@@ -424,6 +432,8 @@ const CommunityPostView = () => {
     refetchPost();
   };
 
+  if (requiresLogin) return <GuestQuestionPreview />;
+
   if (!selectedPost) {
     return (
       <HeaderLayout
@@ -440,11 +450,7 @@ const CommunityPostView = () => {
           />
         }
       >
-        {requiresLogin ? (
-          <GuestContentBlur className='min-h-[320px]' title='로그인 후 질문을 볼 수 있어요'>
-            <div className='m-[25px] h-[220px] rounded-[10px] bg-gray-100' />
-          </GuestContentBlur>
-        ) : hasDetailLoadError && !isDetailLoading ? (
+        {hasDetailLoadError && !isDetailLoading ? (
           <section
             role='alert'
             className='flex flex-1 flex-col items-center justify-center px-[25px] text-center'
@@ -822,8 +828,10 @@ const CommunityPostView = () => {
     />
   );
 
+  const Layout = userId ? HeaderLayout : FullLayout;
+
   return (
-    <HeaderLayout
+    <Layout
       headerSlot={
         <MainHeader
           title='커뮤니티'
@@ -846,12 +854,12 @@ const CommunityPostView = () => {
     >
       {selectedPost ? (
         // 이미지·프로필까지 드래그 선택되는 것을 막고, 실제 콘텐츠 텍스트에서만 선택을 다시 허용한다.
-        <main
+        <div
           className='flex w-full select-none justify-center bg-white'
-          style={{ paddingBottom: 'calc(90px + env(safe-area-inset-bottom))' }}
+          style={userId ? { paddingBottom: 'calc(90px + env(safe-area-inset-bottom))' } : undefined}
         >
           <div className='flex w-full max-w-[720px] flex-col sm:px-[25px]'>
-            <section className='flex flex-col gap-[35px] border-b border-[#ECECEC] px-5 pb-[30px] pt-[22px] sm:px-[25px]'>
+            <section className={`flex flex-col border-b border-[#ECECEC] pb-[30px] pt-[22px] ${userId ? 'gap-[35px] px-5 sm:px-[25px]' : 'gap-[25px] px-[25px]'}`}>
             <div className='flex flex-col items-start gap-[20px]'>
               {isQuestionPost ? (
                 <div
@@ -865,7 +873,7 @@ const CommunityPostView = () => {
                 </div>
               ) : (
                 <div className='text-[12px] font-normal text-[var(--ColorMain,#00C56C)]'>
-                  {selectedPost.boardType} 게시판 &gt;
+                  {selectedPost.boardType} 게시판{userId ? ' >' : ''}
                 </div>
               )}
               <div className='flex flex-col gap-[13px]'>
@@ -873,6 +881,19 @@ const CommunityPostView = () => {
                   {selectedPost.title}
                 </div>
                 <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
+                  {!userId ? (
+                    <div className='-my-2 flex items-center'>
+                      <button type='button' aria-label='좋아요' onClick={() => setIsLoginOpen(true)} className='flex min-h-10 items-center gap-[3px] pr-2'>
+                        <Icon name='thumbs_up_stroke' size={14} />{likeCount}
+                      </button>
+                      <a href='#guest-post-comments' aria-label='댓글 보기' className='flex min-h-10 items-center gap-[3px] px-2'>
+                        <Icon name='comment' size={14} />{commentCount}
+                      </a>
+                      <button type='button' aria-label='북마크' onClick={() => setIsLoginOpen(true)} className='flex min-h-10 items-center gap-[3px] pl-2'>
+                        <Icon name='bookmark_stroke' size={14} />{bookmarkCount}
+                      </button>
+                    </div>
+                  ) : (
                   <div className='flex items-center gap-[5px]'>
                     <div className='flex items-center gap-[3px]'>
                       <Icon name='thumbs_up_stroke' className='h-[14px] w-[14px]' />
@@ -901,6 +922,7 @@ const CommunityPostView = () => {
                       <span>{bookmarkCount}</span>
                     </div>
                   </div>
+                  )}
                   <span className='text-[var(--ColorGray2,#A1A1A1)]'>
                     {formatPostDisplayDate(selectedPost.createdAt)}
                   </span>
@@ -1049,9 +1071,14 @@ const CommunityPostView = () => {
             </div>
           </section>
 
-          <section className='flex flex-col'>
-            <div className='px-[25px] pb-[15px] pt-[20px] text-[16px] font-semibold text-[var(--ColorBlack,#202023)]'>
+          <section id={userId ? undefined : 'guest-post-comments'} className='flex flex-col'>
+            <div className='flex min-h-[56px] items-center justify-between gap-3 px-[25px] text-[16px] font-semibold text-gray-900'>
               댓글 ({commentCount})
+              {!userId && (
+                <button type='button' onClick={() => setIsLoginOpen(true)} className='min-h-11 text-m-14 text-gray-750'>
+                  댓글 작성
+                </button>
+              )}
             </div>
             {isLockedQuestion ? (
               <div className='flex items-center justify-center px-[25px] py-[30px] text-m-14 text-[var(--ColorGray2,#A1A1A1)]'>
@@ -1080,7 +1107,7 @@ const CommunityPostView = () => {
             )}
             </section>
           </div>
-        </main>
+        </div>
       ) : null}
       {userId ? (
         <BottomChat
@@ -1104,23 +1131,8 @@ const CommunityPostView = () => {
           focusToken={replyFocusToken}
           maxLength={5000}
         />
-      ) : (
-        <div
-          className='fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-[var(--app-mobile-max-width)] items-center gap-3 bg-white px-5 pt-2'
-          style={{ paddingBottom: 'calc(15px + env(safe-area-inset-bottom))' }}
-        >
-          <button type='button' onClick={() => setIsLoginOpen(true)} className='min-h-[44px] flex-1 rounded-full border border-gray-200 px-3 text-left text-r-14 text-gray-650'>
-            로그인 후 댓글 작성
-          </button>
-          <button type='button' aria-label='좋아요' onClick={() => setIsLoginOpen(true)} className='grid size-11 place-items-center'>
-            <Icon name='thumbs_up_stroke' size={24} />
-          </button>
-          <button type='button' aria-label='북마크' onClick={() => setIsLoginOpen(true)} className='grid size-11 place-items-center'>
-            <Icon name='bookmark_stroke' size={24} />
-          </button>
-        </div>
-      )}
-      <GuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      ) : null}
+      <CommunityGuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
       <ImagePopUp
         isOpen={Boolean(selectedImageUrl)}
         imageUrl={selectedImageUrl}
@@ -1165,7 +1177,7 @@ const CommunityPostView = () => {
         isFading={isToastFading}
         message={toastMessage}
       />
-    </HeaderLayout>
+    </Layout>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '../../../store/useAuthStore';
-import GuestLoginModal from '../../../components/guest/GuestLoginModal';
+import { CommunityGuestLoginModal } from './CommunityGuestLoginModal';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/Icon';
 import PressableMotion from '../../../components/PressableMotion';
@@ -53,7 +53,7 @@ const WriteButton = ({ onClick, hasBottomNav = false, boardType }: WriteButtonPr
           </span>
         </span>
       </PressableMotion>
-      <GuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      <CommunityGuestLoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </>
   );
 };
