@@ -14,7 +14,6 @@ import { pointHistoryKey } from '../shop/hooks/useShopHistoryQuery';
 import { GuestPostAttachment } from './components/GuestPostAttachment';
 import Button from '../../components/Button';
 import Category from '../../components/Category';
-import Icon from '../../components/Icon';
 import ImagePopUp from '../../components/ImagePopUp';
 import { LinkifiedText } from '../../components/LinkifiedText';
 import PopUp from '../../components/Pop-up';
@@ -34,7 +33,7 @@ import { useCommentActions } from './hooks/useCommentActions';
 import { usePost } from './hooks/usePost';
 import { findCommentAuthorId } from './utils/comment';
 import { isEditOption, type OptionItemId } from './utils/option';
-import { formatPostDisplayDate } from './utils/post';
+import { PostMetadata } from './components/PostMetadata';
 import defaultProfileImg from "../../assets/image/defaultProfileImg.png"
 import { getFileName } from '../../utils/getFileName';
 import { getServerErrorCode } from '../../utils/getServerErrorCode';
@@ -894,41 +893,12 @@ const CommunityPostView = () => {
                 <div className='select-text text-[24px] font-bold leading-[130%] text-black'>
                   {selectedPost.title}
                 </div>
-                {userId && (
-                  <div className='flex flex-wrap items-center gap-[10px] text-[12px] text-[var(--ColorGray3,#646464)]'>
-                    <div className='flex items-center gap-[5px]'>
-                      <div className='flex items-center gap-[3px]'>
-                        <Icon name='thumbs_up_stroke' className='h-[14px] w-[14px]' />
-                        <span>{likeCount}</span>
-                      </div>
-
-                      <div className='flex items-center gap-[3px]'>
-                        <Icon name='comment' className='h-[14px] w-[14px]' />
-                        <span>{commentCount}</span>
-                      </div>
-                      <div className='flex items-center gap-[3px]'>
-                        <svg
-                          xmlns='http://www.w3.org/2000/svg'
-                          width='11'
-                          height='12'
-                          viewBox='0 0 11 12'
-                          fill='none'
-                        >
-                          <path
-                            d='M9.22867 0.697692C9.962 0.775908 10.5 1.3558 10.5 2.03286V11.5L5.5 9.20853L0.5 11.5V2.03286C0.5 1.3558 1.03733 0.775908 1.77133 0.697692C4.24879 0.434103 6.75121 0.434103 9.22867 0.697692Z'
-                            stroke='#646464'
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                          />
-                        </svg>
-                        <span>{bookmarkCount}</span>
-                      </div>
-                    </div>
-                    <span className='text-[var(--ColorGray2,#A1A1A1)]'>
-                      {formatPostDisplayDate(selectedPost.createdAt)}
-                    </span>
-                  </div>
-                )}
+                <PostMetadata
+                  likes={likeCount}
+                  comments={userId ? commentCount : selectedPost.comments}
+                  bookmarks={bookmarkCount}
+                  createdAt={selectedPost.createdAt}
+                />
               </div>
             </div>
 

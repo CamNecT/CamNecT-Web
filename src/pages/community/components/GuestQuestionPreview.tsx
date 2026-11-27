@@ -4,8 +4,9 @@ import { FullLayout } from '../../../layouts/FullLayout';
 import { MainHeader } from '../../../layouts/headers/MainHeader';
 import type { QuestionPost } from '../../../types/community';
 import { GuestPostAuthorRow } from './GuestPostAuthor';
+import { PostMetadata } from './PostMetadata';
 
-export type GuestQuestionSummary = Pick<QuestionPost, 'id' | 'title' | 'isAdopted'>;
+export type GuestQuestionSummary = Pick<QuestionPost, 'id' | 'title' | 'isAdopted' | 'likes' | 'answers' | 'saveCount' | 'createdAt'>;
 
 export const GuestQuestionPreview = ({ summary }: { summary?: GuestQuestionSummary }) => {
   const navigate = useNavigate();
@@ -32,6 +33,12 @@ export const GuestQuestionPreview = ({ summary }: { summary?: GuestQuestionSumma
               {summary.isAdopted ? '채택 완료' : '채택 전'}
             </span>
             <h1 className='break-words text-[24px] font-bold leading-[1.4] text-gray-900'>{summary.title}</h1>
+            <PostMetadata
+              likes={summary.likes}
+              comments={summary.answers}
+              bookmarks={summary.saveCount}
+              createdAt={summary.createdAt}
+            />
           </section>
         )}
         <div className='px-[25px]'>

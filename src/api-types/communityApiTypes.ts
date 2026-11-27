@@ -174,6 +174,7 @@ export type CommunityPostDetailResponse = {
   }[];
   author: CommunityAuthor | null;
   viewCount: number;
+  commentCount?: number;
   bookmarkCount: number;
   likeCount: number;
   likedByMe: boolean;

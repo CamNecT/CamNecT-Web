@@ -92,7 +92,7 @@ export const mapToCommunityPostDetail = (
   boardType: post.boardCode === "INFO" ? "정보" : "질문",
   title: post.title,
   likes: post.likeCount,
-  comments: 0,
+  comments: post.commentCount,
   saveCount: post.bookmarkCount,
   bookmarked: post.bookmarked ?? false,
   isAdopted: Boolean(post.acceptedCommentId),

@@ -64,7 +64,7 @@ export type CommunityPostDetail = {
   boardType: string;
   title: string;
   likes: number;
-  comments: number;
+  comments?: number;
   saveCount: number;
   bookmarked?: boolean;
   isAdopted: boolean;
