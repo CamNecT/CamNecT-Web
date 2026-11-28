@@ -15,6 +15,8 @@ interface ProfileStepProps {
   onNext: () => void;
 }
 
+const MAX_INTRODUCTION_LINES = 5;
+
 export const ProfileStep = ({ onNext }: ProfileStepProps) => {
   const { storedIntroduction, storedProfileImage, setProfileImage, setSelfIntroduction, setProfileImageKey } = useSignupStore(
     useShallow((state) => ({
@@ -185,13 +187,16 @@ export const ProfileStep = ({ onNext }: ProfileStepProps) => {
             width="100%"
             placeholder="자기소개 내용을 입력해주세요! (최대 100자)"
             value={introduction || ""}
-            onChange={(e) => setIntroduction(e.target.value)}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (next.split("\n").length <= MAX_INTRODUCTION_LINES) setIntroduction(next);
+            }}
             maxLength={100}
             height={130}
           />
 
           <div className="mt-2 self-end text-R-12 text-gray-650">
-            {(introduction?.length || 0)}/100
+            {(introduction?.length || 0)}/100 · 최대 {MAX_INTRODUCTION_LINES}줄
           </div>
         </div>
       </div>
