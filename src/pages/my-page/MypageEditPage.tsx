@@ -278,7 +278,7 @@ export const MypageEditPage = () => {
                                             <Icon name="arrow_right" className="w-[10px] h-[10px] block shrink-0"/>
                                         </button>
                                     </div>
-                                    <div className="w-full flex text-R-14 text-gray-750 leading-[1.5] pl-[4px] line-clamp-3 whitespace-pre-line break-keep [overflow-wrap:anywhere]">
+                                    <div className="w-full text-R-14 text-gray-750 leading-[1.5] pl-[4px] whitespace-pre-line break-keep [overflow-wrap:anywhere]">
                                         <LinkifiedText text={user.introduction} />
                                     </div>
                                 </div>

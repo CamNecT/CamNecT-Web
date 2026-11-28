@@ -13,9 +13,13 @@ interface IntroEditModalProps {
 }
 
 const MAX_LENGTH = 100;
+const MAX_LINES = 5;
+const countLines = (value: string) => value.split(/\r\n?|\n/).length;
 
 export default function IntroEditModal({ userId, initialStatement, onClose }: IntroEditModalProps) {
     const [statement, setStatement] = useState<string>(initialStatement);
+    const lineCount = countLines(statement);
+    const isOverLimit = statement.length > MAX_LENGTH || lineCount > MAX_LINES;
     const queryClient = useQueryClient();
 
     // 변경사항 추적
@@ -68,7 +72,7 @@ export default function IntroEditModal({ userId, initialStatement, onClose }: In
                                         hasChanges ? 'text-primary' : 'text-gray-650'
                                     }`}
                                     onClick={handleComplete}
-                                    disabled={!hasChanges || mutation.isPending}
+                                    disabled={!hasChanges || isOverLimit || mutation.isPending}
                                 >
                                     {mutation.isPending ? '저장중..' : '완료'}
                                 </button>
@@ -79,16 +83,19 @@ export default function IntroEditModal({ userId, initialStatement, onClose }: In
                     <section className="w-full px-[25px] pt-[27px] flex flex-col gap-[5px] items-end border-t border-gray-150">
                         <textarea
                             value={statement}
-                            onChange={(e) => {
-                                if (e.target.value.length <= MAX_LENGTH) {
-                                    setStatement(e.target.value);
+                            onChange={(event) => {
+                                const next = event.target.value;
+                                // 기존에 한도를 넘긴 글도 한 줄씩 줄일 수 있도록 한다.
+                                if (next.length <= Math.max(MAX_LENGTH, statement.length) &&
+                                    countLines(next) <= Math.max(MAX_LINES, lineCount)) {
+                                    setStatement(next);
                                 }
                             }}
                             placeholder="내용을 입력해주세요. (최대 100자)"
                             className="w-full h-[130px] p-[15px] border border-gray-150 rounded-[10px] text-r-16 text-gray-750 placeholder:text-gray-650 resize-none focus:outline-none"
                         />
                         <div className="text-r-12-hn text-gray-650">
-                            {statement.length}/{MAX_LENGTH}
+                            {statement.length}/{MAX_LENGTH} · 최대 {MAX_LINES}줄
                         </div>
                     </section>
                 </HeaderLayout>
