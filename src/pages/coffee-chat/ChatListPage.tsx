@@ -5,12 +5,14 @@ import { Tabs } from '../../components/Tabs';
 import { useChatRooms, useClosedChatRoomsExit } from '../../hooks/useChatQuery';
 import { FullLayout } from '../../layouts/FullLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
+import { useAuthStore } from '../../store/useAuthStore';
 import type { ChatRoomListItemType } from '../../types/coffee-chat/coffeeChatTypes';
 import { ChatList } from './components/ChatList';
 import SortSelector from '../../components/SortSelector';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChatDeleteButton } from './components/ChatDeleteButton';
 import { ChatEmptyState } from './components/ChatEmptyState';
+import { GuestChatListView } from './components/GuestChatListView';
 
 type SortKey = 'all' | 'active' | 'closed';
 
@@ -34,6 +36,12 @@ const tabs = [
 const MAX_SELECTED_ROOM_COUNT = 100;
 
 export const ChatListPage = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  return isAuthenticated ? <MemberChatListView /> : <GuestChatListView />;
+};
+
+const MemberChatListView = () => {
   const [activeId, setActiveId] = useState<ChatRoomListItemType>('COFFEE_CHAT');
   const [sortKey, setSortKey] = useState<SortKey>('all'); // 전체보기가 기본
   const [isEditMode, setIsEditMode] = useState(false);
