@@ -100,6 +100,7 @@ export const CommunityPage = ({ isAdmin = false }: CommunityPageProps) => {
 
 const CommunityView = ({ isAdmin, userId }: CommunityPageProps & { userId?: string }) => {
   const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { mapTagNamesToIds } = useTagList();
   // 탭 선택 및 검색 UI 상태
   // 선택한 탭을 URL에 남겨 글쓰기 등에서 뒤로 돌아올 때 유지하고, 파라미터 없는 새 진입은 전체 탭에서 시작한다.
@@ -548,6 +549,7 @@ const CommunityView = ({ isAdmin, userId }: CommunityPageProps & { userId?: stri
 
   return (
     <HeaderLayout
+      showBottomNav={!isAdmin && !isAuthenticated}
       headerSlot={
         <div className='sticky top-0 z-50 bg-white'>
           {isSearchOpen && activeTab !== 'all' ? (

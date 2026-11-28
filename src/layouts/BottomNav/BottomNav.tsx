@@ -1,6 +1,7 @@
 // 하단 네비게이션 바
 import { useLocation, useNavigate } from "react-router-dom";
 import type { IconName } from "../../components/Icon";
+import { useAuthStore } from "../../store/useAuthStore";
 import { BottomNavButton } from "./BottomNavButton";
 export interface BottomNavProps {
     icon: IconName;
@@ -10,42 +11,65 @@ export interface BottomNavProps {
     hasBadge?: boolean;
 }
 
-const navList: BottomNavProps[] = [
-    {
+const navItems = {
+    home: {
         icon: "Navigation_home_stroke",
         activeIcon: "Navigation_home_fill",
         label: "홈",
         path: "/home"
     },
-    {
+    alumni: {
         icon: "Navigation_Alumni_search_stroke",
         activeIcon: "Navigation_Alumni_search_fill",
         label: "동문 찾기",
         path: "/alumni"
     },
-    {
+    chat: {
         icon: "Navigation_coffee_chat_stroke",
         activeIcon: "Navigation_coffee_chat_fill",
         label: "커피챗",
         path: "/chat",
         hasBadge: true
     },
-    {
+    activity: {
         icon: "Navigation_activities_stroke",
         activeIcon: "Navigation_activities_fill",
         label: "대외활동",
         path: "/activity"
     },
-    {
+    myPage: {
         icon: "Navigation_mypage_stroke",
         activeIcon: "Navigation_mypage_fill",
         label: "마이 페이지",
         path: "/me"
-    }
+    },
+    community: {
+        icon: "Navigation_community_stroke",
+        activeIcon: "Navigation_community_fill",
+        label: "커뮤니티",
+        path: "/community"
+    },
+} satisfies Record<string, BottomNavProps>;
+
+const memberNavList: BottomNavProps[] = [
+    navItems.home,
+    navItems.alumni,
+    navItems.chat,
+    navItems.activity,
+    navItems.myPage,
+];
+
+const guestNavList: BottomNavProps[] = [
+    navItems.home,
+    navItems.community,
+    navItems.activity,
+    navItems.chat,
+    navItems.alumni,
 ];
 
 
 export const BottomNav = () => {
+    const navList = useAuthStore((state) => state.isAuthenticated ? memberNavList : guestNavList);
     const navigate = useNavigate();
     // 현재 URL 정보 hook (ex. /chat)
     // 주소가 바뀌면 재 렌더링
