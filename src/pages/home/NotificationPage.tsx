@@ -11,6 +11,7 @@ import {
 } from '../../api/notifications';
 import type { ApiResponse, CommunityPostCommentResponse } from '../../api-types/communityApiTypes';
 import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind } from '../../components/requestErrorPopup';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -23,12 +24,7 @@ import {
 } from './notificationData';
 import { mapNotificationResponseToItems } from './notificationMapper';
 import { resolveNotificationDestination } from './notificationRouting';
-import { getNotificationErrorPopupConfig } from './utils/notificationError';
-
-type PopUpConfig = {
-  title: string;
-  content: string;
-};
+import { getNotificationErrorPopupConfig, type NotificationErrorPopupConfig as PopUpConfig } from './utils/notificationError';
 
 const resolveUserIdParam = (value: string | number | null | undefined) => {
   if (value === null || value === undefined) return null;
@@ -114,6 +110,9 @@ const getNavigationErrorPopUpConfig = (
   const config = (error as { popUpConfig?: PopUpConfig })?.popUpConfig;
   if (config) return config;
 
+  const requestError = getRequestErrorKind(error);
+  if (requestError) return { requestError };
+
   const status = getErrorStatus(error);
   if (status === 403) {
     return {
@@ -124,13 +123,6 @@ const getNavigationErrorPopUpConfig = (
   }
   if (status === 404) {
     return getFallbackNavigationPopUpConfig(notification);
-  }
-  if (status === 500) {
-    return {
-      title: '알림 화면으로 이동하지 못했어요',
-      content:
-        '연결된 정보를 확인하는 중 문제가 생겼어요.',
-    };
   }
   return getFallbackNavigationPopUpConfig(notification);
 };
@@ -427,6 +419,8 @@ export const NotificationPage = () => {
   const queryClient = useQueryClient();
   const [popUpConfig, setPopUpConfig] = useState<PopUpConfig | null>(null);
   const [dismissedErrorAt, setDismissedErrorAt] = useState<number | null>(null);
+  const [hasDismissedEntryError, setHasDismissedEntryError] = useState(false);
+  const [pendingListAction, setPendingListAction] = useState(0);
   // 개별 읽음과 전체 읽음이 겹치면 실패 복구가 다른 요청의 결과를 덮어쓸 수 있다.
   const pendingActionRef = useRef(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
@@ -438,8 +432,9 @@ export const NotificationPage = () => {
   const markAsUnread = useNotificationStore((state) => state.markAsUnread);
   const setItems = useNotificationStore((state) => state.setItems);
 
-  const { data: notificationResponse, error: notificationError, errorUpdatedAt, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['notifications', userIdParam],
+  const notificationsQueryKey = ['notifications', userIdParam];
+  const { data: notificationResponse, error: notificationError, errorUpdatedAt, isLoading, isLoadingError, isFetching, refetch } = useQuery({
+    queryKey: notificationsQueryKey,
     queryFn: () => requestNotifications({ userId: userIdParam as string | number, size: 20 }),
     enabled: hasValidUserId,
     staleTime: 30 * 1000,
@@ -452,15 +447,48 @@ export const NotificationPage = () => {
   }, [notificationResponse, setItems]);
 
   const queryErrorConfig = useMemo(() => {
-    if (dismissedErrorAt === errorUpdatedAt) return null;
+    if (pendingListAction || dismissedErrorAt === errorUpdatedAt) return null;
     // 오프라인 안내는 전역 배너에 맡기되 서버 코드별 안내와 조회 재시도는 유지한다.
     if (shouldSkipLocalErrorUI(notificationError, navigator.onLine)) return null;
-    return getNotificationErrorPopupConfig(notificationError, 'list');
-  }, [notificationError, errorUpdatedAt, dismissedErrorAt]);
+    const requestError = getRequestErrorKind(notificationError);
+    if (isLoadingError && requestError && (isFetching || hasDismissedEntryError)) return null;
+    return getNotificationErrorPopupConfig(notificationError, 'list', isLoadingError);
+  }, [notificationError, errorUpdatedAt, dismissedErrorAt, hasDismissedEntryError, isFetching, isLoadingError, pendingListAction]);
+
+  const retryNotifications = async () => {
+    setPendingListAction((count) => count + 1);
+    setPopUpConfig(null);
+    try {
+      const result = await refetch();
+      setDismissedErrorAt(result.errorUpdatedAt);
+      if (!shouldSkipLocalErrorUI(result.error, navigator.onLine)) {
+        setPopUpConfig(getNotificationErrorPopupConfig(result.error, 'list', true));
+      }
+    } finally {
+      setPendingListAction((count) => count - 1);
+    }
+  };
+
+  const refreshReadNotifications = async (hasActionError = false) => {
+    // 읽음 저장 후 이동이 실패했으면, 저장 후 목록 갱신에서 두 번째 팝업을 열지 않는다.
+    if (hasActionError) setPendingListAction((count) => count + 1);
+    try {
+      void queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
+      await queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+    } finally {
+      if (hasActionError) {
+        const updatedAt = queryClient.getQueryState(notificationsQueryKey)?.errorUpdatedAt;
+        if (updatedAt) setDismissedErrorAt(updatedAt);
+        setPendingListAction((count) => count - 1);
+      }
+    }
+  };
 
   const handleNotificationClick = async (notification: NotificationItem) => {
     if (pendingActionRef.current) return;
     pendingActionRef.current = true;
+    let didMarkAsRead = false;
+    let hasActionError = false;
     try {
       setPopUpConfig(null);
       const destination = resolveNotificationDestination(notification);
@@ -474,15 +502,12 @@ export const NotificationPage = () => {
             userId: userIdParam as string | number,
             id: notification.id,
           });
-          // 알림 읽음 처리 성공 시 안 읽은 개수 쿼리 무효화 (홈 화면 배지 업데이트용)
-          queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
-          // 알림 목록 데이터 업데이트 (목록 UI 갱신용)
-          queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
+          didMarkAsRead = true;
         } catch (error) {
           markAsUnread(notification.id);
           // 오프라인에서도 읽음 상태는 복구하고, 중복 팝업만 생략한다.
           if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
-          setPopUpConfig(getNotificationErrorPopupConfig(error, 'read'));
+          setPopUpConfig(getNotificationErrorPopupConfig(error, 'read', true));
           return;
         }
       }
@@ -492,6 +517,7 @@ export const NotificationPage = () => {
       }
 
       if (!destination) {
+        hasActionError = true;
         setPopUpConfig(getFallbackNavigationPopUpConfig(notification));
         return;
       }
@@ -501,6 +527,7 @@ export const NotificationPage = () => {
           await validateNotificationDestination(destination, userIdParam as string | number);
         }
       } catch (error) {
+        hasActionError = true;
         if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
         setPopUpConfig(getNavigationErrorPopUpConfig(error, notification));
         return;
@@ -508,6 +535,7 @@ export const NotificationPage = () => {
 
       navigate(destination);
     } finally {
+      if (didMarkAsRead) void refreshReadNotifications(hasActionError);
       pendingActionRef.current = false;
     }
   };
@@ -530,12 +558,11 @@ export const NotificationPage = () => {
         userId: userIdParam as string | number,
       });
 
-      queryClient.invalidateQueries({ queryKey: ['notificationsUnreadCount', userIdParam] });
-      queryClient.invalidateQueries({ queryKey: ['notifications', userIdParam] });
+      void refreshReadNotifications();
     } catch (error) {
       setItems(previousItems);
       if (!shouldSkipLocalErrorUI(error, navigator.onLine)) {
-        setPopUpConfig(getNotificationErrorPopupConfig(error, 'readAll'));
+        setPopUpConfig(getNotificationErrorPopupConfig(error, 'readAll', true));
       }
     } finally {
       pendingActionRef.current = false;
@@ -573,8 +600,8 @@ export const NotificationPage = () => {
             <button
               type="button"
               className="mt-[10px] text-m-16 disabled:opacity-50"
-              disabled={isFetching}
-              onClick={() => void refetch()}
+              disabled={isFetching || pendingListAction > 0}
+              onClick={() => void retryNotifications()}
             >
               {isFetching ? '불러오는 중' : '다시 시도'}
             </button>
@@ -625,11 +652,14 @@ export const NotificationPage = () => {
         <PopUp
           isOpen={!!activePopUpConfig}
           type="error"
+          requestError={activePopUpConfig.requestError}
+          showInquiryLink={activePopUpConfig.showInquiryLink}
           title={activePopUpConfig.title}
           content={activePopUpConfig.content}
           onClick={() => {
             setPopUpConfig(null);
             setDismissedErrorAt(errorUpdatedAt);
+            if (!popUpConfig && queryErrorConfig?.requestError) setHasDismissedEntryError(true);
           }}
         />
       )}

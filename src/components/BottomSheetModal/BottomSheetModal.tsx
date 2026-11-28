@@ -8,6 +8,8 @@ type BottomSheetModalProps = {
     onClose: () => void;
     height?: number | string;
     bottomOffset?: number | string;
+    // true면 배경 클릭·아래로 드래그로 닫히지 않음 (요청 처리 중 등)
+    closeDisabled?: boolean;
     children: ReactNode;
 };
 
@@ -16,6 +18,7 @@ const BottomSheetModal = ({
     onClose,
     height = 'auto',
     bottomOffset = 0,
+    closeDisabled = false,
     children,
 }: BottomSheetModalProps) => {
     // iOS Chrome 일반 탭에서만 하단 툴바가 사라진 뒤 fixed 위치가 어긋나는 WebKit 오류를 우회
@@ -90,14 +93,14 @@ const BottomSheetModal = ({
                         animate={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
                         exit={{ backgroundColor: 'rgba(0, 0, 0, 0)' }}
                         transition={{ duration: 0.2, ease: 'easeOut' }}
-                        onClick={onClose}
+                        onClick={closeDisabled ? undefined : onClose}
                         className="absolute left-0 right-0 top-0 pointer-events-auto"
                         style={{ bottom: bottomOffset }}
                     />
 
                     {/* 바텀 시트 본체 */}
                     <motion.div
-                        drag="y" // 수직방향 드래그 
+                        drag={closeDisabled ? false : "y"} // 수직방향 드래그 (닫기 막힘 상태에서는 드래그 X)
                         dragConstraints={{ top: 0 }} // 윗쪽 방향 제한 
                         dragElastic={0} // 저항 없이 손가락 따라 즉각 반응
                         onDragEnd={(_, info) => {

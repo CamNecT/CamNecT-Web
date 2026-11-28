@@ -2,9 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { viewChatRoomList } from '../../../api/chat';
+import { getRequestErrorKind, type RequestErrorPopupConfig } from '../../../components/requestErrorPopup';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { shouldSkipLocalErrorUI } from '../../../utils/getGlobalNetworkErrorType';
 
-type ChatRoomError = { title: string; content: string };
+type ChatRoomError = RequestErrorPopupConfig & { title?: string; content?: string };
 
 export const useAlumniChatRoom = (onError: (error: ChatRoomError) => void) => {
   const navigate = useNavigate();
@@ -42,12 +44,17 @@ export const useAlumniChatRoom = (onError: (error: ChatRoomError) => void) => {
           });
         }
       },
-      onError: () => {
+      onError: (error) => {
         if (useAuthStore.getState().user?.id !== loginId) return;
-        onError({
-          title: '채팅방을 불러오지 못했어요',
-          content: '네트워크 상태를 확인한 뒤 다시 시도해 주세요.',
-        });
+        if (shouldSkipLocalErrorUI(error, navigator.onLine)) return;
+
+        const requestError = getRequestErrorKind(error);
+        onError(requestError
+          ? { requestError }
+          : {
+              title: '채팅방을 불러오지 못했어요',
+              content: '네트워크 상태를 확인한 뒤 다시 시도해 주세요.',
+            });
       },
       onSettled: () => { pendingRef.current = false; },
     });

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import PortfolioEditModal from './components/PortfolioEditModal';
 import BottomSheetModal from '../../components/BottomSheetModal/BottomSheetModal';
 import ModalIcon from '../../components/BottomSheetModal/Icon';
 import PopUp from '../../components/Pop-up';
+import { isServerErrorStatus } from '../../components/requestErrorPopup';
 import { LinkifiedText } from '../../components/LinkifiedText';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
@@ -22,12 +24,14 @@ type PortfolioDetailPageProps = {
     ownerId?: string | number;
     isMine?: boolean;
     portfolioId?: string | number;
+    onServerErrorConfirm?: () => void;
 };
 
 export const PortfolioDetailPage = ({
     ownerId: ownerIdProp,
     isMine: isMineProp,
     portfolioId: portfolioIdProp,
+    onServerErrorConfirm,
 }: PortfolioDetailPageProps) => {
     const authUser = useAuthStore(state => state.user);
     const meUserId = authUser?.id ? parseInt(authUser.id) : null;
@@ -60,7 +64,7 @@ export const PortfolioDetailPage = ({
         }
     }, []);
 
-    const { data, isLoading, isError } = useQuery({
+    const { data, isLoading, isError, error } = useQuery({
         queryKey: ['portfolioDetail', portfolioUserId, portfolioId],
         queryFn: () => getPortfolioDetail(meUserId!, portfolioUserId, portfolioId!),
         enabled: !!meUserId && !!portfolioId,
@@ -141,14 +145,21 @@ export const PortfolioDetailPage = ({
 
     // 에러 발생
     if (isError) {
+        const httpStatus = onServerErrorConfirm && axios.isAxiosError(error)
+            ? error.response?.status
+            : undefined;
+        const onConfirm = onServerErrorConfirm && isServerErrorStatus(httpStatus)
+            ? onServerErrorConfirm
+            : () => window.location.reload();
         return (
             <PopUp
                 type="error"
+                httpStatus={httpStatus}
                 title="일시적 오류"
                 content="잠시 후 다시 시도해주세요."
                 isOpen={true}
                 rightButtonText='확인'
-                onClick={() => window.location.reload()}
+                onClick={onConfirm}
             />
         );
     }

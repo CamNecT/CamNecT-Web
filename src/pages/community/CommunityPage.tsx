@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon';
+import PopUp from '../../components/Pop-up';
+import { getRequestErrorKind, type RequestErrorKind } from '../../components/requestErrorPopup';
+import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import { Tabs, type TabItem } from '../../components/Tabs';
 import { HeaderLayout } from '../../layouts/HeaderLayout';
 import { MainHeader } from '../../layouts/headers/MainHeader';
@@ -12,7 +15,7 @@ import type { CommunityPostItem, Sort, Tab } from '../../api-types/communityApiT
 import { mapToInfoPost, mapToQuestionPost } from '../../utils/communityMapper';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTagList } from '../../hooks/useTagList';
-import type { AxiosError } from 'axios';
+import axios from 'axios';
 import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import { COMMUNITY_ERROR_CODES } from '../../constants/serverErrors/communityErrors';
 
@@ -37,6 +40,8 @@ type CommunityListState = {
   isLoading: boolean;
   isLoadingMore: boolean;
   error: string | null;
+  requestError?: RequestErrorKind;
+  showInquiryLink?: boolean;
 };
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -143,6 +148,7 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
     waitingQuestions: CommunityPostItem[];
     isLoading: boolean;
     error: string | null;
+    requestError?: RequestErrorKind;
     hasFetched: boolean;
   }>({
     tagId: undefined,
@@ -232,6 +238,8 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
         isLoading: !isAppend,
         isLoadingMore: isAppend,
         error: null,
+        requestError: undefined,
+        showInquiryLink: false,
         items: isAppend ? previous.items : [],
         nextCursorId: isAppend ? previous.nextCursorId : null,
         nextCursorValue: isAppend ? previous.nextCursorValue : null,
@@ -276,11 +284,14 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           isLoading: false,
           isLoadingMore: false,
           error: null,
+          requestError: undefined,
+          showInquiryLink: false,
         }));
       } catch (error) {
         if (controller.signal.aborted) return;
         if (requestId !== requestSeq.current[tab]) return;
-        const code = getServerErrorCode(error as AxiosError);
+        const axiosError = axios.isAxiosError(error) ? error : undefined;
+        const code = axiosError ? getServerErrorCode(axiosError) : undefined;
         setTabState(tab, (previous) => ({
           ...previous,
           nextCursorId: isAppend ? null : previous.nextCursorId,
@@ -288,6 +299,11 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           hasNext: isAppend ? false : previous.hasNext,
           isLoading: false,
           isLoadingMore: false,
+          // 자동 페이지 추가는 기존 500 안내만 유지하고, 새 검색·탭·재시도는 공통 팝업을 쓴다.
+          requestError: isAppend || shouldSkipLocalErrorUI(error, navigator.onLine)
+            ? undefined
+            : getRequestErrorKind(error),
+          showInquiryLink: isAppend && axiosError?.response?.status === 500,
           error:
             code === COMMUNITY_ERROR_CODES.cursorExpired
               ? '목록 커서가 만료되어 새로고침이 필요해요.'
@@ -385,7 +401,12 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
           !mainState.hasFetched &&
           !mainState.error
         ) {
-          setMainState((previous) => ({ ...previous, isLoading: true, error: null }));
+          setMainState((previous) => ({
+            ...previous,
+            isLoading: true,
+            error: null,
+            requestError: undefined,
+          }));
           getCommunityHome({ userId: numericUserId })
             .then((response) => {
               const recommendedByTag = response.data.recommendedByTag ?? [];
@@ -402,11 +423,12 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
                 hasFetched: true,
               });
             })
-            .catch(() => {
+            .catch((error: unknown) => {
               setMainState((previous) => ({
                 ...previous,
                 isLoading: false,
                 error: '커뮤니티 메인 정보를 불러오지 못했어요.',
+                requestError: shouldSkipLocalErrorUI(error, navigator.onLine) ? undefined : getRequestErrorKind(error),
                 hasFetched: true,
               }));
             });
@@ -452,10 +474,34 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
   }, [activeTab, fetchCommunityPosts, getTabState, infoState, questionState]);
 
   const retryActiveList = () => {
+    if (activeTab === 'all') {
+      setMainState((previous) => ({ ...previous, error: null, hasFetched: false }));
+      return;
+    }
+
     // 잘못된 커서 등으로 실패하면 커서 없이 현재 조건의 첫 페이지부터 복구한다.
     const tab = activeTab === 'info' ? 'INFO' : 'QUESTION';
     const query = lastRequestRef.current[tab];
     if (query) void fetchCommunityPosts(tab, { query });
+  };
+
+  const activeListState = activeTab === 'all'
+    ? mainState
+    : activeTab === 'info' ? infoState : questionState;
+
+  const showInquiryLink = activeTab !== 'all' && (activeTab === 'info' ? infoState : questionState).showInquiryLink;
+
+  const dismissServerErrorPopup = () => {
+    // 오류 안내는 남기고, 현재 탭에서 실패한 요청의 팝업만 닫는다.
+    if (activeTab === 'all') {
+      setMainState((previous) => ({ ...previous, requestError: undefined }));
+    } else {
+      setTabState(activeTab === 'info' ? 'INFO' : 'QUESTION', (previous) => ({
+        ...previous,
+        requestError: undefined,
+        showInquiryLink: false,
+      }));
+    }
   };
 
   // 현재 탭에 맞는 화면 반환
@@ -578,27 +624,30 @@ export const CommunityPage  = ({ isAdmin = false }: CommunityPageProps) => {
       }
     >
       <div className='min-h-0 flex-1 overflow-y-auto'>
-        {renderTab()}
-        {activeTab === 'info' && infoState.error ? (
-          <div className='flex flex-col items-center gap-[8px] px-[25px] py-[15px] text-center text-r-14 text-[var(--Color_Red,#FF3838)]'>
-            <span>{infoState.error}</span>
+        {(activeTab !== 'all' || !mainState.error) && renderTab()}
+        {activeListState.error && (
+          <div role='alert' className='flex flex-col items-center gap-[8px] px-[25px] py-[15px] text-center text-r-14 text-[var(--Color_Red,#FF3838)]'>
+            <span>{activeListState.error}</span>
             <button type='button' onClick={retryActiveList} className='text-m-14 text-[var(--ColorMain,#00C56C)]'>
-              처음부터 다시 불러오기
+              {activeTab === 'all' ? '다시 불러오기' : '처음부터 다시 불러오기'}
             </button>
           </div>
-        ) : null}
-        {activeTab === 'question' && questionState.error ? (
-          <div className='flex flex-col items-center gap-[8px] px-[25px] py-[15px] text-center text-r-14 text-[var(--Color_Red,#FF3838)]'>
-            <span>{questionState.error}</span>
-            <button type='button' onClick={retryActiveList} className='text-m-14 text-[var(--ColorMain,#00C56C)]'>
-              처음부터 다시 불러오기
-            </button>
-          </div>
-        ) : null}
+        )}
         {activeTab !== 'all' ? (
           <div ref={loadMoreRef} className='h-[24px]' aria-hidden='true' />
         ) : null}
       </div>
+      {activeListState.error && (activeListState.requestError || showInquiryLink) && (
+        <PopUp
+          isOpen
+          type='error'
+          requestError={activeListState.requestError}
+          showInquiryLink={showInquiryLink}
+          title={activeListState.error}
+          content='서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+          onClick={dismissServerErrorPopup}
+        />
+      )}
     </HeaderLayout>
   );
 };

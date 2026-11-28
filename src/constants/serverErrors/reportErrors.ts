@@ -11,6 +11,9 @@ export const REPORT_ERROR_CODES = {
 
     // 신고 제출 API
     reportCreate: {
+        selfReport: "51002", // 자기 자신 신고 (HTTP 400)
+        invalidTarget: "51003", // 신고 대상과 작성자 불일치 (HTTP 400)
+        targetAuthorUnverifiable: "51903", // 신고 대상 작성자 확인 불가 (HTTP 409)
         reportedUserNotFound: "44401", // 신고 대상 사용자를 찾을 수 없음
         duplicateReport: "51901", // 중복 신고 (HTTP 409)
         caseClosed: "51902", // 이미 처리가 완료된 신고 대상 (HTTP 409)
@@ -19,7 +22,8 @@ export const REPORT_ERROR_CODES = {
     // 관리자 신고 목록/상세/처리 API
     adminCase: {
         caseNotFound: "51401", // 신고(case)를 찾을 수 없음
-        evidenceNotFound: "51402", // 증거가 없는데 증거 조회를 시도함
+        evidenceNotFound: "51402", // 증거가 없거나 보관 기간(1년)이 지나 삭제됨
+        targetAuthorUnverifiable: "51903", // 과거 신고 건의 대상을 서버가 검증할 수 없어 승인 불가 (HTTP 409)
     },
 } as const;
 
@@ -40,6 +44,18 @@ export const REPORT_CREATE_ERROR_MESSAGES = {
     caseClosed: {
         title: "신고할 수 없습니다",
         content: "이미 처리가 완료된 신고 대상입니다.",
+    },
+    selfReport: {
+        title: "신고할 수 없습니다",
+        content: "본인은 신고할 수 없습니다.",
+    },
+    invalidTarget: {
+        title: "신고 접수 실패",
+        content: "신고 대상 정보가 올바르지 않습니다.\n화면을 새로고침한 뒤 다시 시도해주세요.",
+    },
+    targetAuthorUnverifiable: {
+        title: "신고 접수 실패",
+        content: "신고 대상의 작성자를 확인할 수 없습니다.",
     },
     internal: {
         title: "신고 접수 실패",
@@ -75,7 +91,7 @@ export const ADMIN_CASE_FETCH_ERROR_MESSAGES = {
     },
     evidenceNotFound: {
         title: "증거 조회 실패",
-        content: "등록된 증거 이미지가 없습니다.",
+        content: "증거 이미지가 없거나 보관 기간이 지나 삭제되었습니다.",
     },
     internal: {
         title: "조회 실패",
@@ -100,6 +116,10 @@ export const ADMIN_CASE_STATUS_ERROR_MESSAGES = {
     caseNotFound: {
         title: "처리 실패",
         content: "해당 신고를 찾을 수 없습니다.",
+    },
+    targetAuthorUnverifiable: {
+        title: "승인 실패",
+        content: "신고 대상을 확인할 수 없어 승인할 수 없습니다.",
     },
     internal: {
         title: "처리 실패",

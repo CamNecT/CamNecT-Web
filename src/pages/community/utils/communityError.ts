@@ -1,3 +1,4 @@
+import type { RequestErrorPopupConfig } from '../../../components/requestErrorPopup';
 import {
   COMMUNITY_ERROR_CODES,
   COMMUNITY_ERROR_POPUP_MESSAGES,
@@ -18,9 +19,9 @@ export type CommunityErrorAction =
   | 'like'
   | 'bookmark';
 
-export type CommunityErrorPopupConfig = {
-  title: string;
-  content: string;
+export type CommunityErrorPopupConfig = RequestErrorPopupConfig & {
+  title?: string;
+  content?: string;
 };
 
 const ACTION_FALLBACK_MESSAGES: Record<
@@ -212,7 +213,6 @@ const ACTION_CODE_POPUP_MESSAGES: Partial<
 
 type GetCommunityErrorPopupConfigParams = {
   action: CommunityErrorAction;
-  status?: number;
   errorCode?: string;
   isNetworkError?: boolean;
 };
@@ -221,7 +221,6 @@ type GetCommunityErrorPopupConfigParams = {
 // 도메인 코드 안내를 우선하고 나머지는 작업별 문구로 처리한다.
 export const getCommunityErrorPopupConfig = ({
   action,
-  status,
   errorCode,
   isNetworkError = false,
 }: GetCommunityErrorPopupConfigParams): CommunityErrorPopupConfig => {
@@ -239,13 +238,6 @@ export const getCommunityErrorPopupConfig = ({
     return {
       title: fallback.title,
       content: COMMUNITY_ERROR_POPUP_MESSAGES.network.content,
-    };
-  }
-
-  if (status === 500) {
-    return {
-      title: fallback.title,
-      content: COMMUNITY_ERROR_POPUP_MESSAGES.internal.content,
     };
   }
 

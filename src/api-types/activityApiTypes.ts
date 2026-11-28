@@ -65,7 +65,7 @@ export interface ActivityListResponse {
 }
 
 export interface ActivityListRequest {
-  userId: number;
+  userId?: number; // 비회원은 생략
   category?: ActivityCategory;
   tagIds?: number[];
   title?: string;

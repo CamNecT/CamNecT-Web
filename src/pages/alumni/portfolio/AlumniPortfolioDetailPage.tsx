@@ -38,6 +38,7 @@ export const AlumniPortfolioDetailPage = () => {
       ownerId={portfolioUserId}
       isMine={false}
       portfolioId={portfolioIdValue}
+      onServerErrorConfirm={() => navigate('..', { relative: 'path', replace: true })}
     />
   );
 };
