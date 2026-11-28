@@ -53,6 +53,7 @@ export const useCommunityErrorPopup = () => {
 
       setErrorPopup(getCommunityErrorPopupConfig({
         action,
+        status: axiosError?.response?.status,
         errorCode,
         isNetworkError: Boolean(axiosError && !axiosError.response),
       }));

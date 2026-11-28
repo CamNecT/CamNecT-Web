@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { CommunityPostLink } from '../components/CommunityPostLink';
 import Category from '../../../components/Category';
 import FilterHeader from '../../../components/FilterHeader';
 import Icon from '../../../components/Icon';
@@ -59,7 +59,7 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange, isAdm
         {posts.map((post) => {
           const isGranted = post.accessStatus === 'GRANTED';
           return (
-          <Link key={post.id} to={`/community/post/${post.id}`} className='block'>
+          <CommunityPostLink key={post.id} postId={post.id} accessStatus={post.accessStatus}>
             <article
               className='flex flex-col'
               style={{
@@ -75,7 +75,7 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange, isAdm
               </div>
 
               <div className='flex flex-col' style={{ gap: '7px' }}>
-                <div className='flex items-center gap-[6px]'>
+                {post.author.id !== 'unknown' && (<div className='flex items-center gap-[6px]'>
                   <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
                   {post.author.major ? (
                     <span className='text-r-12 text-gray-750'>
@@ -85,7 +85,7 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange, isAdm
                         : ''}
                     </span>
                   ) : null}
-                </div>
+                </div>)}
 
                 {/* 작성자 정보는 썸네일 위에 두고, 썸네일은 제목 시작선에 맞춘다. */}
                 <div className='flex gap-[12px]'>
@@ -135,7 +135,7 @@ const InfoTab = ({ posts, sortKey, onSortChange, selectedTag, onTagChange, isAdm
                 </div>
               </div>
             </article>
-          </Link>
+          </CommunityPostLink>
           );
         })}
       </div>

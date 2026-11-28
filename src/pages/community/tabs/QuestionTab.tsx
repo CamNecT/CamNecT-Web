@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { CommunityPostLink } from '../components/CommunityPostLink';
 import Category from '../../../components/Category';
 import FilterHeader from '../../../components/FilterHeader';
 import SortSelector from '../../../components/SortSelector';
@@ -80,7 +80,7 @@ const QuestionTab = ({
           const isLocked = post.accessStatus !== 'GRANTED';
           const requiredPoints = post.requiredPoints;
           return (
-            <Link key={post.id} to={`/community/post/${post.id}`} className='block'>
+            <CommunityPostLink key={post.id} postId={post.id} accessStatus={post.accessStatus} questionSummary={post}>
             <article
               className='flex flex-col'
               style={{
@@ -107,7 +107,7 @@ const QuestionTab = ({
               <div className='flex flex-col' style={{ gap: '7px' }}>
                 <div className='flex' style={{ gap: '12px' }}>
                   <div className='flex flex-1 flex-col' style={{ gap: '7px' }}>
-                    <div className='flex items-center gap-[6px]'>
+                    {post.author.id !== 'unknown' && (<div className='flex items-center gap-[6px]'>
                       <span className='text-sb-14 text-gray-900'>{post.author.name}</span>
                       {post.author.major ? (
                         <span className='text-r-12 text-gray-750'>
@@ -117,7 +117,7 @@ const QuestionTab = ({
                             : ''}
                         </span>
                       ) : null}
-                    </div>
+                    </div>)}
 
                     <div className='text-sb-16-hn leading-[150%] text-gray-900'>{post.title}</div>
 
@@ -147,7 +147,7 @@ const QuestionTab = ({
                 </div>
               </div>
             </article>
-            </Link>
+            </CommunityPostLink>
           );
         })}
       </div>

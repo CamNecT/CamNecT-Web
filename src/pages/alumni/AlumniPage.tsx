@@ -16,6 +16,7 @@ import { MainHeader } from '../../layouts/headers/MainHeader';
 import { mapAlumniApiListToProfiles } from '../../utils/alumniMapper';
 import { shouldSkipLocalErrorUI } from '../../utils/getGlobalNetworkErrorType';
 import AlumniCoffeeChatButton from './components/AlumniCoffeeChatButton';
+import { GuestAlumniSearch } from './components/GuestAlumniSearch';
 import { useAlumniChatRoom } from './hooks/useAlumniChatRoom';
 import defaultImg from "../../assets/image/defaultProfileImg.png"
 import { useAuthStore } from '../../store/useAuthStore';
@@ -26,6 +27,11 @@ const ALUMNI_PAGE_SIZE = 20;
 type AlumniSearchPageData = AlumniApiResponse['data'];
 
 export const AlumniSearchPage = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return isAuthenticated ? <MemberAlumniSearch /> : <GuestAlumniSearch />;
+};
+
+const MemberAlumniSearch = () => {
   const navigate = useNavigate();
   const authUser = useAuthStore(state => state.user);
   const meUserId = authUser?.id ? parseInt(authUser.id) : null;

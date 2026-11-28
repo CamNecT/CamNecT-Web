@@ -1,5 +1,5 @@
 export interface HomeRequest {
-    userId: number | string;
+    userId?: number | string;
 }
 
 export interface HomeResponse {
@@ -11,16 +11,16 @@ export interface HomeResponse {
 export interface HomeData {
     user: {
         displayName: string;
-    };
-    coffeeChat: HomeRequestGroup<CoffeeChatLatestItem>;
-    recruitment: HomeRequestGroup<RecruitmentLatestItem>;
+    } | null;
+    coffeeChat: HomeRequestGroup<CoffeeChatLatestItem> | null;
+    recruitment: HomeRequestGroup<RecruitmentLatestItem> | null;
     point: {
         balance: number;
-    };
+    } | null;
     alumni: {
         items: AlumniItem[];
         hasMore: boolean;
-    };
+    } | null;
     contests: {
         items: ContestItem[];
         hasMore: boolean;

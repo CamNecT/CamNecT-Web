@@ -1,3 +1,4 @@
+import { getServerErrorCode } from '../../utils/getServerErrorCode';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -27,13 +28,6 @@ import EducationSection from './components/EducationSection';
 import PortfolioSection from './components/PortfolioSection';
 import ProfileOverviewSection from './components/ProfileOverviewSection';
 import { useAlumniChatRoom } from './hooks/useAlumniChatRoom';
-
-const getErrorMessage = (error: unknown) => {
-  if (!(error instanceof AxiosError)) return '';
-  const data = error.response?.data;
-  if (!data || typeof data !== 'object' || !('message' in data)) return '';
-  return typeof data.message === 'string' ? data.message : '';
-};
 
 type AlumniProfilePageProps = {
   enableCoffeeChatModal?: boolean;
@@ -277,16 +271,21 @@ const AlumniProfileContent = ({
         return false;
       }
       const status = error instanceof AxiosError ? error.response?.status : undefined;
-      const errorMessage = getErrorMessage(error);
-      if (status === 400) {
+      const code = error instanceof AxiosError ? getServerErrorCode(error) : undefined;
+      if (status === 429 && code === '42952') {
+        setPopUpConfig({
+          title: '커피챗 요청 간격을 확인해 주세요',
+          content: '같은 동문에게는 24시간이 지난 뒤 다시 요청할 수 있어요.',
+        });
+      } else if (status === 400) {
         setPopUpConfig({
           title: '전송 실패',
           content: '상대방이 커피챗 요청을 받지 않는 상태입니다.',
         });
-      } else if (status === 409) {
+      } else if (status === 409 && (code === '48901' || code === '48902')) {
         setPopUpConfig({
           title: '전송 실패',
-          content: errorMessage.includes('활성화된 채팅방')
+          content: code === '48902'
             ? '이미 활성화된 채팅방이 존재합니다.'
             : '이미 대기 중인 커피챗 요청이 존재합니다.',
         });

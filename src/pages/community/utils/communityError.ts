@@ -5,6 +5,7 @@ import {
 } from '../../../constants/serverErrors/communityErrors';
 
 export type CommunityErrorAction =
+  | 'attachment'
   | 'postDetail'
   | 'postCreate'
   | 'postUpdate'
@@ -28,6 +29,10 @@ const ACTION_FALLBACK_MESSAGES: Record<
   CommunityErrorAction,
   CommunityErrorPopupConfig
 > = {
+  attachment: {
+    title: '첨부파일을 불러오지 못했습니다',
+    content: '잠시 후 다시 시도해 주세요.',
+  },
   postDetail: {
     title: '게시글을 불러오지 못했습니다',
     content: '게시글 상태를 확인한 뒤 다시 시도해 주세요.',
@@ -213,6 +218,7 @@ const ACTION_CODE_POPUP_MESSAGES: Partial<
 
 type GetCommunityErrorPopupConfigParams = {
   action: CommunityErrorAction;
+  status?: number;
   errorCode?: string;
   isNetworkError?: boolean;
 };
@@ -221,9 +227,18 @@ type GetCommunityErrorPopupConfigParams = {
 // 도메인 코드 안내를 우선하고 나머지는 작업별 문구로 처리한다.
 export const getCommunityErrorPopupConfig = ({
   action,
+  status,
   errorCode,
   isNetworkError = false,
 }: GetCommunityErrorPopupConfigParams): CommunityErrorPopupConfig => {
+  // 교차 도메인 작성 제한은 서버가 판단하며 클라이언트에서 별도 타이머를 만들지 않는다.
+  if (status === 429 && action === 'postCreate' && errorCode === '42951') {
+    return { title: '게시글 작성 간격을 확인해 주세요', content: '게시글은 5분 간격으로 작성할 수 있어요. 잠시 후 다시 등록해 주세요.' };
+  }
+  if (status === 429 && action === 'commentCreate' && errorCode === '42953') {
+    return { title: '댓글 작성 간격을 확인해 주세요', content: '커뮤니티와 대외활동의 댓글·답글은 30초 간격으로 작성할 수 있어요. 잠시 후 다시 보내 주세요.' };
+  }
+
   if (errorCode) {
     const actionMessage = ACTION_CODE_POPUP_MESSAGES[action]?.[errorCode];
     if (actionMessage) return actionMessage;

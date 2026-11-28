@@ -267,6 +267,27 @@ export const router = createBrowserRouter([
                 ],
             },
 
+            {
+                path: "alumni",
+                children: [
+                    { index: true, element: <AlumniSearchPage /> },
+                    {
+                        element: <AuthGuard />,
+                        children: [
+                            {
+                                path: "profile/:id",
+                                element: <AlumniProfileAccessGuard />,
+                                children: [
+                                    { index: true, element: <AlumniProfilePage /> },
+                                    { path: "portfolio", element: <AlumniPortfolioListPage /> },
+                                    { path: "portfolio/:portfolioId", element: <AlumniPortfolioDetailPage /> },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+
             // 도메인 전체에 로그인이 필요한 경로
             {
                 element: <AuthGuard />,
@@ -338,39 +359,6 @@ export const router = createBrowserRouter([
                         ]
                     },
                 
-                    {
-                        path: "alumni",
-                        children: [
-                            {
-                                index: true,
-                                element: <AlumniSearchPage />,
-                            },
-                            {
-                                path: "profile",
-                                children: [
-                                    {
-                                        path: ":id",
-                                        element: <AlumniProfileAccessGuard />,
-                                        children: [
-                                            {
-                                                index: true,
-                                                element: <AlumniProfilePage />,
-                                            },
-                                            {
-                                                path: "portfolio",
-                                                element: <AlumniPortfolioListPage />,
-                                            },
-                                            {
-                                                path: "portfolio/:portfolioId",
-                                                element: <AlumniPortfolioDetailPage />,
-                                            },
-                                        ],
-                                    }
-                                ]
-                            },
-                        ]
-                    },
-
                     {
                         path: "chat",
                         children: [

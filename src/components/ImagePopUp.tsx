@@ -9,9 +9,10 @@ type ImagePopUpProps = {
 const ImagePopUp = ({ isOpen, imageUrl, onClose }: ImagePopUpProps) => {
   if (!isOpen || !imageUrl) return null;
 
+  // 하단 내비게이션(z-100)이 이미지 확대 화면을 가리거나 클릭을 받지 않게 한다.
   return (
     <div
-      className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
+      className='fixed inset-0 z-[110] flex items-center justify-center bg-black/40'
       role='dialog'
       aria-modal='true'
     >

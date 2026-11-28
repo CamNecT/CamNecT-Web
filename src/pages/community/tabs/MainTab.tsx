@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { CommunityPostLink } from '../components/CommunityPostLink';
 import Card from '../../../components/Card';
 import Category from '../../../components/Category';
 import type { InfoPost, QuestionPost } from '../../../types/community';
@@ -85,7 +85,7 @@ const MainTab = ({
                 height="flex"
                 className="flex flex-col"
               >
-                <Link to={`/community/post/${question.id}`} className='block'>
+                <CommunityPostLink postId={question.id} accessStatus={question.accessStatus} questionSummary={question}>
                   <div
                     className='flex flex-col'
                     style={{
@@ -97,6 +97,9 @@ const MainTab = ({
                     }}
                   >
                     <div className='flex flex-wrap items-center' style={{ gap: '5px' }}>
+                      {question.accessStatus === 'LOGIN_REQUIRED' && (
+                        <span className='text-r-12 text-primary'>로그인 후 열람 가능</span>
+                      )}
                       {question.categories.map((category) => (
                         <Category key={category} label={category} className='px-[6px]' />
                       ))}
@@ -119,7 +122,7 @@ const MainTab = ({
                       </div>
                     </div>
                   </div>
-                </Link>
+                </CommunityPostLink>
               </Card>
             );
           })

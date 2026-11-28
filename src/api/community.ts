@@ -125,10 +125,11 @@ export const postCommunityBookmark = async (
 export const getCommunityPostDetail = async (data: {
   postId: number | string;
   params: GetCommunityPostDetailParams;
+  signal?: AbortSignal;
 }) => {
   const response = await axiosInstance.get<ApiResponse<CommunityPostDetailResponse>>(
     `/api/community/posts/${data.postId}`,
-    { params: data.params }
+    { params: data.params, signal: data.signal }
   );
 
   return response.data;
@@ -251,4 +252,17 @@ export const postCommunityUploadPresign = async (data: {
   );
 
   return response.data;
+};
+
+// 정보글 첨부는 비회원도 같은 경로에서 유효한 다운로드 URL을 발급받는다.
+export const getCommunityAttachmentDownload = async (
+  postId: string,
+  attachmentId: number,
+  signal?: AbortSignal,
+) => {
+  const response = await axiosInstance.get<ApiResponse<{ downloadUrl: string; expiresAt: string }>>(
+    `/api/community/posts/${postId}/attachments/${attachmentId}/download-url`,
+    { signal },
+  );
+  return response.data.data;
 };

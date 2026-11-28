@@ -21,6 +21,7 @@ import CoffeeChatBox from './components/CoffeeChatBox';
 import CommunityBox from './components/CommunityBox';
 import ContestBox from './components/ContestBox';
 import PointBox from './components/PointBox';
+import { GuestHomeView } from './components/GuestHomeView';
 import RecommendBox from './components/RecommendBox';
 import { homeGreetingUser } from './homeData';
 import { mapHomeResponseToViewModel } from './homeMapper';
@@ -123,7 +124,7 @@ export const HomePage = () => {
     };
     const storedUserName = useAuthStore((state) => state.user?.name);
     const storedUserId = useAuthStore((state) => state.user?.id);
-    const userIdParam = resolveUserIdParam(storedUserId);
+    const userIdParam = isAuthenticated ? resolveUserIdParam(storedUserId) : null;
     const hasValidUserId = userIdParam !== null;
 
     const fallbackViewModel = {
@@ -138,8 +139,8 @@ export const HomePage = () => {
 
     const { data: homeResponse, error: homeError, isPending, isLoadingError, isFetching } = useQuery({
         queryKey: ['home', userIdParam],
-        queryFn: () => requestHome({ userId: userIdParam as string | number }),
-        enabled: hasValidUserId,
+        queryFn: ({ signal }) => requestHome({ userId: userIdParam ?? undefined }, signal),
+        enabled: !isAuthenticated || hasValidUserId,
         staleTime: 60 * 1000,
     });
 
@@ -207,144 +208,146 @@ export const HomePage = () => {
         // 홈 1번 영역: 인사말, 커피챗 요청, 포인트/커뮤니티 카드 틀 구성
         <FullLayout>
             <div className="mx-auto w-full max-w-[var(--app-mobile-max-width)] bg-white">
-                <section className="bg-primary px-[25px] pt-[22px] pb-[62px]">
-                    <div className="flex items-center justify-between">
-                        <span
-                            role="img"
-                            aria-label="캠넥트 로고"
-                            className="text-white [&_svg]:h-[27px] [&_svg]:w-[138px] [&_path]:fill-white"
-                        >
-                            <Logo />
-                        </span>
-                        {/* 아이콘·알림 뱃지 위치는 유지하고 패딩으로 터치 영역만 48px로 넓힌다. */}
-                        <PressableMotion
-                            as="button"
-                            intensity="soft"
-                            type="button"
-                            aria-label="알림"
-                            className="-my-3 -mr-3 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3 active:bg-white/15"
-                            onClick={() => navigate('/home/notices')}
-                        >
-                            <span className="relative inline-flex h-6 w-6">
-                                <Icon name="bell_notification" size={24} style={{ color: 'var(--ColorWhite,#FFF)' }} />
-                                {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
-                            </span>
-                        </PressableMotion>
-                    </div>
-
-                    {/* 1-1: 사용자 인사 메시지 */}
-                    <div className="mt-[36px] flex flex-col gap-[4px] px-[5px]">
-                        <p className="text-b-20 text-white">
-                            안녕하세요, {userName}님!
-                        </p>
-                        <p className="text-r-16 text-[#F0F0F0]">
-                            오늘도 성공적인 캠퍼스 라이프를 응원합니다!
-                        </p>
-                    </div>
-                </section>
-
-                <section className="-mt-[32px] flex w-full flex-col gap-[20px] px-[25px] pb-[40px]">
-                    <CoffeeChatBox
-                        coffeeChatCount={homeViewModel.coffeeChatTotalCount}
-                        teamRecruitCount={homeViewModel.recruitmentTotalCount}
-                        onViewAll={() => navigate('/chat')}
-                        // 요청이 없을 때는 새 요청을 시작할 수 있는 탐색 화면으로 안내하고,
-                        // 요청이 있으면 요청 목록의 해당 탭으로 이동합니다.
-                        onSelectCoffeeChat={() =>
-                            navigate(
-                                homeViewModel.coffeeChatTotalCount === 0
-                                    ? '/alumni'
-                                    : '/chat/requests?type=COFFEE_CHAT',
-                            )
-                        }
-                        onSelectTeamRecruit={() =>
-                            navigate(
-                                homeViewModel.recruitmentTotalCount === 0
-                                    ? '/activity?tab=external'
-                                    : '/chat/requests?type=TEAM_RECRUIT',
-                            )
-                        }
-                    />
-                    {/* 1-2: 일정 박스 + 포인트/커뮤니티 박스 */}
-                    <div className="flex w-full flex-col gap-[15px]">
-                        {/*<CheckScheduleBox />*/}
-                        <div className="flex w-full justify-between gap-[20px]">
-                            <PointBox points={point} />
-                            <CommunityBox />
-                        </div>
-                    </div>
-                </section>
-
-                {/* 홈 2번 영역: 추천 동문 리스트 */}
-                <section
-                    className="flex w-full flex-col gap-[14px] bg-[var(--color-gray-100)] px-[25px] pt-[30px] pb-[35px]"
-                >
-                    <PressableMotion
-                        as="button"
-                        intensity="soft"
-                        type="button"
-                        className="flex w-fit items-center gap-[5px]"
-                        onClick={() => navigate('/alumni')}
-                    >
-                        <span className="text-sb-20 text-black">추천 동문</span>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path d="M8.25 4.5L15.75 12L8.25 19.5" stroke="#646464" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </PressableMotion>
-
-                    <div className="flex w-full flex-col gap-[20px]">
-                        <div className="flex w-full flex-col gap-[15px]">
-                            <div className="flex w-full flex-col gap-[10px]">
-                                {visibleRecommands.map((recommand) => (
-                                    <RecommendBox
-                                        key={`${recommand.name}-${recommand.studentId}`}
-                                        userId={recommand.userId}
-                                        name={recommand.name}
-                                        profileImage={recommand.profileImage}
-                                        major={recommand.major}
-                                        studentId={recommand.studentId}
-                                        intro={recommand.intro}
-                                        categories={recommand.categories}
-                                        onRequestChat={() =>
-                                            navigate(
-                                                `/alumni/profile/${encodeURIComponent(recommand.userId)}?coffeeChat=1`,
-                                            )
-                                        }
-                                    />
-                                ))}
+                {isAuthenticated ? (
+                    <>
+                        <section className="bg-primary px-[25px] pt-[22px] pb-[62px]">
+                            <div className="flex items-center justify-between">
+                                <span
+                                    role="img"
+                                    aria-label="캠넥트 로고"
+                                    className="text-white [&_svg]:h-[27px] [&_svg]:w-[138px] [&_path]:fill-white"
+                                >
+                                    <Logo />
+                                </span>
+                                <PressableMotion
+                                    as="button"
+                                    intensity="soft"
+                                    type="button"
+                                    aria-label="알림"
+                                    className="-my-3 -mr-3 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[5px] p-3 active:bg-white/15"
+                                    onClick={() => navigate('/home/notices')}
+                                >
+                                    <span className="relative inline-flex h-6 w-6">
+                                        <Icon name="bell_notification" size={24} style={{ color: 'var(--ColorWhite,#FFF)' }} />
+                                        {hasUnreadNotifications ? <Badge color="var(--color-red)" /> : null}
+                                    </span>
+                                </PressableMotion>
                             </div>
 
-                            <Card
-                                width="100%"
-                                height="50px"
-                                className="flex items-center justify-center cursor-pointer"
-                                onClick={handleRecommendMoreClick}
-                            >
-                                <span className="flex items-center justify-center gap-[5px] text-m-14 text-gray-900 tracking-[-0.04em]">
-                                    {recommendButtonText}
-                                    {recommendButtonText === '더보기' ? (
-                                        <Icon name="arrow_down" />
-                                    ) : null}
-                                </span>
-                            </Card>
-                        </div>
-                    </div>
-                </section>
+                            {/* 1-1: 사용자 인사 메시지 */}
+                            <div className="mt-[36px] flex flex-col gap-[4px] px-[5px]">
+                                <p className="text-b-20 text-white">
+                                    안녕하세요, {userName}님!
+                                </p>
+                                <p className="text-r-16 text-[#F0F0F0]">
+                                    오늘도 성공적인 캠퍼스 라이프를 응원합니다!
+                                </p>
+                            </div>
+                        </section>
 
-                {/* 홈 3번 영역: 주목받은 공모전 리스트 */}
-                <section className="flex w-full flex-col gap-[10px] bg-white px-[25px] pt-[25px] pb-[60px]">
-                    <ContestBox
-                        contests={homeViewModel.contests}
-                        onTitleClick={() => navigate('/activity?tab=external')}
-                        onItemClick={(contest) => navigate(`/activity/external/${contest.id}`)}
-                        onMoreClick={() => navigate('/activity?tab=external')}
-                    />
-                </section>
+                        <section className="-mt-[32px] flex w-full flex-col gap-[20px] px-[25px] pb-[40px]">
+                            <CoffeeChatBox
+                                coffeeChatCount={homeViewModel.coffeeChatTotalCount}
+                                teamRecruitCount={homeViewModel.recruitmentTotalCount}
+                                onViewAll={() => navigate('/chat')}
+                                // 요청이 없을 때는 새 요청을 시작할 수 있는 탐색 화면으로 안내하고,
+                                // 요청이 있으면 요청 목록의 해당 탭으로 이동합니다.
+                                onSelectCoffeeChat={() =>
+                                    navigate(
+                                        homeViewModel.coffeeChatTotalCount === 0
+                                            ? '/alumni'
+                                            : '/chat/requests?type=COFFEE_CHAT',
+                                    )
+                                }
+                                onSelectTeamRecruit={() =>
+                                    navigate(
+                                        homeViewModel.recruitmentTotalCount === 0
+                                            ? '/activity?tab=external'
+                                            : '/chat/requests?type=TEAM_RECRUIT',
+                                    )
+                                }
+                            />
+                            {/* 1-2: 일정 박스 + 포인트/커뮤니티 박스 */}
+                            <div className="flex w-full flex-col gap-[15px]">
+                                {/*<CheckScheduleBox />*/}
+                                <div className="flex w-full justify-between gap-[20px]">
+                                    <PointBox points={point} />
+                                    <CommunityBox />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* 홈 2번 영역: 추천 동문 리스트 */}
+                        <section
+                            className="flex w-full flex-col gap-[14px] bg-[var(--color-gray-100)] px-[25px] pt-[30px] pb-[35px]"
+                        >
+                            <PressableMotion
+                                as="button"
+                                intensity="soft"
+                                type="button"
+                                className="flex w-fit items-center gap-[5px]"
+                                onClick={() => navigate('/alumni')}
+                            >
+                                <span className="text-sb-20 text-black">추천 동문</span>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+                                    <path d="M8.25 4.5L15.75 12L8.25 19.5" stroke="#646464" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </PressableMotion>
+
+                            <div className="flex w-full flex-col gap-[20px]">
+                                <div className="flex w-full flex-col gap-[15px]">
+                                    <div className="flex w-full flex-col gap-[10px]">
+                                        {visibleRecommands.map((recommand) => (
+                                            <RecommendBox
+                                                key={`${recommand.name}-${recommand.studentId}`}
+                                                userId={recommand.userId}
+                                                name={recommand.name}
+                                                profileImage={recommand.profileImage}
+                                                major={recommand.major}
+                                                studentId={recommand.studentId}
+                                                intro={recommand.intro}
+                                                categories={recommand.categories}
+                                                onRequestChat={() =>
+                                                    navigate(
+                                                        `/alumni/profile/${encodeURIComponent(recommand.userId)}?coffeeChat=1`,
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+
+                                    <Card
+                                        width="100%"
+                                        height="50px"
+                                        className="flex items-center justify-center cursor-pointer"
+                                        onClick={handleRecommendMoreClick}
+                                    >
+                                        <span className="flex items-center justify-center gap-[5px] text-m-14 text-gray-900 tracking-[-0.04em]">
+                                            {recommendButtonText}
+                                            {recommendButtonText === '더보기' ? (
+                                                <Icon name="arrow_down" />
+                                            ) : null}
+                                        </span>
+                                    </Card>
+                                </div>
+                            </div>
+                        </section>
+                        {/* 홈 3번 영역: 주목받은 공모전 리스트 */}
+                        <section className="flex w-full flex-col gap-[10px] bg-white px-[25px] pt-[25px] pb-[60px]">
+                            <ContestBox
+                                contests={homeViewModel.contests}
+                                onTitleClick={() => navigate('/activity?tab=external')}
+                                onItemClick={(contest) => navigate(`/activity/external/${contest.id}`)}
+                                onMoreClick={() => navigate('/activity?tab=external')}
+                            />
+                        </section>
+                    </>
+                ) : <GuestHomeView contests={homeViewModel.contests} />}
             </div>
 
             {/* FCM 알림 권한 요청 팝업 (Soft Prompt) */}
             <PopUp
-                isOpen={isNotificationPopupOpen && !popUpConfig}
+                isOpen={isAuthenticated && isNotificationPopupOpen && !popUpConfig}
                 type="info"
                 title="실시간 채팅 알림"
                 content="새로운 메시지 알림을 받으시겠어요?\n언제든 설정에서 변경할 수 있습니다."
