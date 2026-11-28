@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { type MouseEvent, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import { LinkifiedText } from './LinkifiedText';
 
@@ -50,6 +50,21 @@ export const ExpandableIntroduction = ({
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [isExpanded]);
 
+  const canToggle = isOverflowing || isExpanded;
+  const toggleExpanded = () => setIsExpanded(expanded => !expanded);
+
+  const handleIntroductionClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target;
+    // 링크와 버튼에서 올라온 클릭은 건너뜀 -> 링크 이동은 그대로 두고 버튼은 한 번만 동작한다.
+    if (event.defaultPrevented || !(target instanceof Element) || target.closest('a, button')) return;
+
+    // 자기소개를 드래그해서 선택할 때는 카드가 접히지 않도록 한다.
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && event.currentTarget.contains(selection.anchorNode)) return;
+
+    toggleExpanded();
+  };
+
   const baseTextClassName = `whitespace-pre-line [overflow-wrap:anywhere] ${textClassName}`;
   // 테두리랑 안쪽 여백만큼 카드를 바깥으로 빼서 접힌 본문과 첫 줄 위치, 너비를 맞춘다.
   const controlsClassName = isExpanded
@@ -65,7 +80,11 @@ export const ExpandableIntroduction = ({
   );
 
   return (
-    <div ref={wrapperRef} className={`min-w-0 ${className}`}>
+    <div
+      ref={wrapperRef}
+      onClick={canToggle ? handleIntroductionClick : undefined}
+      className={`min-w-0 ${canToggle ? 'cursor-pointer' : ''} ${className}`}
+    >
       {/* 페이지에서 준 위쪽 여백 아래부터 위치를 잡아야 펼쳤을 때 첫 줄이 위로 올라가지 않는다. */}
       <div className='relative'>
         {/* 버튼 자리 때문에 줄 수가 바뀔 수 있음 -> 더보기 판단과 기본 높이는 본문만으로 잡는다. */}
@@ -87,7 +106,7 @@ export const ExpandableIntroduction = ({
           </div>
         )}
 
-        {(isOverflowing || isExpanded) && (
+        {canToggle && (
           <div className={controlsClassName}>
             <p id={expandedTextId} hidden={!isExpanded} className={baseTextClassName}>
               {isExpanded && <LinkifiedText text={text} />}
@@ -97,7 +116,7 @@ export const ExpandableIntroduction = ({
               type='button'
               aria-controls={expandedTextId}
               aria-expanded={isExpanded}
-              onClick={() => setIsExpanded(expanded => !expanded)}
+              onClick={toggleExpanded}
               className={`flex items-center gap-[2px] text-m-14-hn text-gray-900 ${isExpanded ? 'self-end' : 'pl-[8px]'}`}
             >
               {isExpanded ? '접기' : '더보기'}
