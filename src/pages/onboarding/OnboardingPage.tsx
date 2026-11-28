@@ -30,19 +30,40 @@ const ONBOARDING_DATA = [
 const AUTO_ADVANCE_DELAY = 5000;
 const SCROLL_SETTLE_DELAY = 150;
 const SLIDE_COUNT = ONBOARDING_DATA.length;
+// 첫 장 앞에 마지막 장, 마지막 장 뒤에 첫 장을 복제 (양방향 순환)
 const TRACK_SLIDES = [ONBOARDING_DATA[SLIDE_COUNT - 1], ...ONBOARDING_DATA, ONBOARDING_DATA[0]];
 
+// 트랙 위치를 점 표시와 전환 예약에 쓰는 원본 인덱스로 변환
+const getSlideIndex = (scrollLeft: number, clientWidth: number) => {
+  const nearestPosition = Math.round(scrollLeft / clientWidth);
+  const trackIndex = Math.min(SLIDE_COUNT + 1, Math.max(0, nearestPosition));
+  return (trackIndex + SLIDE_COUNT - 1) % SLIDE_COUNT;
+};
+
+// 스플래시 이후 기능 소개 슬라이드를 보여주는 온보딩 진입 화면
 export const OnboardingPage = () => {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  // 기기의 동작 줄이기 설정 확인 (자동 전환에 사용)
   const reduceMotion = useReducedMotion();
+  // 가로 스크롤 영역 참조 (화면 너비 조회·슬라이드 이동)
   const carouselRef = useRef<HTMLElement | null>(null);
+
+  // 터치·스크롤 진행 상태와 정착 타이머 (자동 전환과 제스처 충돌 방지)
   const isTouching = useRef(false);
+  const isSettling = useRef(false);
   const scrollSettleTimer = useRef<number>(undefined);
+  // 마지막으로 정착한 장과 자동 전환 예정 시각 (터치 중에도 시각 유지)
+  const settledSlide = useRef({ index: 0, advanceAt: 0 });
   const [showSplash, setShowSplash] = useState(true);
+  
+  // 스크롤 중 화면에 가장 가까운 장 (활성 점 표시)
   const [currentIndex, setCurrentIndex] = useState(0);
+  // 터치하거나 스크롤하는 동안 자동 전환 예약 보류
   const [isInteracting, setIsInteracting] = useState(false);
 
+  // 트랙 칸 번호를 가로 스크롤 좌표로 변환해 이동
   const scrollToTrackPosition = useCallback((index: number, behavior: ScrollBehavior = 'auto') => {
     const carousel = carouselRef.current;
     if (!carousel) return;
@@ -50,28 +71,51 @@ export const OnboardingPage = () => {
     carousel.scrollTo({ left: index * carousel.clientWidth, behavior });
   }, []);
 
+  // 복제 화면에 도착하면 다음 스와이프를 받을 수 있도록 원본 위치로 이동
+  const restoreLoopPosition = (carousel: HTMLElement) => {
+    const { scrollLeft, clientWidth } = carousel;
+    if (!clientWidth) return;
+
+    if (scrollLeft <= 1) {
+      scrollToTrackPosition(SLIDE_COUNT, 'instant');
+    } else if (scrollLeft >= (SLIDE_COUNT + 1) * clientWidth - 1) {
+      scrollToTrackPosition(1, 'instant');
+    }
+  };
+
+  // 스크롤이 멈추면 도착한 장과 자동 전환 예정 시각 확정
   const settleScroll = (carousel: HTMLElement) => {
+    isSettling.current = true;
     setIsInteracting(true);
     window.clearTimeout(scrollSettleTimer.current);
     if (isTouching.current) return;
 
+    // 다음 터치가 정착 타이머를 취소할 수 있으므로 복제본 위치를 먼저 보정
+    restoreLoopPosition(carousel);
+    // 손을 뗀 뒤에도 관성 스크롤이 이어져 마지막 스크롤 이벤트 이후 정착 판단
     scrollSettleTimer.current = window.setTimeout(() => {
       const { scrollLeft, clientWidth } = carousel;
-      if (!clientWidth) return;
-
-      // 양 끝의 복제 화면에 도착하면 같은 내용의 원본 위치로 즉시 옮긴다.
-      if (scrollLeft <= 1) {
-        scrollToTrackPosition(SLIDE_COUNT, 'instant');
-      } else if (scrollLeft >= (SLIDE_COUNT + 1) * clientWidth - 1) {
-        scrollToTrackPosition(1, 'instant');
+      if (clientWidth) {
+        const index = getSlideIndex(scrollLeft, clientWidth);
+        // 다른 장에 정착한 경우에만 5초를 다시 계산
+        if (index !== settledSlide.current.index) {
+          settledSlide.current = { index, advanceAt: performance.now() + AUTO_ADVANCE_DELAY };
+        }
       }
+      isSettling.current = false;
       setIsInteracting(false);
     }, SCROLL_SETTLE_DELAY);
   };
 
+  // 손을 뗀 뒤 스크롤 진행 여부에 따라 자동 전환 재예약
   const finishTouch = (carousel: HTMLElement) => {
     isTouching.current = false;
-    settleScroll(carousel);
+    if (isSettling.current) {
+      settleScroll(carousel);
+    } else {
+      // 누르기만 한 경우 남은 시간으로 바로 자동 전환 예약
+      setIsInteracting(false);
+    }
   };
 
   // 로그인된 유저라면 온보딩을 건너뛰고 홈으로 이동
@@ -89,21 +133,30 @@ export const OnboardingPage = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // 스플래시 종료 후 첫 장 배치와 자동 전환 시각 초기화
   useLayoutEffect(() => {
-    if (!showSplash) scrollToTrackPosition(1, 'instant');
+    if (showSplash) return;
+
+    settledSlide.current = { index: 0, advanceAt: performance.now() + AUTO_ADVANCE_DELAY };
+    // 화면을 그리기 전에 1번 원본 위치로 이동 (트랙 첫 칸은 마지막 장 복제본)
+    scrollToTrackPosition(1, 'instant');
   }, [showSplash, scrollToTrackPosition]);
 
+  // 온보딩을 벗어나면 스크롤 정착 타이머 정리
   useEffect(() => () => window.clearTimeout(scrollSettleTimer.current), []);
 
+  // 자동 전환 예약 (터치 해제 후 남은 시간만 대기, 만료 시 즉시 전환)
   useEffect(() => {
     if (showSplash || isInteracting || reduceMotion) return;
 
+    const { index, advanceAt } = settledSlide.current;
     const timer = window.setTimeout(() => {
-      if (!isTouching.current) scrollToTrackPosition(currentIndex + 2);
-    }, AUTO_ADVANCE_DELAY);
+      // 다음 장의 트랙 위치 (앞쪽 복제본 1칸 + 다음 장 1칸)
+      if (!isTouching.current && !isSettling.current) scrollToTrackPosition(index + 2);
+    }, Math.max(0, advanceAt - performance.now()));
 
     return () => window.clearTimeout(timer);
-  }, [showSplash, isInteracting, reduceMotion, currentIndex, scrollToTrackPosition]);
+  }, [showSplash, isInteracting, reduceMotion, scrollToTrackPosition]);
 
   if (showSplash) {
     return <FirstSplashPage />;
@@ -111,15 +164,17 @@ export const OnboardingPage = () => {
 
   return (
     <div className="absolute inset-0 bg-white overflow-hidden">
+      {/* 문구·이미지 선택을 막고, 바깥 스크롤 영역에서 스와이프 처리 */}
       <section
         ref={carouselRef}
         aria-label="기능 소개"
         tabIndex={0}
         className="absolute inset-x-0 top-0 bottom-[240px] flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain select-none motion-safe:scroll-smooth [-webkit-touch-callout:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onContextMenu={(event) => event.preventDefault()}
-        onTouchStart={() => {
+        onTouchStart={({ currentTarget }) => {
           isTouching.current = true;
           window.clearTimeout(scrollSettleTimer.current);
+          restoreLoopPosition(currentTarget);
           setIsInteracting(true);
         }}
         onTouchEnd={({ currentTarget, touches }) => {
@@ -130,9 +185,7 @@ export const OnboardingPage = () => {
           const { scrollLeft, clientWidth } = currentTarget;
           if (!clientWidth) return;
 
-          const nearestPosition = Math.round(scrollLeft / clientWidth);
-          const trackIndex = Math.min(SLIDE_COUNT + 1, Math.max(0, nearestPosition));
-          setCurrentIndex((trackIndex + SLIDE_COUNT - 1) % SLIDE_COUNT);
+          setCurrentIndex(getSlideIndex(scrollLeft, clientWidth));
           settleScroll(currentTarget);
         }}
       >
