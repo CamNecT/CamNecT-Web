@@ -288,6 +288,38 @@ export const router = createBrowserRouter([
                 ],
             },
 
+            {
+                path: "chat",
+                children: [
+                    {
+                        index: true,
+                        element: <ChatListPage />,
+                    },
+                    {
+                        element: <AuthGuard />,
+                        children: [
+                            {
+                                path: ":id",
+                                element: <ChatRoomPage />,
+                            },
+                            {
+                                path: "requests",
+                                children: [
+                                    {
+                                        index: true,
+                                        element: <ChatRequestListPage />,
+                                    },
+                                    {
+                                        path: ":id",
+                                        element: <ChatRequestRoomPage />,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+
             // 도메인 전체에 로그인이 필요한 경로
             {
                 element: <AuthGuard />,
@@ -359,33 +391,6 @@ export const router = createBrowserRouter([
                         ]
                     },
                 
-                    {
-                        path: "chat",
-                        children: [
-                            {
-                                index: true,
-                                element: <ChatListPage />,
-                            },
-                            {
-                                path: ":id",
-                                element: <ChatRoomPage />,
-                            },
-                            {
-                                path: "requests", 
-                                children: [
-                                    {
-                                        index: true,
-                                        element: <ChatRequestListPage />,
-                                    },
-                                    {
-                                        path: ":id",
-                                        element: <ChatRequestRoomPage />,
-                                    }
-                                ]
-                            }
-                        ]
-                        
-                    },
                     {
                         path: "schedule",
                         element: <Schedule />,
