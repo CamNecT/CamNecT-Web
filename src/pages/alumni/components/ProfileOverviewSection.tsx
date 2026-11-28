@@ -18,6 +18,9 @@ type ProfileOverviewSectionProps = {
   onCoffeeChatClick: () => void;
 };
 
+const introductionPositionClassName = '[padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]';
+const introductionTextClassName = 'text-r-14 text-[color:var(--ColorGray2,#A1A1A1)]';
+
 const ProfileOverviewSection = ({
   profile,
   isFollowing,
@@ -89,11 +92,17 @@ const ProfileOverviewSection = ({
           <div aria-hidden className='h-full [grid-column:1/2] [grid-row:2/3]' />
         )}
 
-        <ExpandableIntroduction
-          text={profile.intro}
-          className='[padding-top:clamp(8px,3cqw,11px)] [grid-column:2/3] [grid-row:2/3]'
-          textClassName='text-r-14 text-[color:var(--ColorGray2,#A1A1A1)]'
-        />
+        {profile.intro.trim() ? (
+          <ExpandableIntroduction
+            text={profile.intro}
+            className={introductionPositionClassName}
+            textClassName={introductionTextClassName}
+          />
+        ) : (
+          <p className={`${introductionPositionClassName} ${introductionTextClassName}`}>
+            아직 등록된 자기소개가 없어요
+          </p>
+        )}
       </div>
     </section>
 
